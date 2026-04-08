@@ -14,28 +14,29 @@ import {
   Italic,
   List,
   ListOrdered,
-  Lock,
   MoreHorizontal,
   Plus,
   Quote,
-  Search,
   Sparkles,
   Trash2,
   Undo2,
   Upload,
   Download,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useLocale } from "@/components/providers/locale-provider";
 import type {
   DocumentRecord,
   SyntextState,
   User,
 } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
+import { EditorPermissionPopover } from "@/features/editor/components/editor-permission-popover";
+import { EditorSearchPopover } from "@/features/editor/components/editor-search-popover";
+import { DocumentStatusState } from "@/features/editor/components/document-status-state";
 import {
   editorHtmlToMarkdown,
   markdownToEditorHtml,
@@ -262,7 +263,11 @@ function getAccessPermission(
   user: User,
   document: DocumentRecord,
 ) {
-  if (document.ownerUserId === user.id) {
+  const workspace = state.workspaces.find(
+    (item) => item.id === document.workspaceId,
+  );
+
+  if (workspace?.ownerUserId === user.id) {
     return "owner" as const;
   }
 
@@ -278,7 +283,8 @@ function getAccessEntries(
   document: DocumentRecord,
   currentWorkspaceUserIds: Set<string>,
 ) {
-  const owner = state.users.find((user) => user.id === document.ownerUserId);
+  const workspace = state.workspaces.find((item) => item.id === document.workspaceId);
+  const owner = state.users.find((user) => user.id === workspace?.ownerUserId);
 
   const guestEntries = state.accesses
     .filter(
@@ -525,9 +531,11 @@ function EditorSurface({
   permission,
   saveDocument,
 }: EditorSurfaceProps) {
+  const router = useRouter();
   const {
     currentUser,
     currentWorkspace,
+    moveDocumentToTrash,
     shareDocument,
     state,
     updateDocumentAccess,
@@ -1681,306 +1689,119 @@ function EditorSurface({
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <button
-                  className="flex min-h-10 items-center gap-2 border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-sm shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
-                  onClick={() => {
-                    setPermissionMenuOpen((current) => !current);
-                    setPermissionError(null);
-                    setPermissionNotice(null);
-                    setActionError(null);
-                    setActionNotice(null);
-                    setSearchMenuOpen(false);
-                    setOverflowMenuOpen(false);
-                  }}
-                  ref={permissionButtonRef}
-                  type="button"
-                >
-                  {document.status === "private" ? (
-                    <>
-                      <Lock className="size-4 text-[var(--color-muted-foreground)]" />
-                      <span>Private</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Shared</span>
-                      <div className="flex items-center -space-x-1">
-                        {sharedAvatars.map((entry) => (
-                          <span
-                            className="flex size-6 items-center justify-center rounded-full border border-white bg-[var(--color-sidebar-panel)] text-[11px] font-semibold text-[var(--color-muted-foreground)]"
-                            key={entry.id}
-                            title={entry.name}
-                          >
-                            {entry.name.slice(0, 1).toUpperCase()}
-                          </span>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  <ChevronDown
-                    className={`size-4 text-[var(--color-muted-foreground)] transition ${
-                      permissionMenuOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+              <EditorPermissionPopover
+                accessEntries={accessEntries}
+                canManageAccess={canManageAccess}
+                currentUserId={currentUser?.id}
+                documentStatus={document.status}
+                guestBadgeClass={guestBadgeClass}
+                onCloseOtherMenus={() => {
+                  setActionError(null);
+                  setActionNotice(null);
+                  setSearchMenuOpen(false);
+                  setOverflowMenuOpen(false);
+                }}
+                onPermissionMenuToggle={setPermissionMenuOpen}
+                onRemoveAccess={async (userId) => {
+                  setPermissionBusy(true);
+                  setPermissionError(null);
+                  setPermissionNotice(null);
+                  const result = await removeDocumentAccess(document.id, userId);
+                  setPermissionBusy(false);
 
-                {permissionMenuOpen ? (
-                  <div
-                    className="absolute right-0 top-[calc(100%+10px)] z-20 w-[468px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
-                    ref={permissionMenuRef}
-                  >
-                  <div className="border-b border-[var(--color-border)] px-4 py-3">
-                    <p className="text-[15px] font-semibold text-[var(--color-foreground)]">
-                      Share
-                    </p>
-                  </div>
+                  if (!result.ok) {
+                    setPermissionError(result.error);
+                    return;
+                  }
 
-                  <div className="px-4 py-4">
-                    {canManageAccess ? (
-                      <form
-                        className="space-y-3 border-b border-[var(--color-border)] pb-4"
-                        onSubmit={async (event) => {
-                          event.preventDefault();
-                          setPermissionBusy(true);
-                          setPermissionError(null);
-                          setPermissionNotice(null);
+                  setPermissionNotice("Access removed");
+                }}
+                onShareEmailChange={setShareEmail}
+                onSharePermissionChange={setSharePermission}
+                onShareSubmit={async (event) => {
+                  event.preventDefault();
+                  setPermissionBusy(true);
+                  setPermissionError(null);
+                  setPermissionNotice(null);
 
-                          const result = await shareDocument(document.id, {
-                            email: shareEmail,
-                            permission: sharePermission,
-                          });
+                  const result = await shareDocument(document.id, {
+                    email: shareEmail,
+                    permission: sharePermission,
+                  });
 
-                          setPermissionBusy(false);
+                  setPermissionBusy(false);
 
-                          if (!result.ok) {
-                            setPermissionError(result.error);
-                            return;
-                          }
+                  if (!result.ok) {
+                    setPermissionError(result.error);
+                    return;
+                  }
 
-                          setShareEmail("");
-                          setSharePermission("can_view");
-                          setPermissionNotice("Guest added");
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            className="h-10 min-w-0 flex-1 border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm text-[var(--color-foreground)] outline-none transition focus:border-[var(--color-ring)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-ring)_15%,transparent)]"
-                            onChange={(event) => {
-                              setShareEmail(event.target.value);
-                            }}
-                            placeholder="Email"
-                            spellCheck={false}
-                            type="email"
-                            value={shareEmail}
-                          />
-                          <PermissionDropdown
-                            onSelect={(nextPermission) => {
-                              setSharePermission(nextPermission);
-                            }}
-                            value={sharePermission}
-                            widthClassName="w-[108px]"
-                          />
-                          <button
-                            className="h-9 shrink-0 bg-[var(--color-primary)] px-3 text-xs font-semibold text-[var(--color-primary-foreground)] transition hover:brightness-95 disabled:opacity-50"
-                            disabled={permissionBusy}
-                            type="submit"
-                          >
-                            Share
-                          </button>
-                        </div>
-                      </form>
-                    ) : null}
+                  setShareEmail("");
+                  setSharePermission("can_view");
+                  setPermissionNotice("Guest added");
+                }}
+                onUpdateAccess={async (userId, nextPermission) => {
+                  setPermissionBusy(true);
+                  setPermissionError(null);
+                  setPermissionNotice(null);
+                  const result = await updateDocumentAccess(
+                    document.id,
+                    userId,
+                    nextPermission,
+                  );
+                  setPermissionBusy(false);
 
-                    <div className={`${canManageAccess ? "mt-4" : ""} space-y-1`}>
-                      {accessEntries.map((entry) => {
-                        const isOwnerEntry = entry.permission === "owner";
-                        const isCurrentUser = currentUser?.id === entry.userId;
-                        const editablePermission =
-                          entry.permission === "can_edit" ? "can_edit" : "can_view";
+                  if (!result.ok) {
+                    setPermissionError(result.error);
+                    return;
+                  }
 
-                        return (
-                          <div
-                            className="flex items-center gap-3 px-1.5 py-2"
-                            key={entry.id}
-                          >
-                            <span className="flex size-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] text-sm font-medium text-[var(--color-muted-foreground)]">
-                              {entry.name.slice(0, 1).toUpperCase()}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className="truncate text-sm font-medium">{entry.name}</p>
-                                {!isOwnerEntry ? (
-                                  <span className={guestBadgeClass}>
-                                    Guest
-                                  </span>
-                                ) : null}
-                                {isCurrentUser ? (
-                                  <span className="text-sm text-[var(--color-muted-foreground)]">
-                                    (You)
-                                  </span>
-                                ) : null}
-                              </div>
-                              <p className="truncate text-sm text-[var(--color-muted-foreground)]">
-                                {entry.email}
-                              </p>
-                            </div>
-                            {canManageAccess && !isOwnerEntry ? (
-                              <div className="flex items-center gap-2">
-                                <PermissionDropdown
-                                  align="right"
-                                  disabled={permissionBusy}
-                                  onSelect={async (nextPermission) => {
-                                    setPermissionBusy(true);
-                                    setPermissionError(null);
-                                    setPermissionNotice(null);
-                                    const result = await updateDocumentAccess(
-                                      document.id,
-                                      entry.userId,
-                                      nextPermission,
-                                    );
-                                    setPermissionBusy(false);
+                  setPermissionNotice("Permission updated");
+                }}
+                permissionBusy={permissionBusy}
+                permissionButtonRef={permissionButtonRef}
+                permissionError={permissionError}
+                permissionLabel={permissionLabel}
+                permissionMenuOpen={permissionMenuOpen}
+                permissionMenuRef={permissionMenuRef}
+                permissionNotice={permissionNotice}
+                PermissionDropdown={PermissionDropdown}
+                setPermissionError={setPermissionError}
+                setPermissionNotice={setPermissionNotice}
+                shareEmail={shareEmail}
+                sharePermission={sharePermission}
+                sharedAvatars={sharedAvatars}
+              />
 
-                                    if (!result.ok) {
-                                      setPermissionError(result.error);
-                                      return;
-                                    }
-
-                                    setPermissionNotice("Permission updated");
-                                  }}
-                                  value={editablePermission}
-                                  widthClassName="w-[108px]"
-                                />
-                                <button
-                                  className="flex size-8 items-center justify-center text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[#b44c07]"
-                                  onClick={async () => {
-                                    setPermissionBusy(true);
-                                    setPermissionError(null);
-                                    setPermissionNotice(null);
-                                    const result = await removeDocumentAccess(
-                                      document.id,
-                                      entry.userId,
-                                    );
-                                    setPermissionBusy(false);
-
-                                    if (!result.ok) {
-                                      setPermissionError(result.error);
-                                      return;
-                                    }
-
-                                    setPermissionNotice("Access removed");
-                                  }}
-                                  type="button"
-                                >
-                                  <X className="size-4" />
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-sm text-[var(--color-muted-foreground)]">
-                                {isOwnerEntry ? "Owner" : permissionLabel(entry.permission)}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {permissionError ? (
-                      <p className="pt-1 text-sm text-[#dd5b00]">{permissionError}</p>
-                    ) : null}
-                    {permissionNotice ? (
-                      <p className="pt-1 text-sm text-[var(--color-muted-foreground)]">
-                        {permissionNotice}
-                      </p>
-                    ) : null}
-                  </div>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="relative">
-                <button
-                  className="flex size-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
-                  onClick={() => {
-                    setSearchMenuOpen((current) => !current);
-                    setActionError(null);
-                    setActionNotice(null);
-                    setOverflowMenuOpen(false);
-                    setPermissionMenuOpen(false);
-                  }}
-                  ref={searchButtonRef}
-                  type="button"
-                >
-                  <Search className="size-4 text-[var(--color-muted-foreground)]" />
-                </button>
-
-                {searchMenuOpen ? (
-                  <div
-                    className="absolute right-0 top-[calc(100%+10px)] z-20 w-[320px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
-                    ref={searchMenuRef}
-                  >
-                    <div className="border-b border-[var(--color-border)] px-4 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-[15px] font-semibold text-[var(--color-foreground)]">
-                          Search
-                        </label>
-                        <span className="w-28 text-right text-xs tabular-nums text-[var(--color-muted-foreground)]">
-                          {searchHeaderLabel}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-3 px-4 py-4">
-                      <div className="flex items-center gap-2 border border-[var(--color-border)] bg-[var(--color-card)] px-3">
-                        <Search className="size-4 shrink-0 text-[var(--color-muted-foreground)]" />
-                        <input
-                          className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none"
-                          onChange={(event) => {
-                            setSearchRects([]);
-                            setSearchMatchCount(0);
-                            setSearchMatchIndex(-1);
-                            setSearchNotice(null);
-                            setSearchQuery(event.target.value);
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              runSearch("forward");
-                            }
-                          }}
-                          placeholder="Find in document"
-                          ref={searchInputRef}
-                          value={searchQuery}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="h-8 flex-1 border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm transition hover:bg-[var(--color-hover)]"
-                          onClick={() => {
-                            runSearch("backward");
-                          }}
-                          type="button"
-                        >
-                          Previous
-                        </button>
-                        <button
-                          className="h-8 flex-1 border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm transition hover:bg-[var(--color-hover)]"
-                          onClick={() => {
-                            runSearch("forward");
-                          }}
-                          type="button"
-                        >
-                          Next
-                        </button>
-                      </div>
-                      {searchNotice && searchNotice !== "No match found" ? (
-                        <p className="text-sm text-[var(--color-muted-foreground)]">
-                          {searchNotice}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+              <EditorSearchPopover
+                onCloseOtherMenus={() => {
+                  setActionError(null);
+                  setActionNotice(null);
+                  setOverflowMenuOpen(false);
+                  setPermissionMenuOpen(false);
+                }}
+                onNext={() => {
+                  runSearch("forward");
+                }}
+                onPrevious={() => {
+                  runSearch("backward");
+                }}
+                onSearchChange={(value) => {
+                  setSearchRects([]);
+                  setSearchMatchCount(0);
+                  setSearchMatchIndex(-1);
+                  setSearchNotice(null);
+                  setSearchQuery(value);
+                }}
+                open={searchMenuOpen}
+                searchButtonRef={searchButtonRef}
+                searchHeaderLabel={searchHeaderLabel}
+                searchInputRef={searchInputRef}
+                searchMenuRef={searchMenuRef}
+                searchNotice={searchNotice}
+                searchQuery={searchQuery}
+                setOpen={setSearchMenuOpen}
+              />
 
               <div className="relative">
                 <button
@@ -2041,6 +1862,27 @@ function EditorSurface({
                           <span>Export</span>
                           <Download className="ml-auto size-4" />
                         </button>
+                        {permission === "owner" ? (
+                          <button
+                            className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[#b44c07] transition hover:bg-[var(--color-hover)]"
+                            onClick={async () => {
+                              const result = await moveDocumentToTrash(document.id);
+
+                              if (!result.ok) {
+                                setActionError(result.error);
+                                setActionNotice(null);
+                                return;
+                              }
+
+                              setOverflowMenuOpen(false);
+                              router.push("/home");
+                            }}
+                            type="button"
+                          >
+                            <span>Move to Trash</span>
+                            <Trash2 className="ml-auto size-4" />
+                          </button>
+                        ) : null}
                         {actionError ? (
                           <p className="px-2 pt-1 text-sm text-[#dd5b00]">{actionError}</p>
                         ) : null}
@@ -2387,6 +2229,8 @@ function EditorSurface({
 export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
   const router = useRouter();
   const openedDocumentIdRef = useRef<string | null>(null);
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { t } = useLocale();
   const {
     currentUser,
     currentWorkspace,
@@ -2396,17 +2240,51 @@ export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
     saveDocument,
     state,
   } = useAppState();
+  const rawDocument =
+    state.documents.find((item) => item.id === documentId) ?? null;
   const document = getDocument(documentId);
   const permission = useMemo(() => {
-    if (!currentUser || !document) {
+    if (!currentUser || !rawDocument) {
       return null;
     }
 
-    return getAccessPermission(state, currentUser, document);
-  }, [currentUser, document, state]);
+    return getAccessPermission(state, currentUser, rawDocument);
+  }, [currentUser, rawDocument, state]);
 
   useEffect(() => {
-    if (!ready || !currentUser || openedDocumentIdRef.current === documentId) {
+    openedDocumentIdRef.current = null;
+
+    if (redirectTimeoutRef.current) {
+      clearTimeout(redirectTimeoutRef.current);
+      redirectTimeoutRef.current = null;
+    }
+  }, [documentId]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !currentUser) {
+      return;
+    }
+
+    if (rawDocument?.status === "trashed") {
+      return;
+    }
+
+    if (rawDocument && !permission) {
+      redirectTimeoutRef.current = setTimeout(() => {
+        router.replace("/home");
+      }, 1400);
+      return;
+    }
+
+    if (openedDocumentIdRef.current === documentId) {
       return;
     }
 
@@ -2414,15 +2292,39 @@ export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
       const result = await openDocument(documentId);
 
       if (!result.ok) {
-        router.replace("/home");
+        redirectTimeoutRef.current = setTimeout(() => {
+          router.replace("/home");
+        }, 1400);
         return;
       }
 
       openedDocumentIdRef.current = documentId;
     })();
-  }, [currentUser, documentId, openDocument, ready, router]);
+  }, [currentUser, documentId, openDocument, permission, rawDocument, ready, router]);
 
-  if (!ready || !currentUser || !document || !currentWorkspace || !permission) {
+  if (!ready || !currentUser) {
+    return null;
+  }
+
+  if (rawDocument?.status === "trashed") {
+    return (
+      <DocumentStatusState
+        description={t("deletedDescription")}
+        title={t("deletedTitle")}
+      />
+    );
+  }
+
+  if (rawDocument && !permission) {
+    return (
+      <DocumentStatusState
+        description={t("noAccessNotice")}
+        title={t("noAccessTitle")}
+      />
+    );
+  }
+
+  if (!document || !currentWorkspace || !permission) {
     return null;
   }
 

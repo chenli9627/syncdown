@@ -14,6 +14,10 @@ export const messages = {
     trash: "Trash",
     settings: "设置",
     tagline: "Workspace-first writing and sharing.",
+    noAccessTitle: "没有权限",
+    noAccessNotice: "你已无法访问该文档。",
+    deletedTitle: "已删除",
+    deletedDescription: "该文档已被删除，当前位于废纸篓中。",
   },
   en: {
     appName: "Syntext",
@@ -26,6 +30,10 @@ export const messages = {
     trash: "Trash",
     settings: "Settings",
     tagline: "Workspace-first writing and sharing.",
+    noAccessTitle: "No access",
+    noAccessNotice: "You no longer have access to this document.",
+    deletedTitle: "Deleted",
+    deletedDescription: "This document has been deleted and is currently in Trash.",
   },
 } as const satisfies Record<Locale, Record<string, string>>;
 

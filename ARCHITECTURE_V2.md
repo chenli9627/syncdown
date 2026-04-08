@@ -46,6 +46,7 @@ What must be rebuilt:
 - `owner`: the user who created the workspace
 - `guest`: a user who entered that workspace through document sharing
 - the same user can be an owner in one workspace and a guest in another
+- all permission-sensitive UI and mutations must derive `owner` from `workspace.ownerUserId`, not from document metadata alone
 
 ### 2.2 Permissions
 
@@ -99,11 +100,17 @@ Rules:
 - trash is workspace-scoped
 - trash is workspace-owner-only
 - guest does not see trash
+- the bottom sidebar `Trash` action routes to the current workspace trash page
 - current workspace owner can restore documents
 - current workspace owner can permanently delete documents
+- permanent delete must show a confirmation modal before applying
+- trash delete actions use a red destructive style for both the trigger and the confirmation button
 - restored documents return to their previous `Private` or `Shared` state
+- trashed documents do not reserve active workspace titles
+- if a restored document title conflicts with an active document, the system auto-generates a usable restored title
 - opening a deleted document link shows `已删除`
-- trash list only shows titles
+- trash list shows title plus deleted time
+- if trash grows long, the list itself scrolls inside the page
 - restore/delete actions should show a confirmation toast/message
 
 ### 3.3 Title Rules
@@ -217,23 +224,36 @@ Rules:
 
 - workspace list is ordered by recent access
 - workspace list area can scroll
+- switching workspaces routes the main pane back to that workspace's `Home`
 - the popover should not repeat a separate header for the current workspace or the current user
 - guest workspaces in the list show a `Guest` badge to the right of the workspace name
 - the top workspace popover may extend beyond the sidebar width on the right
 - workspace popovers and child popovers must visually overlay the main editor area when expanded
-- `create workspace` and `workspace settings` open as child popovers anchored to their own buttons
+- the top workspace popover must not be visually covered by the `Home` row or other sidebar cards
+- only `create workspace` remains inside the top workspace popover as a child popover
 - clicking outside any open popover closes it
 - popover action rows and buttons should darken on hover
+- icon-only buttons should expose a hover name/tooltip
 - `Settings` sits above `Log out`
 - workspace settings only needs:
   - rename workspace
   - delete workspace
+
+### 6.3 Home Row Actions
+
+- the `Home` row sits near the top of the sidebar
+- current workspace owner sees `new document` and `workspace settings` on the right side of the `Home` row
+- guests do not see those two actions
+- the `workspace settings` popover opens from the `Home` row settings button
+- the `workspace settings` popover must overlay the top card and any neighboring sidebar panels
+- the `workspace settings` popover aligns to the top edge of the `Home` row button cluster instead of opening vertically centered
 
 ### 6.2 Home
 
 - default landing view after login
 - guest entering a workspace also lands on `Home`
 - if there are no recent documents, home only shows the greeting
+- the client periodically syncs workspace/document state and also refreshes state when the window regains focus
 
 ### 6.3 Recents
 
@@ -357,6 +377,8 @@ Search behavior:
 - wrap save/read-only states in a compact tag
 - keep the title cluster near the left edge and the top-right action buttons near the right edge, with only a small inset
 - keep only save-state tags in the header; do not render a separate `View only` tag
+- the current workspace owner can move the current document to trash from the top-right overflow menu
+- after moving a document to trash from the document page, return the user to `Home`
 
 ### 8.3 Block Model
 

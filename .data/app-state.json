@@ -7,7 +7,7 @@
       "name": "One",
       "password": "onepass123",
       "avatarUrl": null,
-      "createdAt": "2026-04-08T04:54:04.080Z"
+      "createdAt": "2026-04-08T06:12:12.415Z"
     },
     {
       "id": "user_guest",
@@ -16,7 +16,7 @@
       "name": "Two",
       "password": "twopass123",
       "avatarUrl": null,
-      "createdAt": "2026-04-08T04:54:04.080Z"
+      "createdAt": "2026-04-08T06:12:12.415Z"
     }
   ],
   "workspaces": [
@@ -24,25 +24,37 @@
       "id": "workspace_default",
       "ownerUserId": "user_owner",
       "name": "Default",
-      "lastAccessedAt": "2026-04-08T04:54:04.080Z",
-      "createdAt": "2026-04-08T04:54:04.080Z"
+      "lastAccessedAt": "2026-04-08T06:12:12.415Z",
+      "createdAt": "2026-04-08T06:12:12.415Z"
     },
     {
       "id": "workspace_notes",
       "ownerUserId": "user_owner",
       "name": "Client Notes",
-      "lastAccessedAt": "2026-04-08T04:54:04.150Z",
-      "createdAt": "2026-04-08T04:54:04.080Z"
+      "lastAccessedAt": "2026-04-08T06:36:06.820Z",
+      "createdAt": "2026-04-08T06:12:12.415Z"
     },
     {
       "id": "workspace_guest_lab",
       "ownerUserId": "user_guest",
       "name": "Research Lab",
-      "lastAccessedAt": "2026-04-08T04:54:04.080Z",
-      "createdAt": "2026-04-08T04:54:04.080Z"
+      "lastAccessedAt": "2026-04-08T06:12:12.415Z",
+      "createdAt": "2026-04-08T06:12:12.415Z"
     }
   ],
   "documents": [
+    {
+      "id": "document_777049f1-641c-4256-a6b2-9675bcf08a69",
+      "workspaceId": "workspace_notes",
+      "ownerUserId": "user_owner",
+      "title": "a",
+      "content": "<p>a</p><p>b</p>",
+      "status": "shared",
+      "trashedFromStatus": null,
+      "deletedAt": null,
+      "createdAt": "2026-04-08T06:19:21.737Z",
+      "lastEditedAt": "2026-04-08T06:36:04.557Z"
+    },
     {
       "id": "doc_pitch",
       "workspaceId": "workspace_default",
@@ -50,8 +62,8 @@
       "title": "Draft pitch",
       "content": "",
       "status": "private",
-      "lastEditedAt": "2026-04-08T04:54:04.080Z",
-      "createdAt": "2026-04-08T04:54:04.080Z"
+      "lastEditedAt": "2026-04-08T06:12:12.415Z",
+      "createdAt": "2026-04-08T06:12:12.415Z"
     },
     {
       "id": "doc_review",
@@ -60,18 +72,18 @@
       "title": "Weekly review",
       "content": "",
       "status": "private",
-      "lastEditedAt": "2026-04-08T04:54:04.080Z",
-      "createdAt": "2026-04-08T04:54:04.080Z"
+      "lastEditedAt": "2026-04-08T06:12:12.415Z",
+      "createdAt": "2026-04-08T06:12:12.415Z"
     },
     {
       "id": "doc_shared_brief",
       "workspaceId": "workspace_notes",
       "ownerUserId": "user_owner",
       "title": "Team brief",
-      "content": "<h1>heading 1</h1><p></p><p>dskfskd kdskjds</p><p>dsfkakd</p><p>dsfdsf</p><p>fds</p><p>f</p><p>ds</p><p>fds</p><p>f</p><p>ds</p><p>f</p><p></p><p>ds</p><h3>fds</h3><p>f</p><p></p><p>ds</p><p>f</p><p>ds</p><p>f</p><p>ds</p><p>d</p><p>ds</p><p></p>",
+      "content": "",
       "status": "shared",
-      "lastEditedAt": "2026-04-08T04:54:04.662Z",
-      "createdAt": "2026-04-08T04:54:04.080Z"
+      "lastEditedAt": "2026-04-08T06:12:12.415Z",
+      "createdAt": "2026-04-08T06:12:12.415Z"
     },
     {
       "id": "doc_guest_playbook",
@@ -80,8 +92,8 @@
       "title": "Interview notes",
       "content": "",
       "status": "shared",
-      "lastEditedAt": "2026-04-08T04:54:04.080Z",
-      "createdAt": "2026-04-08T04:54:04.080Z"
+      "lastEditedAt": "2026-04-08T06:12:12.415Z",
+      "createdAt": "2026-04-08T06:12:12.415Z"
     }
   ],
   "accesses": [
@@ -94,33 +106,48 @@
       "documentId": "doc_guest_playbook",
       "userId": "user_owner",
       "permission": "can_edit"
+    },
+    {
+      "documentId": "document_777049f1-641c-4256-a6b2-9675bcf08a69",
+      "userId": "user_guest",
+      "permission": "can_view"
     }
   ],
   "recentVisits": [
     {
       "userId": "user_owner",
       "documentId": "doc_pitch",
-      "visitedAt": "2026-04-08T04:54:04.080Z"
-    },
-    {
-      "userId": "user_guest",
-      "documentId": "doc_shared_brief",
-      "visitedAt": "2026-04-08T04:54:04.080Z"
-    },
-    {
-      "userId": "user_guest",
-      "documentId": "doc_guest_playbook",
-      "visitedAt": "2026-04-08T04:54:04.080Z"
-    },
-    {
-      "userId": "user_owner",
-      "documentId": "doc_guest_playbook",
-      "visitedAt": "2026-04-08T04:54:04.080Z"
+      "visitedAt": "2026-04-08T06:12:12.415Z"
     },
     {
       "userId": "user_owner",
       "documentId": "doc_shared_brief",
-      "visitedAt": "2026-04-08T04:54:04.662Z"
+      "visitedAt": "2026-04-08T06:12:12.415Z"
+    },
+    {
+      "userId": "user_guest",
+      "documentId": "doc_shared_brief",
+      "visitedAt": "2026-04-08T06:12:12.415Z"
+    },
+    {
+      "userId": "user_guest",
+      "documentId": "doc_guest_playbook",
+      "visitedAt": "2026-04-08T06:12:12.415Z"
+    },
+    {
+      "userId": "user_owner",
+      "documentId": "doc_guest_playbook",
+      "visitedAt": "2026-04-08T06:12:12.415Z"
+    },
+    {
+      "userId": "user_owner",
+      "documentId": "document_777049f1-641c-4256-a6b2-9675bcf08a69",
+      "visitedAt": "2026-04-08T06:36:00.564Z"
+    },
+    {
+      "userId": "user_guest",
+      "documentId": "document_777049f1-641c-4256-a6b2-9675bcf08a69",
+      "visitedAt": "2026-04-08T06:36:06.820Z"
     }
   ]
 }

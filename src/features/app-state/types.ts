@@ -28,6 +28,8 @@ export type DocumentRecord = {
   title: string;
   content: string;
   status: "private" | "shared" | "trashed";
+  trashedFromStatus?: "private" | "shared" | null;
+  deletedAt?: string | null;
   lastEditedAt: string;
   createdAt: string;
 };

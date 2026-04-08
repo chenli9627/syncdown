@@ -46,7 +46,9 @@ function getDocumentPermissionForUser(
   userId: string,
   document: DocumentRecord,
 ) {
-  if (document.ownerUserId === userId) {
+  const workspace = getWorkspaceById(state, document.workspaceId);
+
+  if (workspace?.ownerUserId === userId) {
     return "owner" as const;
   }
 
@@ -72,7 +74,10 @@ function canOpenDocument(
 function nextUntitledTitle(state: StoredSyntextState, workspaceId: string) {
   const takenTitles = new Set(
     state.documents
-      .filter((document) => document.workspaceId === workspaceId)
+      .filter(
+        (document) =>
+          document.workspaceId === workspaceId && document.status !== "trashed",
+      )
       .map((document) => document.title),
   );
 
@@ -108,9 +113,42 @@ function titleExistsInWorkspace(
   return state.documents.some(
     (document) =>
       document.workspaceId === workspaceId &&
+      document.status !== "trashed" &&
       document.id !== currentDocumentId &&
       document.title === title,
   );
+}
+
+function nextRestoredTitle(
+  state: StoredSyntextState,
+  workspaceId: string,
+  originalTitle: string,
+  currentDocumentId: string,
+) {
+  if (!titleExistsInWorkspace(state, workspaceId, originalTitle, currentDocumentId)) {
+    return originalTitle;
+  }
+
+  const baseTitle = `${originalTitle} (Restored)`;
+
+  if (!titleExistsInWorkspace(state, workspaceId, baseTitle, currentDocumentId)) {
+    return baseTitle;
+  }
+
+  let index = 2;
+
+  while (
+    titleExistsInWorkspace(
+      state,
+      workspaceId,
+      `${originalTitle} (Restored ${index})`,
+      currentDocumentId,
+    )
+  ) {
+    index += 1;
+  }
+
+  return `${originalTitle} (Restored ${index})`;
 }
 
 function upsertRecentVisit(
@@ -145,6 +183,13 @@ function isWorkspaceOwnerForDocument(
 ) {
   const workspace = getWorkspaceById(state, document.workspaceId);
   return workspace?.ownerUserId === userId;
+}
+
+function getWorkspaceOwnerIdForDocument(
+  state: StoredSyntextState,
+  document: DocumentRecord,
+) {
+  return getWorkspaceById(state, document.workspaceId)?.ownerUserId ?? null;
 }
 
 export function sanitizeWorkspaceName(name: string) {
@@ -466,6 +511,8 @@ export function createDocumentForWorkspace(
     title: "",
     content: "",
     status: "private",
+    trashedFromStatus: null,
+    deletedAt: null,
     createdAt,
     lastEditedAt: createdAt,
   };
@@ -672,7 +719,7 @@ export function updateDocumentAccessForOwner(
     return { ok: false as const, error: "Only the workspace owner can change permissions" };
   }
 
-  if (document.ownerUserId === targetUserId) {
+  if (getWorkspaceOwnerIdForDocument(state, document) === targetUserId) {
     return { ok: false as const, error: "You cannot change the owner permission" };
   }
 
@@ -719,7 +766,7 @@ export function removeDocumentAccessForOwner(
     return { ok: false as const, error: "Only the workspace owner can remove access" };
   }
 
-  if (document.ownerUserId === targetUserId) {
+  if (getWorkspaceOwnerIdForDocument(state, document) === targetUserId) {
     return { ok: false as const, error: "You cannot remove the owner" };
   }
 
@@ -756,6 +803,119 @@ export function removeDocumentAccessForOwner(
       recentVisits: state.recentVisits.filter(
         (visit) => !(visit.userId === targetUserId && visit.documentId === documentId),
       ),
+    },
+  };
+}
+
+export function moveDocumentToTrashForOwner(
+  state: StoredSyntextState,
+  ownerUserId: string,
+  documentId: string,
+) {
+  const document = getDocumentById(state, documentId);
+
+  if (!document || document.status === "trashed") {
+    return { ok: false as const, error: "Document does not exist" };
+  }
+
+  if (!isWorkspaceOwnerForDocument(state, ownerUserId, document)) {
+    return { ok: false as const, error: "Only the workspace owner can move this document to trash" };
+  }
+
+  const editedAt = now();
+
+  return {
+    ok: true as const,
+    state: {
+      ...state,
+      documents: state.documents.map((item) =>
+        item.id === documentId
+          ? {
+              ...item,
+              status: "trashed" as const,
+              trashedFromStatus: item.status === "trashed" ? item.trashedFromStatus ?? "private" : item.status,
+              deletedAt: editedAt,
+              lastEditedAt: editedAt,
+            }
+          : item,
+      ),
+      recentVisits: state.recentVisits.filter((visit) => visit.documentId !== documentId),
+    },
+  };
+}
+
+export function restoreDocumentFromTrashForOwner(
+  state: StoredSyntextState,
+  ownerUserId: string,
+  documentId: string,
+) {
+  const document = getDocumentById(state, documentId);
+
+  if (!document || document.status !== "trashed") {
+    return { ok: false as const, error: "Document does not exist" };
+  }
+
+  if (!isWorkspaceOwnerForDocument(state, ownerUserId, document)) {
+    return {
+      ok: false as const,
+      error: "Only the workspace owner can restore this document",
+    };
+  }
+
+  const restoredStatus = document.trashedFromStatus ?? "private";
+  const editedAt = now();
+  const restoredTitle = nextRestoredTitle(
+    state,
+    document.workspaceId,
+    document.title,
+    document.id,
+  );
+
+  return {
+    ok: true as const,
+    state: {
+      ...state,
+      documents: state.documents.map((item) =>
+        item.id === documentId
+          ? {
+              ...item,
+              title: restoredTitle,
+              status: restoredStatus,
+              trashedFromStatus: null,
+              deletedAt: null,
+              lastEditedAt: editedAt,
+            }
+          : item,
+      ),
+    },
+  };
+}
+
+export function permanentlyDeleteDocumentFromTrashForOwner(
+  state: StoredSyntextState,
+  ownerUserId: string,
+  documentId: string,
+) {
+  const document = getDocumentById(state, documentId);
+
+  if (!document || document.status !== "trashed") {
+    return { ok: false as const, error: "Document does not exist" };
+  }
+
+  if (!isWorkspaceOwnerForDocument(state, ownerUserId, document)) {
+    return {
+      ok: false as const,
+      error: "Only the workspace owner can permanently delete this document",
+    };
+  }
+
+  return {
+    ok: true as const,
+    state: {
+      ...state,
+      documents: state.documents.filter((item) => item.id !== documentId),
+      accesses: state.accesses.filter((access) => access.documentId !== documentId),
+      recentVisits: state.recentVisits.filter((visit) => visit.documentId !== documentId),
     },
   };
 }

@@ -43,7 +43,9 @@ export function canUserOpenDocument(state: SyntextState, user: User, documentId:
     return false;
   }
 
-  if (document.ownerUserId === user.id) {
+  const workspace = getWorkspaceById(state, document.workspaceId);
+
+  if (workspace?.ownerUserId === user.id) {
     return true;
   }
 
@@ -100,6 +102,9 @@ export function getDocumentsForWorkspace(
   workspaceId: string,
   user: User,
 ) {
+  const workspace = getWorkspaceById(state, workspaceId);
+  const isOwner = workspace?.ownerUserId === user.id;
+
   return state.documents.filter((document) => {
     if (document.workspaceId !== workspaceId) {
       return false;
@@ -109,7 +114,7 @@ export function getDocumentsForWorkspace(
       return false;
     }
 
-    if (document.ownerUserId === user.id) {
+    if (isOwner) {
       return true;
     }
 
@@ -125,6 +130,8 @@ export function getWorkspaceBuckets(
   user: User,
 ) {
   const documents = getDocumentsForWorkspace(state, workspaceId, user);
+  const workspace = getWorkspaceById(state, workspaceId);
+  const isOwner = workspace?.ownerUserId === user.id;
 
   const recents = state.recentVisits
     .filter((visit) => visit.userId === user.id)
@@ -139,14 +146,14 @@ export function getWorkspaceBuckets(
     .filter((document) => document.status === "shared")
     .sort(byLastEditedDesc);
   const privateDocs = documents
-    .filter((document) => document.status === "private" && document.ownerUserId === user.id)
+    .filter((document) => document.status === "private" && isOwner)
     .sort(byLastEditedDesc);
   const trash = state.documents
     .filter(
       (document) =>
         document.workspaceId === workspaceId &&
         document.status === "trashed" &&
-        document.ownerUserId === user.id,
+        isOwner,
     )
     .sort(byLastEditedDesc);
 

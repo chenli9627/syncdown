@@ -91,6 +91,9 @@ type AppStateContextValue = {
     permission: Permission,
   ) => Promise<Result>;
   removeDocumentAccess: (documentId: string, targetUserId: string) => Promise<Result>;
+  moveDocumentToTrash: (documentId: string) => Promise<Result>;
+  restoreDocumentFromTrash: (documentId: string) => Promise<Result>;
+  permanentlyDeleteDocument: (documentId: string) => Promise<Result>;
 };
 
 const emptyState: SyntextState = {
@@ -189,6 +192,45 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
       disposed = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!ready || !session) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function syncSilently() {
+      try {
+        const response = await fetch("/api/app-state", { cache: "no-store" });
+        const data = await readJson<{ state: SyntextState }>(response);
+
+        if (!cancelled) {
+          setState(data.state);
+        }
+      } catch {
+        // Ignore transient sync failures and keep current local state.
+      }
+    }
+
+    const intervalId = window.setInterval(() => {
+      void syncSilently();
+    }, 4000);
+
+    const handleFocus = () => {
+      void syncSilently();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [ready, session]);
 
   useEffect(() => {
     if (!ready) {
@@ -571,6 +613,81 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
           return {
             ok: false,
             error: data.error ?? "Access removal failed",
+          };
+        }
+
+        setState(data.state);
+
+        return { ok: true };
+      },
+      moveDocumentToTrash: async (documentId) => {
+        if (!currentUser) {
+          return { ok: false, error: "You must be logged in" };
+        }
+
+        const response = await fetch(`/api/documents/${documentId}/trash`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: currentUser.id,
+          }),
+        });
+        const data = await readJson<{ error?: string; state?: SyntextState }>(response);
+
+        if (!response.ok || !data.state) {
+          return {
+            ok: false,
+            error: data.error ?? "Move to trash failed",
+          };
+        }
+
+        setState(data.state);
+
+        return { ok: true };
+      },
+      restoreDocumentFromTrash: async (documentId) => {
+        if (!currentUser) {
+          return { ok: false, error: "You must be logged in" };
+        }
+
+        const response = await fetch(`/api/documents/${documentId}/trash`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: currentUser.id,
+          }),
+        });
+        const data = await readJson<{ error?: string; state?: SyntextState }>(response);
+
+        if (!response.ok || !data.state) {
+          return {
+            ok: false,
+            error: data.error ?? "Restore failed",
+          };
+        }
+
+        setState(data.state);
+
+        return { ok: true };
+      },
+      permanentlyDeleteDocument: async (documentId) => {
+        if (!currentUser) {
+          return { ok: false, error: "You must be logged in" };
+        }
+
+        const response = await fetch(`/api/documents/${documentId}/trash`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: currentUser.id,
+          }),
+        });
+        const data = await readJson<{ error?: string; state?: SyntextState }>(response);
+
+        if (!response.ok || !data.state) {
+          return {
+            ok: false,
+            error: data.error ?? "Delete failed",
           };
         }
 

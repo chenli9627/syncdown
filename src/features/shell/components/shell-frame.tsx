@@ -1,14 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  ChevronDown,
-  House,
-  Plus,
-  SquarePen,
-  Settings2,
-  Trash2,
-} from "lucide-react";
+import { ChevronDown, House, Plus, Settings2, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
@@ -167,7 +161,7 @@ export function ShellFrame({ children }: ShellFrameProps) {
 
             {workspaceMenuOpen ? (
               <div
-                className="absolute left-0 top-[calc(100%+8px)] z-40 w-full border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
+                className="absolute left-0 top-[calc(100%+8px)] z-[80] w-full border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
                 ref={workspaceMenuRef}
               >
                 <div className="max-h-60 overflow-y-auto">
@@ -177,7 +171,8 @@ export function ShellFrame({ children }: ShellFrameProps) {
                       key={workspace.id}
                       onClick={() => {
                         switchWorkspace(workspace.id);
-                        setWorkspaceMenuOpen(false);
+                        closeWorkspacePopovers();
+                        router.push("/home");
                       }}
                       type="button"
                     >
@@ -224,7 +219,7 @@ export function ShellFrame({ children }: ShellFrameProps) {
 
                       {showCreateWorkspace ? (
                         <form
-                          className="absolute left-[calc(100%+8px)] top-1/2 z-50 w-[272px] -translate-y-1/2 space-y-2 border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
+                          className="absolute left-[calc(100%+8px)] top-1/2 z-[90] w-[272px] -translate-y-1/2 space-y-2 border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
                           onSubmit={async (event) => {
                             event.preventDefault();
                             setWorkspaceError(null);
@@ -281,130 +276,6 @@ export function ShellFrame({ children }: ShellFrameProps) {
                         </form>
                       ) : null}
                     </div>
-                    {canManageCurrentWorkspace ? (
-                      <div className="relative">
-                        <button
-                          className="flex w-full items-center justify-between border border-transparent px-2 py-2 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-                          ref={workspaceSettingsButtonRef}
-                          onClick={() => {
-                            setRenameWorkspaceName(currentWorkspace.name);
-                            setDeleteConfirmName("");
-                            setShowWorkspaceSettings((current) => !current);
-                            setShowCreateWorkspace(false);
-                            setWorkspaceError(null);
-                            setWorkspaceNotice(null);
-                          }}
-                          type="button"
-                        >
-                          <span>Workspace settings</span>
-                          <Settings2 className="size-4" />
-                        </button>
-
-                        {showWorkspaceSettings && canManageCurrentWorkspace ? (
-                          <div
-                            className="absolute left-[calc(100%+8px)] top-1/2 z-50 w-[296px] -translate-y-1/2 space-y-4 border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
-                            ref={workspaceSettingsPopoverRef}
-                          >
-                            <form
-                              className="space-y-2"
-                              onSubmit={async (event) => {
-                                event.preventDefault();
-                                setWorkspaceError(null);
-                                setWorkspaceNotice(null);
-                                setIsWorking(true);
-
-                                const result = await renameCurrentWorkspace(
-                                  renameWorkspaceName,
-                                );
-                                setIsWorking(false);
-
-                                if (!result.ok) {
-                                  setWorkspaceError(result.error);
-                                  return;
-                                }
-
-                                setWorkspaceNotice("Workspace renamed");
-                                setShowWorkspaceSettings(false);
-                              }}
-                            >
-                              <label
-                                className="block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]"
-                                htmlFor="rename-workspace"
-                              >
-                                Rename workspace
-                              </label>
-                              <input
-                                className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
-                                id="rename-workspace"
-                                onChange={(event) => {
-                                  setRenameWorkspaceName(event.target.value);
-                                }}
-                                value={renameWorkspaceName}
-                              />
-                              <div className="flex justify-end">
-                                <button
-                                  className="rounded-[4px] bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:brightness-95"
-                                  disabled={isWorking}
-                                  type="submit"
-                                >
-                                  Save
-                                </button>
-                              </div>
-                            </form>
-
-                            <form
-                              className="space-y-2 border-t border-[var(--color-border)] pt-4"
-                              onSubmit={async (event) => {
-                                event.preventDefault();
-                                setWorkspaceError(null);
-                                setWorkspaceNotice(null);
-                                setIsWorking(true);
-
-                                const result = await deleteCurrentWorkspace(
-                                  deleteConfirmName,
-                                );
-                                setIsWorking(false);
-
-                                if (!result.ok) {
-                                  setWorkspaceError(result.error);
-                                  return;
-                                }
-
-                                closeWorkspacePopovers();
-                              }}
-                            >
-                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
-                                Delete workspace
-                              </p>
-                              <p className="text-sm text-[var(--color-muted-foreground)]">
-                                Type{" "}
-                                <span className="font-semibold text-[var(--color-foreground)]">
-                                  {currentWorkspace.name}
-                                </span>{" "}
-                                to permanently delete this workspace and all its contents.
-                              </p>
-                              <input
-                                className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
-                                onChange={(event) => {
-                                  setDeleteConfirmName(event.target.value);
-                                }}
-                                placeholder={currentWorkspace.name}
-                                value={deleteConfirmName}
-                              />
-                              <div className="flex justify-end">
-                                <button
-                                  className="rounded-[4px] bg-[#dd5b00] px-3 py-2 text-sm font-semibold text-white transition hover:brightness-95"
-                                  disabled={isWorking}
-                                  type="submit"
-                                >
-                                  Delete workspace permanently
-                                </button>
-                              </div>
-                            </form>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
                   </div>
                   <button
                     className="flex w-full items-center justify-between border border-transparent px-2 py-2 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
@@ -433,13 +304,158 @@ export function ShellFrame({ children }: ShellFrameProps) {
           </div>
 
           <nav className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-            <a
-              className="flex items-center gap-3 border border-transparent bg-[var(--color-sidebar-panel)] px-3.5 py-3 text-sm font-medium shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-card)]"
-              href="/home"
-            >
-              <House className="size-4 text-[var(--color-muted-foreground)]" />
-              Home
-            </a>
+            <div className="relative">
+              <div className="flex items-center gap-2 border border-transparent bg-[var(--color-sidebar-panel)] px-3.5 py-3 text-sm font-medium shadow-[var(--shadow-whisper)]">
+                <Link
+                  className="flex min-w-0 flex-1 items-center gap-3 transition hover:text-[var(--color-foreground)]"
+                  href="/home"
+                >
+                  <House className="size-4 text-[var(--color-muted-foreground)]" />
+                  Home
+                </Link>
+                {canManageCurrentWorkspace ? (
+                  <>
+                    <button
+                      className="flex size-8 items-center justify-center text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+                      title="New document"
+                      onClick={async () => {
+                        const result = await createDocument();
+
+                        if (!result.ok) {
+                          return;
+                        }
+
+                        router.push(`/documents/${result.documentId}`);
+                      }}
+                      type="button"
+                    >
+                      <Plus className="size-4" />
+                    </button>
+                    <button
+                      className="flex size-8 items-center justify-center text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+                      ref={workspaceSettingsButtonRef}
+                      title="Workspace settings"
+                      onClick={() => {
+                        setRenameWorkspaceName(currentWorkspace.name);
+                        setDeleteConfirmName("");
+                        setShowWorkspaceSettings((current) => !current);
+                        setWorkspaceMenuOpen(false);
+                        setShowCreateWorkspace(false);
+                        setWorkspaceError(null);
+                        setWorkspaceNotice(null);
+                      }}
+                      type="button"
+                    >
+                      <Settings2 className="size-4" />
+                    </button>
+                  </>
+                ) : null}
+              </div>
+
+              {showWorkspaceSettings && canManageCurrentWorkspace ? (
+                <div
+                  className="absolute left-[calc(100%+8px)] top-0 z-[85] w-[296px] space-y-4 border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
+                  ref={workspaceSettingsPopoverRef}
+                >
+                  <form
+                    className="space-y-2"
+                    onSubmit={async (event) => {
+                      event.preventDefault();
+                      setWorkspaceError(null);
+                      setWorkspaceNotice(null);
+                      setIsWorking(true);
+
+                      const result = await renameCurrentWorkspace(
+                        renameWorkspaceName,
+                      );
+                      setIsWorking(false);
+
+                      if (!result.ok) {
+                        setWorkspaceError(result.error);
+                        return;
+                      }
+
+                      setWorkspaceNotice("Workspace renamed");
+                      setShowWorkspaceSettings(false);
+                    }}
+                  >
+                    <label
+                      className="block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]"
+                      htmlFor="rename-workspace"
+                    >
+                      Rename workspace
+                    </label>
+                    <input
+                      className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
+                      id="rename-workspace"
+                      onChange={(event) => {
+                        setRenameWorkspaceName(event.target.value);
+                      }}
+                      value={renameWorkspaceName}
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        className="rounded-[4px] bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:brightness-95"
+                        disabled={isWorking}
+                        type="submit"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </form>
+
+                  <form
+                    className="space-y-2 border-t border-[var(--color-border)] pt-4"
+                    onSubmit={async (event) => {
+                      event.preventDefault();
+                      setWorkspaceError(null);
+                      setWorkspaceNotice(null);
+                      setIsWorking(true);
+
+                      const result = await deleteCurrentWorkspace(
+                        deleteConfirmName,
+                      );
+                      setIsWorking(false);
+
+                      if (!result.ok) {
+                        setWorkspaceError(result.error);
+                        return;
+                      }
+
+                      closeWorkspacePopovers();
+                    }}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
+                      Delete workspace
+                    </p>
+                    <p className="text-sm text-[var(--color-muted-foreground)]">
+                      Type{" "}
+                      <span className="font-semibold text-[var(--color-foreground)]">
+                        {currentWorkspace.name}
+                      </span>{" "}
+                      to permanently delete this workspace and all its contents.
+                    </p>
+                    <input
+                      className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
+                      onChange={(event) => {
+                        setDeleteConfirmName(event.target.value);
+                      }}
+                      placeholder={currentWorkspace.name}
+                      value={deleteConfirmName}
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        className="rounded-[4px] bg-[#dd5b00] px-3 py-2 text-sm font-semibold text-white transition hover:brightness-95"
+                        disabled={isWorking}
+                        type="submit"
+                      >
+                        Delete workspace permanently
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : null}
+            </div>
             <div className="grid min-h-0 flex-1 gap-3">
               <SidebarSection
                 items={buckets.recents}
@@ -454,15 +470,6 @@ export function ShellFrame({ children }: ShellFrameProps) {
               {canManageCurrentWorkspace ? (
                 <SidebarSection
                   items={buckets.privateDocs}
-                  onCreate={async () => {
-                    const result = await createDocument();
-
-                    if (!result.ok) {
-                      return;
-                    }
-
-                    router.push(`/documents/${result.documentId}`);
-                  }}
                   onOpenItem={handleOpenDocument}
                   title="Private"
                 />
@@ -471,17 +478,18 @@ export function ShellFrame({ children }: ShellFrameProps) {
           </nav>
 
           {canManageCurrentWorkspace ? (
-            <div className="mt-3 flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3.5 py-3 text-sm font-medium shadow-[var(--shadow-whisper)]">
+            <button
+              className="mt-3 flex w-full items-center gap-3 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3.5 py-3 text-left text-sm font-medium shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-card)]"
+              onClick={() => {
+                router.push("/trash");
+              }}
+              type="button"
+            >
               <div className="flex items-center gap-3">
                 <Trash2 className="size-4 text-[var(--color-muted-foreground)]" />
                 Trash
               </div>
-              <div className="flex items-center gap-2 text-[var(--color-muted-foreground)]">
-                <SquarePen className="size-4" />
-                <Plus className="size-4" />
-                <Settings2 className="size-4" />
-              </div>
-            </div>
+            </button>
           ) : null}
         </aside>
 

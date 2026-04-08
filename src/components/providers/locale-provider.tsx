@@ -35,11 +35,9 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
       return defaultLocale;
     }
 
-    const savedLocale = window.localStorage.getItem(STORAGE_KEY);
+    const browserLocale = window.navigator.language.toLowerCase();
 
-    return savedLocale === "zh" || savedLocale === "en"
-      ? savedLocale
-      : defaultLocale;
+    return browserLocale.startsWith("zh") ? "zh" : "en";
   });
 
   useEffect(() => {
