@@ -1,6 +1,6 @@
-# Syntext
+# Syncdown
 
-`Syntext` is the new product line for this workspace.
+`Syncdown` is the new product line for this workspace.
 
 This directory is reserved for the v2 rebuild described in [my_plan.md](../my_plan.md).
 
@@ -8,7 +8,7 @@ Current workspace structure:
 
 - `legacy-v1/`
   - archived first implementation and all of its supporting files
-- `syntext/`
+- `syncdown/`
   - new implementation workspace for the rebuilt product
 - `my_plan.md`
   - current product definition for the rebuild

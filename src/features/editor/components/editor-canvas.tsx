@@ -176,7 +176,7 @@ export function EditorCanvas({
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-10 py-8">
       <input
-        accept=".md,text/markdown"
+        accept=".md,.zip,text/markdown,application/zip"
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];

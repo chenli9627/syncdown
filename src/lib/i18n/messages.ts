@@ -4,7 +4,7 @@ export const defaultLocale: Locale = "zh";
 
 export const messages = {
   zh: {
-    appName: "Syntext",
+    appName: "Syncdown",
     login: "登录",
     register: "注册",
     home: "Home",
@@ -35,7 +35,7 @@ export const messages = {
     aiGenerationFailed: "生成失败，请稍后重试。",
   },
   en: {
-    appName: "Syntext",
+    appName: "Syncdown",
     login: "Log in",
     register: "Sign up",
     home: "Home",

@@ -1,5 +1,13 @@
 "use client";
 
+export type MarkdownAsset = {
+  data: Uint8Array;
+  mimeType: string;
+  path: string;
+};
+
+const DATA_IMAGE_URL_PATTERN = /^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/;
+
 function escapeHtml(input: string) {
   return input
     .replaceAll("&", "&amp;")
@@ -127,6 +135,73 @@ export function editorHtmlToMarkdown(html: string) {
   return blocks.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+export async function editorHtmlToMarkdownBundle(html: string) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const assetCounters = new Map<string, number>();
+  const assets: MarkdownAsset[] = [];
+
+  async function materializeImageAsset(src: string) {
+    if (!src) {
+      return null;
+    }
+
+    const dataMatch = src.match(DATA_IMAGE_URL_PATTERN);
+
+    if (dataMatch) {
+      const mimeType = dataMatch[1] ?? "image/png";
+      const extension = extensionFromMimeType(mimeType);
+      const path = nextAssetPath(extension, assetCounters);
+      assets.push({
+        data: base64ToUint8Array(dataMatch[2] ?? ""),
+        mimeType,
+        path,
+      });
+
+      return path;
+    }
+
+    if (/^https?:\/\//i.test(src)) {
+      try {
+        const response = await fetch(src);
+
+        if (!response.ok) {
+          return src;
+        }
+
+        const blob = await response.blob();
+        const mimeType = blob.type || "image/png";
+        const extension = extensionFromMimeType(mimeType);
+        const path = nextAssetPath(extension, assetCounters);
+        assets.push({
+          data: new Uint8Array(await blob.arrayBuffer()),
+          mimeType,
+          path,
+        });
+
+        return path;
+      } catch {
+        return src;
+      }
+    }
+
+    return src;
+  }
+
+  for (const image of Array.from(doc.body.querySelectorAll("img"))) {
+    const src = image.getAttribute("src") ?? "";
+    const nextPath = await materializeImageAsset(src);
+
+    if (nextPath) {
+      image.setAttribute("src", nextPath);
+    }
+  }
+
+  return {
+    assets,
+    markdown: editorHtmlToMarkdown(doc.body.innerHTML),
+  };
+}
+
 export function markdownToEditorHtml(markdown: string) {
   const normalized = markdown.replace(/\r\n/g, "\n").trim();
 
@@ -245,8 +320,125 @@ export function markdownToEditorHtml(markdown: string) {
   return blocks.join("");
 }
 
+export async function markdownToEditorHtmlWithAssets(
+  markdown: string,
+  resolveImageSource: (src: string) => Promise<string | null>,
+) {
+  const normalized = markdown.replace(/\r\n/g, "\n").trim();
+
+  if (!normalized) {
+    return "<p></p>";
+  }
+
+  const imageMatches = Array.from(normalized.matchAll(/!\[(.*?)\]\((.+?)\)/g));
+  const replacements = new Map<string, string>();
+
+  for (const match of imageMatches) {
+    const originalSource = match[2] ?? "";
+
+    if (!originalSource || replacements.has(originalSource)) {
+      continue;
+    }
+
+    const resolvedSource = await resolveImageSource(originalSource);
+
+    if (resolvedSource) {
+      replacements.set(originalSource, resolvedSource);
+    }
+  }
+
+  let nextMarkdown = normalized;
+
+  for (const [originalSource, resolvedSource] of replacements.entries()) {
+    nextMarkdown = nextMarkdown.replaceAll(`](${originalSource})`, `](${resolvedSource})`);
+  }
+
+  return markdownToEditorHtml(nextMarkdown);
+}
+
 export function sanitizeMarkdownFilename(title: string) {
   const base = title.trim() || "Untitled";
 
   return `${base.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/\s+/g, "-") || "Untitled"}.md`;
+}
+
+export function sanitizeZipFilename(title: string) {
+  const base = title.trim() || "Untitled";
+
+  return `${base.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/\s+/g, "-") || "Untitled"}.zip`;
+}
+
+export function getMarkdownImportLimit(fileName: string) {
+  return fileName.toLowerCase().endsWith(".zip")
+    ? 20 * 1024 * 1024
+    : 5 * 1024 * 1024;
+}
+
+export function inferMimeTypeFromPath(path: string) {
+  const extension = path.split(".").pop()?.toLowerCase();
+
+  switch (extension) {
+    case "png":
+      return "image/png";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "webp":
+      return "image/webp";
+    case "gif":
+      return "image/gif";
+    default:
+      return "application/octet-stream";
+  }
+}
+
+export function normalizeZipPath(path: string) {
+  const segments = path.split("/").filter(Boolean);
+  const normalized: string[] = [];
+
+  for (const segment of segments) {
+    if (segment === ".") {
+      continue;
+    }
+
+    if (segment === "..") {
+      normalized.pop();
+      continue;
+    }
+
+    normalized.push(segment);
+  }
+
+  return normalized.join("/");
+}
+
+function nextAssetPath(extension: string, counters: Map<string, number>) {
+  const currentCount = counters.get(extension) ?? 0;
+  const nextCount = currentCount + 1;
+  counters.set(extension, nextCount);
+  return `assets/image-${nextCount}.${extension}`;
+}
+
+function extensionFromMimeType(mimeType: string) {
+  switch (mimeType) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
+    default:
+      return "png";
+  }
+}
+
+function base64ToUint8Array(base64: string) {
+  const binary = globalThis.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return bytes;
 }

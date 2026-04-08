@@ -6,7 +6,7 @@ export default function LoginPage() {
       <section className="flex flex-col justify-between border-r border-[var(--color-border)] bg-[var(--color-muted)] p-8 text-[var(--color-foreground)] md:p-10">
         <div className="space-y-4">
           <div className="inline-flex w-fit items-center rounded-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-1 text-xs tracking-[0.18em] uppercase text-[var(--color-accent-foreground)]">
-            Syntext v2
+            Syncdown v2
           </div>
           <h1 className="max-w-lg text-4xl font-semibold leading-tight tracking-[-0.04em] md:text-6xl">
             Write privately. Share by workspace.

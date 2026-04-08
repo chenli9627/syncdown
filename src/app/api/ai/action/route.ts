@@ -60,8 +60,8 @@ export async function POST(request: Request) {
           {
             content:
               body.locale === "zh"
-                ? "你是 Syntext 的写作助手。只返回最终结果，不要加寒暄，不要用 markdown 代码块包裹。"
-                : "You are Syntext's writing assistant. Return only the final result, no preamble, and do not wrap the answer in markdown code fences.",
+                ? "你是 Syncdown 的写作助手。只返回最终结果，不要加寒暄，不要用 markdown 代码块包裹。"
+                : "You are Syncdown's writing assistant. Return only the final result, no preamble, and do not wrap the answer in markdown code fences.",
             role: "system",
           },
           {

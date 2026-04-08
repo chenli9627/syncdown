@@ -3,7 +3,7 @@ import { AppProviders } from "@/components/providers/app-providers";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "Syntext",
+  title: "Syncdown",
   description: "Workspace-first writing and sharing.",
 };
 

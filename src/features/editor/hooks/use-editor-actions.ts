@@ -79,7 +79,7 @@ export function useEditorActions({
   syncHoveredBlockFromPos,
 }: UseEditorActionsArgs) {
   function getImageDownloadName(extension: string) {
-    const base = document.title?.trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/\s+/g, "-") || "syntext-image";
+    const base = document.title?.trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/\s+/g, "-") || "syncdown-image";
     const suffix = blockMenu.pos != null ? `${blockMenu.pos}` : `${Date.now()}`;
 
     return `${base}-image-${suffix}.${extension}`;

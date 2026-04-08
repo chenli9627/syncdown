@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { createSeedState } from "@/features/app-state/lib/seed";
 import type { Session, SyntextState } from "@/features/app-state/types";
 
-const SESSION_STORAGE_KEY = "syntext.session";
+const SESSION_STORAGE_KEY = "syncdown.session";
 
 function toFallbackPublicState(): SyntextState {
   const seed = createSeedState();

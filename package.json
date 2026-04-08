@@ -1,5 +1,5 @@
 {
-  "name": "syntext",
+  "name": "syncdown",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -19,6 +19,7 @@
     "@tiptap/starter-kit": "^3.22.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "jszip": "^3.10.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.511.0",
     "next": "^16.2.2",

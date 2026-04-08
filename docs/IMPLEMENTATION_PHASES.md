@@ -1,4 +1,4 @@
-# Syntext v2 Implementation Phases
+# Syncdown v2 Implementation Phases
 
 This file tracks execution phases for the v2 rebuild.
 

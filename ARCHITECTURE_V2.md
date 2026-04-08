@@ -1,15 +1,15 @@
-# Syntext V2 Architecture
+# Syncdown V2 Architecture
 
 This document aligns the implementation architecture with `../my_plan.md`.
 
 ## 1. Rebuild Position
 
-Syntext v2 is a rebuild, not an iteration on legacy product assumptions.
+Syncdown v2 is a rebuild, not an iteration on legacy product assumptions.
 
 Design rule:
 
 - use Notion as a reference for visual restraint and interaction feel, not as a source of unconfirmed product features
-- keep a single consistent Syntext design language across shell, editor, popovers, and sharing surfaces
+- keep a single consistent Syncdown design language across shell, editor, popovers, and sharing surfaces
 - keep the existing square-corner visual language for popovers, cards, and routine buttons unless a component has an explicit exception
 
 Core product:
@@ -596,7 +596,7 @@ Localization scope:
 ## 12. Suggested App Shape
 
 ```text
-syntext/
+syncdown/
   docs/
   app/
   src/

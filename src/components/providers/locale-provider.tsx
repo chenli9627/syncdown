@@ -15,7 +15,7 @@ import {
   type MessageKey,
 } from "@/lib/i18n/messages";
 
-const STORAGE_KEY = "syntext.locale";
+const STORAGE_KEY = "syncdown.locale";
 
 type LocaleContextValue = {
   locale: Locale;

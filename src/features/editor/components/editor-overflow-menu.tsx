@@ -88,7 +88,7 @@ export function EditorOverflowMenu({
               onClick={onImport}
               type="button"
             >
-              <span>Import</span>
+              <span>Import .md / .zip</span>
               <Upload className="ml-auto size-4" />
             </button>
             <button
@@ -96,7 +96,7 @@ export function EditorOverflowMenu({
               onClick={onExport}
               type="button"
             >
-              <span>Export</span>
+              <span>Export .zip</span>
               <Download className="ml-auto size-4" />
             </button>
             {permission === "owner" ? (
