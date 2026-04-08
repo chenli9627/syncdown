@@ -63,10 +63,6 @@ function htmlInlineToMarkdown(node: Node): string {
 function htmlBlockToMarkdown(node: Element): string[] {
   const tag = node.tagName;
 
-  if (tag === "DETAILS") {
-    return detailsBlockToMarkdown(node);
-  }
-
   if (tag === "P") {
     return [Array.from(node.childNodes).map(htmlInlineToMarkdown).join("")];
   }
@@ -270,28 +266,6 @@ export function markdownToEditorHtml(markdown: string) {
     if (!trimmed) {
       index += 1;
       continue;
-    }
-
-    if (/^<details(?:\s|>)/i.test(trimmed)) {
-      const detailsLines: string[] = [line];
-      index += 1;
-
-      while (index < lines.length && !/<\/details>/i.test(lines[index] ?? "")) {
-        detailsLines.push(lines[index] ?? "");
-        index += 1;
-      }
-
-      if (index < lines.length) {
-        detailsLines.push(lines[index] ?? "");
-        index += 1;
-      }
-
-      const detailsHtml = rawDetailsBlockToEditorHtml(detailsLines.join("\n"));
-
-      if (detailsHtml) {
-        blocks.push(detailsHtml);
-        continue;
-      }
     }
 
     if (/^```[\w+-]*$/.test(trimmed)) {
@@ -507,59 +481,6 @@ export function normalizeZipPath(path: string) {
   }
 
   return normalized.join("/");
-}
-
-function detailsBlockToMarkdown(node: Element) {
-  const details = node instanceof HTMLElement ? node : null;
-  const summary = details?.querySelector(":scope > summary");
-  const contentRoot =
-    details?.querySelector(':scope > div[data-type="detailsContent"]') ?? details;
-  const summaryContent = summary
-    ? Array.from(summary.childNodes).map(htmlInlineToMarkdown).join("")
-    : "";
-  const contentLines = Array.from(contentRoot?.children ?? [])
-    .filter(
-      (child): child is HTMLElement =>
-        child instanceof HTMLElement && child.tagName !== "SUMMARY",
-    )
-    .flatMap((child) => htmlBlockToMarkdown(child))
-    .map((line) => line.trimEnd());
-  const lines = [
-    details?.hasAttribute("open") ? "<details open>" : "<details>",
-    `<summary>${summaryContent}</summary>`,
-  ];
-
-  if (contentLines.length) {
-    lines.push("", ...contentLines);
-  }
-
-  lines.push("</details>");
-  return lines;
-}
-
-function rawDetailsBlockToEditorHtml(source: string) {
-  const doc = new DOMParser().parseFromString(source, "text/html");
-  const details = doc.body.querySelector("details");
-
-  if (!details) {
-    return null;
-  }
-
-  const summary = details.querySelector(":scope > summary");
-  const summaryHtml = summary?.innerHTML ?? "";
-  const explicitContent = details.querySelector(':scope > div[data-type="detailsContent"]');
-  const contentHtml =
-    explicitContent?.innerHTML ||
-    Array.from(details.children)
-      .filter(
-        (child): child is HTMLElement =>
-          child instanceof HTMLElement && child.tagName !== "SUMMARY",
-      )
-      .map((child) => child.outerHTML)
-      .join("") ||
-    "<p></p>";
-
-  return `<details${details.hasAttribute("open") ? " open" : ""}><summary>${summaryHtml}</summary><div data-type="detailsContent">${contentHtml}</div></details>`;
 }
 
 function nextAssetPath(extension: string, counters: Map<string, number>) {

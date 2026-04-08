@@ -3,10 +3,6 @@
 import { useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
-import Details, {
-  DetailsContent,
-  DetailsSummary,
-} from "@tiptap/extension-details";
 import Image from "@tiptap/extension-image";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
@@ -59,11 +55,6 @@ export function useSyntextEditor({
       TaskItem.configure({
         nested: false,
       }),
-      Details.configure({
-        persist: true,
-      }),
-      DetailsSummary,
-      DetailsContent,
       StarterKit.configure({
         codeBlock: false,
         heading: {

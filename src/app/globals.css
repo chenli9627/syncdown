@@ -248,65 +248,6 @@ button:disabled {
   text-decoration: line-through;
 }
 
-.syntext-editor div[data-type="details"] {
-  min-height: 1.85rem;
-  padding-left: 1.45rem;
-  position: relative;
-}
-
-.syntext-editor div[data-type="details"] > button {
-  align-items: center;
-  background: transparent;
-  border: none;
-  color: var(--color-muted-foreground);
-  cursor: pointer;
-  display: inline-flex;
-  height: 0.95rem;
-  justify-content: center;
-  left: 0;
-  padding: 0;
-  position: absolute;
-  top: 0.55rem;
-  width: 0.95rem;
-}
-
-.syntext-editor div[data-type="details"] > button::before {
-  border-bottom: 1.5px solid currentColor;
-  border-right: 1.5px solid currentColor;
-  content: "";
-  display: block;
-  height: 0.45rem;
-  transform: rotate(-45deg);
-  transition: transform 120ms ease;
-  width: 0.45rem;
-}
-
-.syntext-editor div[data-type="details"].is-open > button::before {
-  transform: rotate(45deg);
-}
-
-.syntext-editor div[data-type="details"] > div > summary {
-  align-items: center;
-  cursor: text;
-  display: flex;
-  list-style: none;
-  margin: 0;
-  min-height: 1.85rem;
-}
-
-.syntext-editor div[data-type="details"] > div > summary::-webkit-details-marker {
-  display: none;
-}
-
-.syntext-editor div[data-type="details"] > div > summary:empty::after {
-  color: var(--color-muted-foreground);
-  content: "Toggle";
-}
-
-.syntext-editor div[data-type="details"] div[data-type="detailsContent"] {
-  margin-top: 0.2rem;
-}
-
 .syntext-editor blockquote {
   align-items: center;
   background: var(--color-muted);

@@ -8,7 +8,7 @@ import type {
 } from "@/features/editor/lib/types";
 
 export const BLOCK_ELEMENT_SELECTOR =
-  'p, h1, h2, h3, h4, blockquote, pre, li, hr, img, div[data-type="details"]';
+  "p, h1, h2, h3, h4, blockquote, pre, li, hr, img";
 
 export function getBlockTransformActiveId(editor: Editor, pos: number) {
   const node = editor.state.doc.nodeAt(pos);
@@ -31,10 +31,6 @@ export function getBlockTransformActiveId(editor: Editor, pos: number) {
 
   if (node.type.name === "taskList") {
     return "todo-list";
-  }
-
-  if (node.type.name === "details") {
-    return "toggle-list";
   }
 
   if (node.type.name === "blockquote") {
@@ -100,12 +96,6 @@ export function unwrapListIfNeeded(editor: Editor) {
   }
 }
 
-export function unwrapDetailsIfNeeded(editor: Editor) {
-  if (editor.isActive("details")) {
-    editor.chain().focus().unsetDetails().run();
-  }
-}
-
 export function unwrapQuoteIfNeeded(editor: Editor) {
   if (editor.isActive("blockquote")) {
     editor.chain().focus().toggleBlockquote().run();
@@ -120,13 +110,11 @@ export function unwrapCodeBlockIfNeeded(editor: Editor) {
 
 export function normalizeParagraphTransform(editor: Editor) {
   unwrapListIfNeeded(editor);
-  unwrapDetailsIfNeeded(editor);
   unwrapQuoteIfNeeded(editor);
   unwrapCodeBlockIfNeeded(editor);
 }
 
 export function normalizeListTransform(editor: Editor) {
-  unwrapDetailsIfNeeded(editor);
   unwrapQuoteIfNeeded(editor);
   unwrapCodeBlockIfNeeded(editor);
 
