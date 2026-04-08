@@ -4,6 +4,7 @@ import {
   normalizeParagraphTransform,
   normalizeListTransform,
   setSelectionToBlock,
+  unwrapDetailsIfNeeded,
   unwrapListIfNeeded,
   unwrapCodeBlockIfNeeded,
   unwrapQuoteIfNeeded,
@@ -42,7 +43,7 @@ const slashItemConfigs: SlashItemConfig[] = [
   { id: "bullet-list", label: "Bulleted list", shortcut: "-", run: runBulletList },
   { id: "ordered-list", label: "Numbered list", shortcut: "1.", run: runOrderedList },
   { id: "todo-list", label: "Todo list", shortcut: "[]", run: runTaskList },
-  { id: "toggle-list", label: "Toggle list", shortcut: ">", enabled: false, run: noopEditorAction },
+  { id: "toggle-list", label: "Toggle list", shortcut: ">", run: runToggleList },
   { id: "quote", label: "Quote", shortcut: "\"", run: runQuote },
   { id: "table", label: "Table", shortcut: "", enabled: false, run: noopEditorAction },
   { id: "divider", label: "Divider", shortcut: "--", run: runDivider },
@@ -58,6 +59,7 @@ const blockTransformConfigs: BlockTransformConfig[] = [
   { id: "bullet-list", label: "Bulleted list", run: runBulletList },
   { id: "ordered-list", label: "Numbered list", run: runOrderedList },
   { id: "todo-list", label: "Todo list", run: runTaskList },
+  { id: "toggle-list", label: "Toggle list", run: runToggleList },
   { id: "quote", label: "Quote", run: runQuote },
   { id: "code", label: "Code", run: runCodeBlock },
 ];
@@ -145,8 +147,24 @@ function runTaskList(editor: Editor) {
   editor.chain().focus().toggleTaskList().run();
 }
 
+function runToggleList(editor: Editor) {
+  if (editor.isActive("blockquote")) {
+    editor.chain().focus().lift("blockquote").setDetails().run();
+    return;
+  }
+
+  if (editor.isActive("details")) {
+    editor.chain().focus().unsetDetails().run();
+    return;
+  }
+
+  normalizeParagraphTransform(editor);
+  editor.chain().focus().setDetails().run();
+}
+
 function runQuote(editor: Editor) {
   unwrapListIfNeeded(editor);
+  unwrapDetailsIfNeeded(editor);
   unwrapCodeBlockIfNeeded(editor);
   editor.chain().focus().toggleBlockquote().run();
 }
@@ -162,6 +180,7 @@ function runCodeBlock(editor: Editor) {
   }
 
   unwrapListIfNeeded(editor);
+  unwrapDetailsIfNeeded(editor);
   unwrapQuoteIfNeeded(editor);
   editor.chain().focus().toggleCodeBlock().run();
 }

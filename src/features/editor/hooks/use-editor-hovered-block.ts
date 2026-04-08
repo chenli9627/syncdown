@@ -4,6 +4,7 @@ import type { Editor } from "@tiptap/react";
 import { useCallback, useEffect, useState } from "react";
 import type { HoveredBlock } from "@/features/editor/lib/types";
 import {
+  BLOCK_ELEMENT_SELECTOR,
   getHoveredBlockFromPointer,
   getTopLevelBlock,
   getTopLevelBlockInfoFromElement,
@@ -37,7 +38,7 @@ export function useEditorHoveredBlock({
 
       const blockElement =
         (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
-          "p, h1, h2, h3, h4, blockquote, pre, li, hr, img",
+          BLOCK_ELEMENT_SELECTOR,
         ) ?? null;
 
       if (!(container instanceof HTMLElement) || !(blockElement instanceof HTMLElement)) {

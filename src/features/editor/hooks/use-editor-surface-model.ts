@@ -15,7 +15,7 @@ import { useEditorTitleState } from "@/features/editor/hooks/use-editor-title-st
 import { useSyntextEditor } from "@/features/editor/hooks/use-syntext-editor";
 import { createBlockTransformItems } from "@/features/editor/lib/menu-config";
 import type { BlockTransformItem } from "@/features/editor/lib/types";
-import { permissionLabel } from "@/features/editor/lib/utils";
+import { BLOCK_ELEMENT_SELECTOR, permissionLabel } from "@/features/editor/lib/utils";
 import { useEffect } from "react";
 
 type UseEditorSurfaceModelArgs = {
@@ -107,7 +107,7 @@ export function useEditorSurfaceModel({
     const domNode = editor.view.nodeDOM(ui.blockMenu.pos);
     const blockElement =
       (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
-        "p, h1, h2, h3, h4, blockquote, pre, li, hr, img",
+        BLOCK_ELEMENT_SELECTOR,
       ) ?? null;
 
     if (!(blockElement instanceof HTMLElement)) {

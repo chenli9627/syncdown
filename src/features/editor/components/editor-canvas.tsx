@@ -13,6 +13,7 @@ import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu"
 import { useEditorBlockDrag } from "@/features/editor/hooks/use-editor-block-drag";
 import type { AiActionKind } from "@/features/editor/lib/ai";
 import {
+  BLOCK_ELEMENT_SELECTOR,
   getBlockDropTargetFromPointer,
   getTopLevelBlockInfoFromElement,
 } from "@/features/editor/lib/utils";
@@ -157,7 +158,7 @@ export function EditorCanvas({
     const domNode = editor.view.nodeDOM(blockMenu.pos);
     const blockElement =
       (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
-        "p, h1, h2, h3, h4, blockquote, pre, li, hr, img",
+        BLOCK_ELEMENT_SELECTOR,
       ) ?? null;
 
     if (!(container instanceof HTMLElement) || !(blockElement instanceof HTMLElement)) {

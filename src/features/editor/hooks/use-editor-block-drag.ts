@@ -4,7 +4,10 @@ import { TextSelection } from "@tiptap/pm/state";
 import type { Editor } from "@tiptap/react";
 import { useCallback, useRef, useState } from "react";
 import type { BlockDragState, HoveredBlock } from "@/features/editor/lib/types";
-import { getBlockDropTargetFromPointer } from "@/features/editor/lib/utils";
+import {
+  BLOCK_ELEMENT_SELECTOR,
+  getBlockDropTargetFromPointer,
+} from "@/features/editor/lib/utils";
 
 const idleDragState: BlockDragState = {
   active: false,
@@ -162,7 +165,7 @@ export function useEditorBlockDrag({
         const hoveredNode = editor.view.nodeDOM(hoveredBlock.pos);
         const hoveredElement =
           (hoveredNode instanceof HTMLElement ? hoveredNode : hoveredNode?.parentElement)?.closest(
-            "p, h1, h2, h3, h4, blockquote, pre, li, hr, img",
+            BLOCK_ELEMENT_SELECTOR,
           ) ?? null;
 
         if (!(hoveredElement instanceof HTMLElement)) {
