@@ -4,6 +4,12 @@ import { useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import Image from "@tiptap/extension-image";
+import {
+  Table,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "@tiptap/extension-table";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import StarterKit from "@tiptap/starter-kit";
@@ -55,6 +61,12 @@ export function useSyntextEditor({
       TaskItem.configure({
         nested: false,
       }),
+      Table.configure({
+        resizable: false,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
       StarterKit.configure({
         codeBlock: false,
         heading: {

@@ -84,6 +84,10 @@ function htmlBlockToMarkdown(node: Element): string[] {
     return text.split("\n").map((line) => `> ${line}`.trimEnd());
   }
 
+  if (tag === "TABLE") {
+    return tableBlockToMarkdown(node);
+  }
+
   if (tag === "UL") {
     if (node.getAttribute("data-type") === "taskList") {
       return Array.from(node.children)
@@ -327,6 +331,20 @@ export function markdownToEditorHtml(markdown: string) {
       continue;
     }
 
+    if (isMarkdownTableStart(lines, index)) {
+      const headerCells = splitMarkdownTableRow(lines[index] ?? "");
+      const bodyRows: string[][] = [];
+      index += 2;
+
+      while (index < lines.length && isMarkdownTableRow(lines[index] ?? "")) {
+        bodyRows.push(splitMarkdownTableRow(lines[index] ?? ""));
+        index += 1;
+      }
+
+      blocks.push(markdownTableToHtml(headerCells, bodyRows));
+      continue;
+    }
+
     if (/^- /.test(trimmed)) {
       const taskItems: string[] = [];
       let taskIndex = index;
@@ -512,4 +530,85 @@ function base64ToUint8Array(base64: string) {
   }
 
   return bytes;
+}
+
+function tableBlockToMarkdown(node: Element) {
+  const rows = Array.from(node.querySelectorAll("tr")).map((row) =>
+    Array.from(row.querySelectorAll("th, td")).map((cell) =>
+      Array.from(cell.childNodes).map(htmlInlineToMarkdown).join("").trim(),
+    ),
+  );
+
+  if (!rows.length) {
+    return [];
+  }
+
+  const header = rows[0] ?? [];
+  const body = rows.slice(1);
+  const normalizedHeader = header.length ? header : [""];
+  const separator = normalizedHeader.map(() => "---");
+  const lines = [
+    `| ${normalizedHeader.join(" | ")} |`,
+    `| ${separator.join(" | ")} |`,
+  ];
+
+  for (const row of body) {
+    const padded = [...row];
+
+    while (padded.length < normalizedHeader.length) {
+      padded.push("");
+    }
+
+    lines.push(`| ${padded.join(" | ")} |`);
+  }
+
+  return lines;
+}
+
+function isMarkdownTableStart(lines: string[], index: number) {
+  return (
+    isMarkdownTableRow(lines[index] ?? "") &&
+    isMarkdownTableSeparator(lines[index + 1] ?? "")
+  );
+}
+
+function isMarkdownTableRow(line: string) {
+  const trimmed = line.trim();
+  return /^\|?.+\|.+\|?$/.test(trimmed);
+}
+
+function isMarkdownTableSeparator(line: string) {
+  const trimmed = line.trim();
+  return /^\|?\s*:?-{3,}:?(?:\s*\|\s*:?-{3,}:?)+\s*\|?$/.test(trimmed);
+}
+
+function splitMarkdownTableRow(line: string) {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+function markdownTableToHtml(headerCells: string[], bodyRows: string[][]) {
+  const header = `<thead><tr>${headerCells
+    .map((cell) => `<th>${inlineMarkdownToHtml(cell)}</th>`)
+    .join("")}</tr></thead>`;
+  const body = `<tbody>${bodyRows
+    .map((row) => {
+      const padded = [...row];
+
+      while (padded.length < headerCells.length) {
+        padded.push("");
+      }
+
+      return `<tr>${padded
+        .slice(0, headerCells.length)
+        .map((cell) => `<td>${inlineMarkdownToHtml(cell)}</td>`)
+        .join("")}</tr>`;
+    })
+    .join("")}</tbody>`;
+
+  return `<table>${header}${body}</table>`;
 }

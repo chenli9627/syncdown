@@ -154,6 +154,32 @@ button:disabled {
   list-style: decimal;
 }
 
+.syntext-editor table {
+  border-collapse: collapse;
+  margin: 0.35rem 0;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.syntext-editor th,
+.syntext-editor td {
+  border: 1px solid var(--color-border);
+  min-width: 7rem;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.syntext-editor th {
+  background: var(--color-muted);
+  font-weight: 600;
+}
+
+.syntext-editor td p,
+.syntext-editor th p {
+  margin: 0;
+}
+
 .syntext-editor ul[data-type="taskList"] {
   list-style: none;
   padding-left: 0.15rem;
