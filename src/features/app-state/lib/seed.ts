@@ -11,20 +11,20 @@ const now = new Date().toISOString();
 
 const ownerUser: StoredUser = {
   id: "user_owner",
-  email: "owner@syntext.dev",
-  username: "owner",
-  name: "Syntext Owner",
-  password: "ownerpass123",
+  email: "one@syntext.dev",
+  username: "one",
+  name: "One",
+  password: "onepass123",
   avatarUrl: null,
   createdAt: now,
 };
 
 const guestUser: StoredUser = {
   id: "user_guest",
-  email: "guest@syntext.dev",
-  username: "guest",
-  name: "Guest Reader",
-  password: "guestpass123",
+  email: "two@syntext.dev",
+  username: "two",
+  name: "Two",
+  password: "twopass123",
   avatarUrl: null,
   createdAt: now,
 };

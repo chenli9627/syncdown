@@ -48,7 +48,7 @@ export function LoginForm() {
         </p>
         <h2 className="text-3xl font-semibold">Log in</h2>
         <p className="text-sm text-[var(--color-muted-foreground)]">
-          Use the seed account `owner / ownerpass123` or `guest / guestpass123`.
+          Use the seed account `one / onepass123` or `two / twopass123`.
         </p>
       </div>
 
