@@ -9,6 +9,7 @@ import {
   normalizeZipPath,
   sanitizeMarkdownFilename,
   sanitizeZipFilename,
+  validateSupportedMarkdown,
 } from "@/features/editor/lib/markdown";
 import type { EditorActionBaseArgs } from "@/features/editor/lib/editor-action-types";
 import { uploadImageBlob } from "@/features/editor/lib/image";
@@ -71,6 +72,15 @@ export async function importEditorMarkdown(args: EditorActionBaseArgs, file: Fil
   }
 
   const markdown = await file.text();
+  const validation = validateSupportedMarkdown(markdown);
+
+  if (!validation.ok) {
+    args.setOverflowMenuOpen?.(false);
+    args.setActionError(validation.error);
+    args.setActionNotice(null);
+    return;
+  }
+
   await insertMarkdownIntoEditor(args, markdownToEditorHtml(markdown), "Markdown imported");
 }
 
@@ -124,6 +134,15 @@ async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
   const markdownEntry = markdownEntries[0];
 
   const markdown = await markdownEntry.async("text");
+  const markdownValidation = validateSupportedMarkdown(markdown);
+
+  if (!markdownValidation.ok) {
+    args.setOverflowMenuOpen?.(false);
+    args.setActionError(markdownValidation.error);
+    args.setActionNotice(null);
+    return;
+  }
+
   const markdownDirectory = normalizeZipPath(markdownEntry.name.split("/").slice(0, -1).join("/"));
   const assetValidation = validateZipMarkdownAssets(zip, markdown, markdownDirectory);
 

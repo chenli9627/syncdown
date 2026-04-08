@@ -6,6 +6,32 @@ export type MarkdownAsset = {
   path: string;
 };
 
+const UNSUPPORTED_MARKDOWN_PATTERNS: Array<{
+  error: string;
+  pattern: RegExp;
+}> = [
+  {
+    error: "Markdown links are not supported yet",
+    pattern: /(^|[^\!])\[[^\]]+\]\([^)]+\)/m,
+  },
+  {
+    error: "Strikethrough markdown is not supported yet",
+    pattern: /~~[^~]+~~/,
+  },
+  {
+    error: "Nested markdown lists are not supported yet",
+    pattern: /^\s{2,}(?:- |\d+\.\s)/m,
+  },
+  {
+    error: "Raw HTML blocks are not supported in markdown import",
+    pattern: /<(?!img\b)[a-z][^>]*>/i,
+  },
+  {
+    error: "Footnotes are not supported yet",
+    pattern: /\[\^[^\]]+\]/,
+  },
+];
+
 const DATA_IMAGE_URL_PATTERN = /^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/;
 const LOCAL_MEDIA_URL_PATTERN = /\/api\/media\/([^/?#]+)$/;
 
@@ -403,6 +429,21 @@ export function markdownToEditorHtml(markdown: string) {
   }
 
   return blocks.join("");
+}
+
+export function validateSupportedMarkdown(markdown: string) {
+  for (const rule of UNSUPPORTED_MARKDOWN_PATTERNS) {
+    if (rule.pattern.test(markdown)) {
+      return {
+        ok: false as const,
+        error: rule.error,
+      };
+    }
+  }
+
+  return {
+    ok: true as const,
+  };
 }
 
 export async function markdownToEditorHtmlWithAssets(
