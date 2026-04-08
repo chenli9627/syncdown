@@ -3,11 +3,14 @@
 import type { Editor } from "@tiptap/react";
 import { useMemo } from "react";
 import {
-  editorHtmlToMarkdown,
-  markdownToEditorHtml,
-  sanitizeMarkdownFilename,
-} from "@/features/editor/lib/markdown";
-import { collectSearchMatches, getSearchRects } from "@/features/editor/lib/search";
+  exportEditorMarkdown,
+  importEditorMarkdown,
+} from "@/features/editor/lib/editor-markdown-actions";
+import type {
+  EditorActionBaseArgs,
+  EditorBlockMenuState,
+} from "@/features/editor/lib/editor-action-types";
+import { runEditorSearch } from "@/features/editor/lib/editor-search-actions";
 import type { BlockTransformItem, HoveredBlock } from "@/features/editor/lib/types";
 import { getBlockTransformActiveId } from "@/features/editor/lib/utils";
 
@@ -67,9 +70,19 @@ type UseEditorActionsArgs = {
   setSearchMatchCount: (value: number) => void;
   setSearchMatchIndex: (value: number) => void;
   setSearchNotice: (value: string | null) => void;
-  setSearchRects: (value: ReturnType<typeof getSearchRects>) => void;
+  setSearchRects: EditorActionBaseArgs["setSearchRects"];
   syncHoveredBlockFromPos: (position: number) => void;
 };
+
+function closeBlockMenu(setBlockMenu: (value: EditorBlockMenuState) => void) {
+  setBlockMenu({
+    left: 0,
+    open: false,
+    pos: null,
+    showTurnInto: false,
+    top: 0,
+  });
+}
 
 export function useEditorActions({
   blockMenu,
@@ -114,15 +127,7 @@ export function useEditorActions({
     if (!editor || !hoveredBlock) {
       return;
     }
-
-    setBlockMenu({
-      left: 0,
-      open: false,
-      pos: null,
-      showTurnInto: false,
-      top: 0,
-    });
-
+    closeBlockMenu(setBlockMenu);
     editor
       .chain()
       .focus()
@@ -152,15 +157,7 @@ export function useEditorActions({
       .focus()
       .insertContentAt(duplicatedPos, node.toJSON())
       .run();
-
-    setBlockMenu({
-      left: 0,
-      open: false,
-      pos: null,
-      showTurnInto: false,
-      top: 0,
-    });
-
+    closeBlockMenu(setBlockMenu);
     window.requestAnimationFrame(() => {
       syncHoveredBlockFromPos(duplicatedPos);
     });
@@ -182,14 +179,7 @@ export function useEditorActions({
       .focus()
       .deleteRange({ from: blockMenu.pos, to: blockMenu.pos + node.nodeSize })
       .run();
-
-    setBlockMenu({
-      left: 0,
-      open: false,
-      pos: null,
-      showTurnInto: false,
-      top: 0,
-    });
+    closeBlockMenu(setBlockMenu);
     setHoveredBlock(null);
   }
 
@@ -199,128 +189,68 @@ export function useEditorActions({
     }
 
     item.run(editor, blockMenu.pos);
-    setBlockMenu({
-      left: 0,
-      open: false,
-      pos: null,
-      showTurnInto: false,
-      top: 0,
-    });
+    closeBlockMenu(setBlockMenu);
     window.requestAnimationFrame(() => {
       syncHoveredBlockFromPos(blockMenu.pos ?? 0);
     });
   }
 
   function runSearch(direction: "forward" | "backward") {
-    const query = searchQuery.trim();
-
-    if (!query) {
-      setSearchRects([]);
-      setSearchMatchCount(0);
-      setSearchMatchIndex(-1);
-      setSearchNotice("Enter text to search");
-      return;
-    }
-
-    const container = editorContainerRef.current;
-    const editorRoot = container?.querySelector(".ProseMirror");
-
-    if (!(editorRoot instanceof HTMLElement) || !(container instanceof HTMLElement)) {
-      setSearchRects([]);
-      setSearchMatchCount(0);
-      setSearchNotice("No match found");
-      return;
-    }
-
-    const matches = collectSearchMatches(editorRoot, query);
-
-    if (!matches.length) {
-      setSearchRects([]);
-      setSearchMatchCount(0);
-      setSearchMatchIndex(-1);
-      setSearchNotice("No match found");
-      return;
-    }
-
-    const nextIndex =
-      searchMatchIndex < 0
-        ? direction === "forward"
-          ? 0
-          : matches.length - 1
-        : direction === "forward"
-          ? (searchMatchIndex + 1) % matches.length
-          : (searchMatchIndex - 1 + matches.length) % matches.length;
-    const nextMatch = matches[nextIndex];
-    const nextRects = getSearchRects(nextMatch.range, container);
-
-    setSearchRects(nextRects);
-    setSearchMatchCount(matches.length);
-    setSearchMatchIndex(nextIndex);
-    setSearchNotice(null);
-    nextMatch.range.startContainer.parentElement?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-    window.requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
-      const length = searchInputRef.current?.value.length ?? 0;
-      searchInputRef.current?.setSelectionRange(length, length);
-    });
+    runEditorSearch(
+      {
+        blockMenu,
+        canEditBody,
+        document,
+        editor,
+        editorContainerRef,
+        hoveredBlock,
+        saveDocument,
+        searchInputRef,
+        searchMatchIndex,
+        searchQuery,
+        setActionError,
+        setActionNotice,
+        setBlockMenu,
+        setHoveredBlock,
+        setSearchMatchCount,
+        setSearchMatchIndex,
+        setSearchNotice,
+        setSearchRects,
+        syncHoveredBlockFromPos,
+      },
+      direction,
+    );
   }
 
   async function handleExportMarkdown() {
-    const html = editor?.getHTML() ?? document.content;
-    const markdown = editorHtmlToMarkdown(html);
-    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
-    const downloadUrl = URL.createObjectURL(blob);
-    const anchor = globalThis.document.createElement("a");
-    anchor.href = downloadUrl;
-    anchor.download = sanitizeMarkdownFilename(document.title);
-    anchor.click();
-    URL.revokeObjectURL(downloadUrl);
-    setActionError(null);
-    setActionNotice("Markdown exported");
+    exportEditorMarkdown({ document, editor, setActionError, setActionNotice });
   }
 
   async function handleImportMarkdown(file: File) {
-    if (!canEditBody) {
-      setActionError("You do not have permission to import");
-      setActionNotice(null);
-      return;
-    }
-
-    if (!file.name.toLowerCase().endsWith(".md")) {
-      setActionError("Only .md files are supported right now");
-      setActionNotice(null);
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setActionError("上传文件过大");
-      setActionNotice(null);
-      return;
-    }
-
-    const markdown = await file.text();
-    const html = markdownToEditorHtml(markdown);
-
-    if (!editor) {
-      setActionError("Editor is not ready");
-      setActionNotice(null);
-      return;
-    }
-
-    editor.chain().focus().insertContent(html).run();
-    const result = await saveDocument(document.id, { content: editor.getHTML() });
-
-    if (!result.ok) {
-      setActionError(result.error);
-      setActionNotice(null);
-      return;
-    }
-
-    setActionError(null);
-    setActionNotice("Markdown imported");
+    await importEditorMarkdown(
+      {
+        blockMenu,
+        canEditBody,
+        document,
+        editor,
+        editorContainerRef,
+        hoveredBlock,
+        saveDocument,
+        searchInputRef,
+        searchMatchIndex,
+        searchQuery,
+        setActionError,
+        setActionNotice,
+        setBlockMenu,
+        setHoveredBlock,
+        setSearchMatchCount,
+        setSearchMatchIndex,
+        setSearchNotice,
+        setSearchRects,
+        syncHoveredBlockFromPos,
+      },
+      file,
+    );
   }
 
   return {

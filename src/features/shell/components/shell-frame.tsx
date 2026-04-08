@@ -1,14 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ChevronDown, House, Plus, Settings2, Trash2 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
-import { SidebarSection } from "@/features/shell/components/sidebar-section";
-import { WorkspaceSettingsPopover } from "@/features/shell/components/workspace-settings-popover";
-import { WorkspaceSwitcherPopover } from "@/features/shell/components/workspace-switcher-popover";
+import { ShellSidebar } from "@/features/shell/components/shell-sidebar";
 
 type ShellFrameProps = {
   children: ReactNode;
@@ -107,9 +103,7 @@ export function ShellFrame({ children }: ShellFrameProps) {
     return null;
   }
 
-  const isGuest = currentWorkspace.ownerUserId !== currentUser.id;
   const canManageCurrentWorkspace = currentWorkspace.ownerUserId === currentUser.id;
-  const topCardAvatar = currentWorkspace.name.slice(0, 1).toUpperCase();
   const guestBadgeClass =
     "shrink-0 rounded-full border border-[#f0d9a7] bg-[#fbefcf] px-2 py-0.5 text-[11px] font-semibold text-[#c98a10]";
 
@@ -126,228 +120,119 @@ export function ShellFrame({ children }: ShellFrameProps) {
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--color-background)]">
       <div className="grid h-screen w-full grid-cols-1 bg-[var(--color-card)] md:grid-cols-[272px_minmax(0,1fr)]">
-        <aside className="relative z-20 flex h-screen min-h-0 flex-col overflow-visible border-r border-[var(--color-border)] bg-[var(--color-sidebar)] p-2.5 text-[var(--color-sidebar-foreground)]">
-          <div className="relative z-30">
-            <button
-              className="flex w-full items-center gap-3 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3 py-3 text-left shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-card)]"
-              ref={workspaceTriggerRef}
-              onClick={() => {
-                setWorkspaceMenuOpen((current) => {
-                  const next = !current;
-
-                  if (!next) {
-                    setShowCreateWorkspace(false);
-                    setShowWorkspaceSettings(false);
-                  }
-
-                  return next;
-                });
-              }}
-              type="button"
-            >
-              <div className="flex size-10 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-[var(--color-primary-foreground)]">
-                {topCardAvatar}
-              </div>
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <p className="truncate text-[15px] font-semibold">
-                  {currentWorkspace.name}
-                </p>
-                {isGuest ? (
-                  <span className={guestBadgeClass}>
-                    Guest
-                  </span>
-                ) : null}
-              </div>
-              <ChevronDown className="size-4 text-[var(--color-muted-foreground)]" />
-            </button>
-
-            {workspaceMenuOpen ? (
-              <WorkspaceSwitcherPopover
-                accessibleWorkspaces={accessibleWorkspaces}
-                createWorkspaceButtonRef={createWorkspaceButtonRef}
-                createWorkspacePopoverRef={createWorkspacePopoverRef}
-                currentUser={currentUser}
-                currentWorkspaceId={currentWorkspace.id}
-                guestBadgeClass={guestBadgeClass}
-                isWorking={isWorking}
-                onClose={closeWorkspacePopovers}
-                onCreateWorkspace={async () => {
-                  setWorkspaceError(null);
-                  setWorkspaceNotice(null);
-                  setIsWorking(true);
-
-                  const result = await createWorkspace(workspaceName);
-                  setIsWorking(false);
-
-                  if (!result.ok) {
-                    setWorkspaceError(result.error);
-                    return;
-                  }
-
-                  setWorkspaceName("");
-                  closeWorkspacePopovers();
-                }}
-                onLogout={() => {
-                  logout();
-                  setWorkspaceMenuOpen(false);
-                  router.push("/login");
-                }}
-                onOpenSettings={() => {
-                  setWorkspaceNotice("Profile settings will land in the next stage.");
-                  setWorkspaceError(null);
-                }}
-                onSelectWorkspace={(workspaceId) => {
-                  switchWorkspace(workspaceId);
-                  router.push("/home");
-                }}
-                onShowCreateWorkspaceChange={(value) => {
-                  setShowCreateWorkspace(value);
-                  setShowWorkspaceSettings(false);
-                }}
-                setWorkspaceError={setWorkspaceError}
-                setWorkspaceName={setWorkspaceName}
-                setWorkspaceNotice={setWorkspaceNotice}
-                showCreateWorkspace={showCreateWorkspace}
-                workspaceError={workspaceError}
-                workspaceMenuRef={workspaceMenuRef}
-                workspaceName={workspaceName}
-                workspaceNotice={workspaceNotice}
-              />
-            ) : null}
-          </div>
-
-          <nav className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-            <div className="relative">
-              <div className="flex items-center gap-2 border border-transparent bg-[var(--color-sidebar-panel)] px-3.5 py-3 text-sm font-medium shadow-[var(--shadow-whisper)]">
-                <Link
-                  className="flex min-w-0 flex-1 items-center gap-3 transition hover:text-[var(--color-foreground)]"
-                  href="/home"
-                >
-                  <House className="size-4 text-[var(--color-muted-foreground)]" />
-                  Home
-                </Link>
-                {canManageCurrentWorkspace ? (
-                  <>
-                    <button
-                      className="flex size-8 items-center justify-center text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-                      title="New document"
-                      onClick={async () => {
-                        const result = await createDocument();
-
-                        if (!result.ok) {
-                          return;
-                        }
-
-                        router.push(`/documents/${result.documentId}`);
-                      }}
-                      type="button"
-                    >
-                      <Plus className="size-4" />
-                    </button>
-                    <button
-                      className="flex size-8 items-center justify-center text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-                      ref={workspaceSettingsButtonRef}
-                      title="Workspace settings"
-                      onClick={() => {
-                        setRenameWorkspaceName(currentWorkspace.name);
-                        setDeleteConfirmName("");
-                        setShowWorkspaceSettings((current) => !current);
-                        setWorkspaceMenuOpen(false);
-                        setShowCreateWorkspace(false);
-                        setWorkspaceError(null);
-                        setWorkspaceNotice(null);
-                      }}
-                      type="button"
-                    >
-                      <Settings2 className="size-4" />
-                    </button>
-                  </>
-                ) : null}
-              </div>
-
-              {showWorkspaceSettings && canManageCurrentWorkspace ? (
-                <WorkspaceSettingsPopover
-                  currentWorkspaceName={currentWorkspace.name}
-                  deleteConfirmName={deleteConfirmName}
-                  isWorking={isWorking}
-                  onDeleteConfirmNameChange={setDeleteConfirmName}
-                  onDeleteWorkspace={async () => {
-                    setWorkspaceError(null);
-                    setWorkspaceNotice(null);
-                    setIsWorking(true);
-
-                    const result = await deleteCurrentWorkspace(
-                      deleteConfirmName,
-                    );
-                    setIsWorking(false);
-
-                    if (!result.ok) {
-                      setWorkspaceError(result.error);
-                      return;
-                    }
-
-                    closeWorkspacePopovers();
-                  }}
-                  onRenameWorkspace={async () => {
-                    setWorkspaceError(null);
-                    setWorkspaceNotice(null);
-                    setIsWorking(true);
-
-                    const result = await renameCurrentWorkspace(
-                      renameWorkspaceName,
-                    );
-                    setIsWorking(false);
-
-                    if (!result.ok) {
-                      setWorkspaceError(result.error);
-                      return;
-                    }
-
-                    setWorkspaceNotice("Workspace renamed");
-                    setShowWorkspaceSettings(false);
-                  }}
-                  onRenameWorkspaceNameChange={setRenameWorkspaceName}
-                  renameWorkspaceName={renameWorkspaceName}
-                  workspaceSettingsPopoverRef={workspaceSettingsPopoverRef}
-                />
-              ) : null}
-            </div>
-            <div className="grid min-h-0 flex-1 gap-3">
-              <SidebarSection
-                items={buckets.recents}
-                onOpenItem={handleOpenDocument}
-                title="Recents"
-              />
-              <SidebarSection
-                items={buckets.shared}
-                onOpenItem={handleOpenDocument}
-                title="Shared"
-              />
-              {canManageCurrentWorkspace ? (
-                <SidebarSection
-                  items={buckets.privateDocs}
-                  onOpenItem={handleOpenDocument}
-                  title="Private"
-                />
-              ) : null}
-            </div>
-          </nav>
-
-          {canManageCurrentWorkspace ? (
-            <button
-              className="mt-3 flex w-full items-center gap-3 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3.5 py-3 text-left text-sm font-medium shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-card)]"
-              onClick={() => {
-                router.push("/trash");
-              }}
-              type="button"
-            >
-              <div className="flex items-center gap-3">
-                <Trash2 className="size-4 text-[var(--color-muted-foreground)]" />
-                Trash
-              </div>
-            </button>
-          ) : null}
-        </aside>
+        <ShellSidebar
+          accessibleWorkspaces={accessibleWorkspaces}
+          buckets={buckets}
+          canManageCurrentWorkspace={canManageCurrentWorkspace}
+          closeWorkspacePopovers={closeWorkspacePopovers}
+          createDocument={createDocument}
+          createWorkspaceButtonRef={createWorkspaceButtonRef}
+          createWorkspacePopoverRef={createWorkspacePopoverRef}
+          currentUser={currentUser}
+          currentWorkspace={currentWorkspace}
+          deleteConfirmName={deleteConfirmName}
+          guestBadgeClass={guestBadgeClass}
+          handleOpenDocument={handleOpenDocument}
+          isWorking={isWorking}
+          onCreateWorkspace={async () => {
+            setWorkspaceError(null);
+            setWorkspaceNotice(null);
+            setIsWorking(true);
+            const result = await createWorkspace(workspaceName);
+            setIsWorking(false);
+            if (!result.ok) {
+              setWorkspaceError(result.error);
+              return;
+            }
+            setWorkspaceName("");
+            closeWorkspacePopovers();
+          }}
+          onDeleteConfirmNameChange={setDeleteConfirmName}
+          onDeleteWorkspace={async () => {
+            setWorkspaceError(null);
+            setWorkspaceNotice(null);
+            setIsWorking(true);
+            const result = await deleteCurrentWorkspace(deleteConfirmName);
+            setIsWorking(false);
+            if (!result.ok) {
+              setWorkspaceError(result.error);
+              return;
+            }
+            closeWorkspacePopovers();
+          }}
+          onHomeSettingsToggle={() => {
+            setRenameWorkspaceName(currentWorkspace.name);
+            setDeleteConfirmName("");
+            setShowWorkspaceSettings((current) => !current);
+            setWorkspaceMenuOpen(false);
+            setShowCreateWorkspace(false);
+            setWorkspaceError(null);
+            setWorkspaceNotice(null);
+          }}
+          onLogout={() => {
+            logout();
+            setWorkspaceMenuOpen(false);
+            router.push("/login");
+          }}
+          onOpenSettings={() => {
+            setWorkspaceNotice("Profile settings will land in the next stage.");
+            setWorkspaceError(null);
+          }}
+          onRenameWorkspace={async () => {
+            setWorkspaceError(null);
+            setWorkspaceNotice(null);
+            setIsWorking(true);
+            const result = await renameCurrentWorkspace(renameWorkspaceName);
+            setIsWorking(false);
+            if (!result.ok) {
+              setWorkspaceError(result.error);
+              return;
+            }
+            setWorkspaceNotice("Workspace renamed");
+            setShowWorkspaceSettings(false);
+          }}
+          onRenameWorkspaceNameChange={setRenameWorkspaceName}
+          onSelectWorkspace={(workspaceId) => {
+            switchWorkspace(workspaceId);
+            router.push("/home");
+          }}
+          onShowCreateWorkspaceChange={(value) => {
+            setShowCreateWorkspace((current) =>
+              typeof value === "function" ? value(current) : value,
+            );
+            setShowWorkspaceSettings(false);
+          }}
+          onToggleWorkspaceMenu={() => {
+            setWorkspaceMenuOpen((current) => {
+              const next = !current;
+              if (!next) {
+                setShowCreateWorkspace(false);
+                setShowWorkspaceSettings(false);
+              }
+              return next;
+            });
+          }}
+          onTrashOpen={() => {
+            router.push("/trash");
+          }}
+          onWorkspaceDocumentCreated={(documentId) => {
+            router.push(`/documents/${documentId}`);
+          }}
+          renameWorkspaceName={renameWorkspaceName}
+          setWorkspaceError={setWorkspaceError}
+          setWorkspaceName={setWorkspaceName}
+          setWorkspaceNotice={setWorkspaceNotice}
+          showCreateWorkspace={showCreateWorkspace}
+          showWorkspaceSettings={showWorkspaceSettings}
+          workspaceError={workspaceError}
+          workspaceMenuOpen={workspaceMenuOpen}
+          workspaceMenuRef={workspaceMenuRef}
+          workspaceName={workspaceName}
+          workspaceNotice={workspaceNotice}
+          workspaceSettingsButtonRef={workspaceSettingsButtonRef}
+          workspaceSettingsPopoverRef={workspaceSettingsPopoverRef}
+          workspaceTriggerRef={workspaceTriggerRef}
+        />
 
         <main className="relative z-0 h-screen min-h-0 overflow-y-auto bg-[linear-gradient(180deg,#ffffff_0%,#fdfcfb_100%)]">
           {children}
