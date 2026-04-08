@@ -1,8 +1,11 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { Pool } from "pg";
 import { createSeedState } from "@/features/app-state/lib/seed";
 import type { StoredSyntextState } from "@/features/app-state/types";
 
 const TABLE_NAME = "syncdown_state";
+const LOCAL_STATE_FILE = path.join(process.cwd(), ".data", "app-state.json");
 
 let pool: Pool | null = null;
 
@@ -36,6 +39,15 @@ async function ensureTable() {
   }
 }
 
+async function readLocalSnapshotFallback() {
+  try {
+    const raw = await readFile(LOCAL_STATE_FILE, "utf8");
+    return JSON.parse(raw) as StoredSyntextState;
+  } catch {
+    return createSeedState();
+  }
+}
+
 export async function readStoredStateFromPostgres() {
   await ensureTable();
   const client = await getPool().connect();
@@ -50,7 +62,7 @@ export async function readStoredStateFromPostgres() {
       return result.rows[0].snapshot;
     }
 
-    const seed = createSeedState();
+    const seed = await readLocalSnapshotFallback();
     await client.query(
       `insert into ${TABLE_NAME} (id, snapshot) values ($1, $2::jsonb)
        on conflict (id) do update set snapshot = excluded.snapshot, updated_at = now()`,

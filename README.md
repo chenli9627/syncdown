@@ -71,6 +71,9 @@ The app now supports two state backends:
 
 This keeps the current API surface stable while allowing the project to move off local JSON storage.
 
+On the first PostgreSQL read, if the table is empty and `.data/app-state.json` already exists,
+Syncdown will bootstrap the database snapshot from that local file before falling back to seed data.
+
 Example PostgreSQL environment:
 
 ```bash
