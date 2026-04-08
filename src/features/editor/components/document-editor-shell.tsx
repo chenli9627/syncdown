@@ -6,22 +6,14 @@ import StarterKit from "@tiptap/starter-kit";
 import {
   Bold,
   ChevronDown,
-  ChevronRight,
-  Copy,
   GripVertical,
   Heading1,
   Heading2,
   Italic,
   List,
   ListOrdered,
-  MoreHorizontal,
   Plus,
   Quote,
-  Sparkles,
-  Trash2,
-  Undo2,
-  Upload,
-  Download,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -34,6 +26,8 @@ import type {
   User,
 } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
+import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu";
+import { EditorOverflowMenu } from "@/features/editor/components/editor-overflow-menu";
 import { EditorPermissionPopover } from "@/features/editor/components/editor-permission-popover";
 import { EditorSearchPopover } from "@/features/editor/components/editor-search-popover";
 import { DocumentStatusState } from "@/features/editor/components/document-status-state";
@@ -1803,98 +1797,46 @@ function EditorSurface({
                 setOpen={setSearchMenuOpen}
               />
 
-              <div className="relative">
-                <button
-                  className="flex size-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
-                  onClick={() => {
-                    setOverflowMenuOpen((current) => !current);
-                    setActionError(null);
+              <EditorOverflowMenu
+                actionError={actionError}
+                actionNotice={actionNotice}
+                canEditBody={canEditBody}
+                canUndo={canUndo}
+                onExport={() => {
+                  void handleExportMarkdown();
+                }}
+                onImport={() => {
+                  importInputRef.current?.click();
+                }}
+                onMoveToTrash={async () => {
+                  const result = await moveDocumentToTrash(document.id);
+
+                  if (!result.ok) {
+                    setActionError(result.error);
                     setActionNotice(null);
-                    setSearchMenuOpen(false);
-                    setPermissionMenuOpen(false);
-                  }}
-                  ref={overflowButtonRef}
-                  type="button"
-                >
-                  <MoreHorizontal className="size-4 text-[var(--color-muted-foreground)]" />
-                </button>
+                    return;
+                  }
 
-                {overflowMenuOpen ? (
-                  <div
-                    className="absolute right-0 top-[calc(100%+10px)] z-20 w-[280px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
-                    ref={overflowMenuRef}
-                  >
-                    <div className="border-b border-[var(--color-border)] px-4 py-3">
-                      <p className="text-[15px] font-semibold text-[var(--color-foreground)]">
-                        Actions
-                      </p>
-                    </div>
-                    <div className="space-y-2 px-4 py-4">
-                        <button
-                          className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm transition hover:bg-[var(--color-hover)] disabled:opacity-40"
-                          disabled={!canEditBody || !canUndo}
-                          onClick={() => {
-                            editor?.chain().focus().undo().run();
-                          }}
-                          type="button"
-                        >
-                          <span>Undo</span>
-                          <Undo2 className="ml-auto size-4 text-[var(--color-muted-foreground)]" />
-                        </button>
-                        <button
-                          className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] disabled:opacity-40"
-                          disabled={!canEditBody}
-                          onClick={() => {
-                            importInputRef.current?.click();
-                          }}
-                          type="button"
-                        >
-                          <span>Import</span>
-                          <Upload className="ml-auto size-4" />
-                        </button>
-                        <button
-                          className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
-                          onClick={() => {
-                            void handleExportMarkdown();
-                          }}
-                          type="button"
-                        >
-                          <span>Export</span>
-                          <Download className="ml-auto size-4" />
-                        </button>
-                        {permission === "owner" ? (
-                          <button
-                            className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[#b44c07] transition hover:bg-[var(--color-hover)]"
-                            onClick={async () => {
-                              const result = await moveDocumentToTrash(document.id);
-
-                              if (!result.ok) {
-                                setActionError(result.error);
-                                setActionNotice(null);
-                                return;
-                              }
-
-                              setOverflowMenuOpen(false);
-                              router.push("/home");
-                            }}
-                            type="button"
-                          >
-                            <span>Move to Trash</span>
-                            <Trash2 className="ml-auto size-4" />
-                          </button>
-                        ) : null}
-                        {actionError ? (
-                          <p className="px-2 pt-1 text-sm text-[#dd5b00]">{actionError}</p>
-                        ) : null}
-                        {actionNotice ? (
-                          <p className="px-2 pt-1 text-sm text-[var(--color-muted-foreground)]">
-                            {actionNotice}
-                          </p>
-                        ) : null}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+                  setOverflowMenuOpen(false);
+                  router.push("/home");
+                }}
+                onOpenChange={(next) => {
+                  setOverflowMenuOpen(next);
+                  setSearchMenuOpen(false);
+                  setPermissionMenuOpen(false);
+                }}
+                onResetMessages={() => {
+                  setActionError(null);
+                  setActionNotice(null);
+                }}
+                onUndo={() => {
+                  editor?.chain().focus().undo().run();
+                }}
+                overflowButtonRef={overflowButtonRef}
+                overflowMenuOpen={overflowMenuOpen}
+                overflowMenuRef={overflowMenuRef}
+                permission={permission}
+              />
             </div>
           </div>
           {titleError ? (
@@ -2062,93 +2004,20 @@ function EditorSurface({
           <EditorContent editor={editor} />
           {canEditBody && blockMenu.open && globalThis.document?.body
             ? createPortal(
-                <div
-                  className="fixed z-[90] w-[208px] border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-soft-card)]"
-                  ref={blockMenuRef}
-                  style={{
-                    left: `${blockMenu.left}px`,
-                    top: `${blockMenu.top}px`,
-                  }}
-                >
-                  <div
-                    className="relative"
-                    onMouseEnter={() => {
-                      setBlockMenu((current) => ({
-                        ...current,
-                        showTurnInto: true,
-                      }));
-                    }}
-                    onMouseLeave={() => {
-                      setBlockMenu((current) => ({
-                        ...current,
-                        showTurnInto: false,
-                      }));
-                    }}
-                  >
-                    <button
-                      className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-                      type="button"
-                    >
-                      <span>Turn into</span>
-                      <ChevronRight
-                        className={`size-4 text-[var(--color-muted-foreground)] transition ${
-                          blockMenu.showTurnInto ? "translate-x-0.5" : ""
-                        }`}
-                      />
-                    </button>
-                    {blockMenu.showTurnInto ? (
-                      <div className="absolute left-full top-0 z-[91] w-[208px] border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-soft-card)]">
-                        {blockTransformItems.map((item) => {
-                          const isCurrent = currentTransformActiveId === item.id;
-
-                          return (
-                            <button
-                              className={`flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] transition ${
-                                isCurrent
-                                  ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
-                                  : "text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
-                              }`}
-                              key={item.id}
-                              onClick={() => {
-                                handleTurnInto(item);
-                              }}
-                              type="button"
-                            >
-                              <span>{item.label}</span>
-                              <span className="text-xs text-[var(--color-muted-foreground)]">
-                                {isCurrent ? "Current" : ""}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-                  <button
-                    className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-                    onClick={handleDuplicateBlock}
-                    type="button"
-                  >
-                    <span>Duplicate</span>
-                    <Copy className="size-4 text-[var(--color-muted-foreground)]" />
-                  </button>
-                  <button
-                    className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-                    disabled
-                    type="button"
-                  >
-                    <span>AI actions</span>
-                    <Sparkles className="size-4 text-[var(--color-muted-foreground)]" />
-                  </button>
-                  <button
-                    className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] text-[#b44c07] transition hover:bg-[var(--color-hover)]"
-                    onClick={handleDeleteBlock}
-                    type="button"
-                  >
-                    <span>Delete</span>
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>,
+                <EditorBlockMenu
+                  blockMenuLeft={blockMenu.left}
+                  blockMenuOpen={blockMenu.open}
+                  blockMenuRef={blockMenuRef}
+                  blockMenuTop={blockMenu.top}
+                  blockTransformItems={blockTransformItems}
+                  canEditBody={canEditBody}
+                  currentTransformActiveId={currentTransformActiveId}
+                  handleDeleteBlock={handleDeleteBlock}
+                  handleDuplicateBlock={handleDuplicateBlock}
+                  handleTurnInto={handleTurnInto}
+                  setBlockMenu={setBlockMenu}
+                  showTurnInto={blockMenu.showTurnInto}
+                />,
                 globalThis.document.body,
               )
             : null}
