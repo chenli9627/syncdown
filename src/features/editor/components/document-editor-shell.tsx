@@ -1,7 +1,6 @@
 "use client";
 
 import { EditorContent, useEditor } from "@tiptap/react";
-import type { Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -9,8 +8,6 @@ import { createPortal } from "react-dom";
 import { useLocale } from "@/components/providers/locale-provider";
 import type {
   DocumentRecord,
-  SyntextState,
-  User,
 } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu";
@@ -33,12 +30,22 @@ import {
   type SearchRect,
 } from "@/features/editor/lib/search";
 import type {
-  AccessEntry,
   BlockTransformItem,
   HoveredBlock,
   SlashContext,
   SlashItem,
 } from "@/features/editor/lib/types";
+import {
+  getAccessEntries,
+  getAccessPermission,
+  getBlockTransformActiveId,
+  getHoveredBlockFromPointer,
+  getSlashContext,
+  getTopLevelBlock,
+  permissionLabel,
+  setSelectionToBlock,
+  unwrapListIfNeeded,
+} from "@/features/editor/lib/utils";
 
 type DocumentEditorShellProps = {
   documentId: string;
@@ -49,229 +56,6 @@ type EditorSurfaceProps = {
   permission: "owner" | "can_edit" | "can_view";
   saveDocument: ReturnType<typeof useAppState>["saveDocument"];
 };
-
-function getBlockTransformActiveId(editor: Editor, pos: number) {
-  const node = editor.state.doc.nodeAt(pos);
-
-  if (!node) {
-    return "paragraph";
-  }
-
-  if (node.type.name === "heading") {
-    return `heading-${node.attrs.level}`;
-  }
-
-  if (node.type.name === "bulletList") {
-    return "bullet-list";
-  }
-
-  if (node.type.name === "orderedList") {
-    return "ordered-list";
-  }
-
-  if (node.type.name === "blockquote") {
-    return "quote";
-  }
-
-  if (node.type.name === "codeBlock") {
-    return "code";
-  }
-
-  if (node.type.name === "horizontalRule") {
-    return "divider";
-  }
-
-  return "paragraph";
-}
-
-function setSelectionToBlock(editor: Editor, pos: number) {
-  editor.chain().focus().setTextSelection(pos + 1).run();
-}
-
-function unwrapListIfNeeded(editor: Editor) {
-  if (editor.isActive("bulletList") || editor.isActive("orderedList")) {
-    editor.chain().focus().liftListItem("listItem").run();
-  }
-}
-
-function getTopLevelBlock(target: EventTarget | null, editorRoot: HTMLElement) {
-  if (!(target instanceof Node)) {
-    return null;
-  }
-
-  let current = target instanceof HTMLElement ? target : target.parentElement;
-
-  while (current && current.parentElement !== editorRoot) {
-    current = current.parentElement;
-  }
-
-  if (!current || current.parentElement !== editorRoot) {
-    return null;
-  }
-
-  return current;
-}
-
-function getHoveredBlockFromPointer(
-  editor: Editor,
-  editorRoot: HTMLElement,
-  container: HTMLElement,
-  clientY: number,
-) {
-  const blocks = Array.from(editorRoot.children).filter(
-    (node): node is HTMLElement => node instanceof HTMLElement,
-  );
-
-  const matchedBlock =
-    blocks.find((block) => {
-      const bounds = block.getBoundingClientRect();
-      return clientY >= bounds.top && clientY <= bounds.bottom;
-    }) ??
-    blocks.find((block, index) => {
-      const bounds = block.getBoundingClientRect();
-      const nextTop =
-        blocks[index + 1]?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
-      return clientY >= bounds.bottom && clientY <= nextTop;
-    });
-
-  if (!matchedBlock) {
-    return null;
-  }
-
-  let pos: number | null = null;
-
-  try {
-    pos = editor.view.posAtDOM(matchedBlock, 0);
-  } catch {
-    pos = null;
-  }
-
-  if (pos == null) {
-    return null;
-  }
-
-  const blockBounds = matchedBlock.getBoundingClientRect();
-  const containerBounds = container.getBoundingClientRect();
-
-  return {
-    height: blockBounds.height,
-    pos,
-    top: blockBounds.top - containerBounds.top,
-  };
-}
-
-function getSlashContext(editor: Editor): SlashContext | null {
-  const { selection } = editor.state;
-
-  if (!selection.empty) {
-    return null;
-  }
-
-  const { $from } = selection;
-
-  if (!$from.parent.isTextblock) {
-    return null;
-  }
-
-  const textBefore = $from.parent.textBetween(0, $from.parentOffset, undefined, "\ufffc");
-  const match = textBefore.match(/(?:^|\s)\/([^\s/]*)$/);
-
-  if (!match) {
-    return null;
-  }
-
-  const query = match[1] ?? "";
-  const slashOffset = textBefore.lastIndexOf(`/${query}`);
-
-  if (slashOffset < 0) {
-    return null;
-  }
-
-  return {
-    from: $from.start() + slashOffset,
-    to: selection.from,
-    query,
-  };
-}
-
-function getAccessPermission(
-  state: SyntextState,
-  user: User,
-  document: DocumentRecord,
-) {
-  const workspace = state.workspaces.find(
-    (item) => item.id === document.workspaceId,
-  );
-
-  if (workspace?.ownerUserId === user.id) {
-    return "owner" as const;
-  }
-
-  return (
-    state.accesses.find(
-      (access) => access.documentId === document.id && access.userId === user.id,
-    )?.permission ?? null
-  );
-}
-
-function getAccessEntries(
-  state: SyntextState,
-  document: DocumentRecord,
-  currentWorkspaceUserIds: Set<string>,
-) {
-  const workspace = state.workspaces.find((item) => item.id === document.workspaceId);
-  const owner = state.users.find((user) => user.id === workspace?.ownerUserId);
-
-  const guestEntries = state.accesses
-    .filter(
-      (access) =>
-        access.documentId === document.id && currentWorkspaceUserIds.has(access.userId),
-    )
-    .map<AccessEntry | null>((access) => {
-      const user = state.users.find((item) => item.id === access.userId);
-
-      if (!user) {
-        return null;
-      }
-
-      return {
-        email: user.email,
-        id: user.id,
-        name: user.name,
-        permission: access.permission,
-        userId: user.id,
-      } satisfies AccessEntry;
-    })
-    .filter((entry): entry is AccessEntry => Boolean(entry))
-    .sort((left, right) => left.name.localeCompare(right.name, "en"));
-
-  return [
-    ...(owner
-      ? [
-          {
-            id: owner.id,
-            email: owner.email,
-            name: owner.name,
-            permission: "owner" as const,
-            userId: owner.id,
-          },
-        ]
-      : []),
-    ...guestEntries,
-  ];
-}
-
-function permissionLabel(permission: "owner" | "can_edit" | "can_view") {
-  if (permission === "owner") {
-    return "Owner";
-  }
-
-  if (permission === "can_edit") {
-    return "Can edit";
-  }
-
-  return "Can view";
-}
 
 function escapeHtml(input: string) {
   return input
