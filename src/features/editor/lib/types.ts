@@ -82,3 +82,19 @@ export type AccessEntry = {
   permission: "owner" | "can_edit" | "can_view";
   userId: string;
 };
+
+export type PresenceEntry = {
+  anchor: number;
+  head: number;
+  name: string;
+  updatedAt: string;
+  userId: string;
+};
+
+export type RemoteCursorMarker = {
+  color: string;
+  label: string;
+  left: number;
+  top: number;
+  userId: string;
+};

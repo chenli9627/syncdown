@@ -598,6 +598,50 @@ export function useEditorActions({
         return tableNode.type.create(tableNode.attrs, nextRows);
       });
     },
+    handleTableColumnMove: (tablePos: number, fromIndex: number, toIndex: number) => {
+      rebuildTable(tablePos, (tableNode) => {
+        if (fromIndex === toIndex || fromIndex + 1 === toIndex) {
+          return tableNode;
+        }
+
+        const nextRows = [];
+
+        for (let rowIndex = 0; rowIndex < tableNode.childCount; rowIndex += 1) {
+          const rowNode = tableNode.child(rowIndex);
+          const cells = Array.from({ length: rowNode.childCount }, (_, index) => rowNode.child(index));
+          const [movedCell] = cells.splice(fromIndex, 1);
+
+          if (!movedCell) {
+            return tableNode;
+          }
+
+          const insertionIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
+          cells.splice(insertionIndex, 0, movedCell);
+          nextRows.push(rowNode.type.create(rowNode.attrs, cells));
+        }
+
+        return tableNode.type.create(tableNode.attrs, nextRows);
+      });
+    },
+    handleTableRowMove: (tablePos: number, fromIndex: number, toIndex: number) => {
+      rebuildTable(tablePos, (tableNode) => {
+        if (fromIndex === toIndex || fromIndex + 1 === toIndex) {
+          return tableNode;
+        }
+
+        const rows = Array.from({ length: tableNode.childCount }, (_, index) => tableNode.child(index));
+        const [movedRow] = rows.splice(fromIndex, 1);
+
+        if (!movedRow) {
+          return tableNode;
+        }
+
+        const insertionIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
+        rows.splice(insertionIndex, 0, movedRow);
+
+        return tableNode.type.create(tableNode.attrs, rows);
+      });
+    },
     handleTurnInto: blockActions.handleTurnInto,
     isImageBlock,
     isTableBlock,

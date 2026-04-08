@@ -70,8 +70,9 @@ export function useShellWorkspaceActions(args: UseShellWorkspaceActionsArgs) {
       args.routerPush("/login");
     },
     onOpenSettings: () => {
-      args.setWorkspaceNotice("Profile settings will land in the next stage.");
-      args.setWorkspaceError(null);
+      resetWorkspaceMessages(args);
+      args.closeWorkspacePopovers();
+      args.routerPush("/settings");
     },
     onRenameWorkspace: async () => {
       resetWorkspaceMessages(args);

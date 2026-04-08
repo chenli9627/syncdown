@@ -178,3 +178,29 @@ export function resetPasswordForUser(
     },
   };
 }
+
+export function updateProfileNameForUser(
+  state: StoredSyntextState,
+  userId: string,
+  rawName: string,
+) {
+  const name = sanitizeProfileName(rawName);
+
+  if (!name) {
+    return { ok: false as const, error: "Name is required" };
+  }
+
+  if (!state.users.some((user) => user.id === userId)) {
+    return { ok: false as const, error: "User does not exist" };
+  }
+
+  return {
+    ok: true as const,
+    state: {
+      ...state,
+      users: state.users.map((user) =>
+        user.id === userId ? { ...user, name } : user,
+      ),
+    },
+  };
+}

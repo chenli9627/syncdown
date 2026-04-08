@@ -6,6 +6,10 @@ import type {
   SyntextState,
   User,
 } from "@/features/app-state/types";
+import {
+  readStoredStateFromPostgres,
+  writeStoredStateToPostgres,
+} from "@/lib/server/postgres-state-store";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const STATE_FILE = path.join(DATA_DIR, "app-state.json");
@@ -42,6 +46,10 @@ async function ensureStateFile() {
 }
 
 export async function readStoredState() {
+  if (process.env.DATABASE_URL?.trim()) {
+    return readStoredStateFromPostgres();
+  }
+
   await ensureStateFile();
 
   const raw = await readFile(STATE_FILE, "utf8");
@@ -56,6 +64,11 @@ export async function readStoredState() {
 }
 
 export async function writeStoredState(state: StoredSyntextState) {
+  if (process.env.DATABASE_URL?.trim()) {
+    await writeStoredStateToPostgres(state);
+    return;
+  }
+
   await ensureStateFile();
   await writeFile(STATE_FILE, JSON.stringify(state, null, 2), "utf8");
 }

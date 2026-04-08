@@ -1,19 +1,6 @@
 "use client";
 
-import {
-  Columns2,
-  Rows2,
-  ArrowRightLeft,
-  ArrowDown,
-  ArrowLeft,
-  ArrowUp,
-  ChevronRight,
-  Copy,
-  Download,
-  Minus,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
+import { ArrowRightLeft, ChevronRight, Copy, Download, Sparkles, Trash2 } from "lucide-react";
 import type { RefObject } from "react";
 import type { BlockTransformItem } from "@/features/editor/lib/types";
 
@@ -28,14 +15,8 @@ type EditorBlockMenuProps = {
   handleCopyImage: () => void;
   handleDeleteBlock: () => void;
   handleDeleteTable: () => void;
-  handleDeleteTableColumn: () => void;
-  handleDeleteTableRow: () => void;
   handleDownloadImage: () => void;
   handleDuplicateBlock: () => void;
-  handleInsertTableColumnLeft: () => void;
-  handleInsertTableColumn: () => void;
-  handleInsertTableRowAbove: () => void;
-  handleInsertTableRow: () => void;
   handleTurnInto: (item: BlockTransformItem) => void;
   isImageBlock: boolean;
   isTableBlock: boolean;
@@ -80,14 +61,8 @@ export function EditorBlockMenu({
   handleCopyImage,
   handleDeleteBlock,
   handleDeleteTable,
-  handleDeleteTableColumn,
-  handleDeleteTableRow,
   handleDownloadImage,
   handleDuplicateBlock,
-  handleInsertTableColumnLeft,
-  handleInsertTableColumn,
-  handleInsertTableRowAbove,
-  handleInsertTableRow,
   handleTurnInto,
   isImageBlock,
   isTableBlock,
@@ -183,72 +158,6 @@ export function EditorBlockMenu({
       </button>
       {isTableBlock ? (
         <>
-          <button
-            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-            onClick={handleInsertTableRowAbove}
-            type="button"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <Rows2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>Add row above</span>
-            </span>
-            <ArrowUp className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-          </button>
-          <button
-            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-            onClick={handleInsertTableRow}
-            type="button"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <Rows2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>Add row below</span>
-            </span>
-            <ArrowDown className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-          </button>
-          <button
-            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-            onClick={handleInsertTableColumnLeft}
-            type="button"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <Columns2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>Add column left</span>
-            </span>
-            <ArrowLeft className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-          </button>
-          <button
-            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-            onClick={handleInsertTableColumn}
-            type="button"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <Columns2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>Add column right</span>
-            </span>
-            <ChevronRight className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-          </button>
-          <button
-            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-            onClick={handleDeleteTableRow}
-            type="button"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <Rows2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>Delete row</span>
-            </span>
-            <Minus className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-          </button>
-          <button
-            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-            onClick={handleDeleteTableColumn}
-            type="button"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <Columns2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>Delete column</span>
-            </span>
-            <Minus className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-          </button>
           <button
             className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[#b44c07] transition hover:bg-[var(--color-hover)]"
             onClick={handleDeleteTable}

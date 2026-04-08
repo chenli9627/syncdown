@@ -35,6 +35,12 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
       return defaultLocale;
     }
 
+    const savedLocale = window.localStorage.getItem(STORAGE_KEY);
+
+    if (savedLocale === "zh" || savedLocale === "en") {
+      return savedLocale;
+    }
+
     const browserLocale = window.navigator.language.toLowerCase();
 
     return browserLocale.startsWith("zh") ? "zh" : "en";

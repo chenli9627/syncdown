@@ -9,6 +9,13 @@ import {
 import type { Locale } from "@/lib/i18n/messages";
 
 type OpenAiCompatibleResponse = {
+  output?: Array<{
+    content?: Array<{
+      text?: string;
+      type?: string;
+    }>;
+  }>;
+  output_text?: string;
   choices?: Array<{
     message?: {
       content?: string | Array<{ text?: string; type?: string }>;
@@ -40,7 +47,7 @@ export async function POST(request: Request) {
   const viewOnly = getAiViewOnly(body.action);
   const fallback = generateAiPreview(body.action, selectedText, body.locale, body.prompt);
 
-  const apiKey = process.env.AI_API_KEY?.trim();
+  const apiKey = process.env.AI_API_KEY?.trim() || process.env.ARK_API_KEY?.trim();
   const baseUrl = process.env.AI_BASE_URL?.trim();
   const model = process.env.AI_MODEL?.trim();
 
@@ -54,18 +61,28 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response = await fetch(baseUrl, {
+    const response = await fetch(resolveResponsesEndpoint(baseUrl), {
       body: JSON.stringify({
-        messages: [
+        input: [
           {
-            content:
-              body.locale === "zh"
-                ? "你是 Syncdown 的写作助手。只返回最终结果，不要加寒暄，不要用 markdown 代码块包裹。"
-                : "You are Syncdown's writing assistant. Return only the final result, no preamble, and do not wrap the answer in markdown code fences.",
+            content: [
+              {
+                text:
+                  body.locale === "zh"
+                    ? "你是 Syncdown 的写作助手。只返回最终结果，不要加寒暄，不要用 markdown 代码块包裹。"
+                    : "You are Syncdown's writing assistant. Return only the final result, no preamble, and do not wrap the answer in markdown code fences.",
+                type: "input_text",
+              },
+            ],
             role: "system",
           },
           {
-            content: buildAiUserPrompt(body),
+            content: [
+              {
+                text: buildAiUserPrompt(body),
+                type: "input_text",
+              },
+            ],
             role: "user",
           },
         ],
@@ -112,6 +129,20 @@ export async function POST(request: Request) {
 }
 
 function extractResponseText(data: OpenAiCompatibleResponse) {
+  if (typeof data.output_text === "string") {
+    return data.output_text;
+  }
+
+  const outputText = data.output
+    ?.flatMap((item) => item.content ?? [])
+    .map((item) => item.text ?? "")
+    .join("")
+    .trim();
+
+  if (outputText) {
+    return outputText;
+  }
+
   const content = data.choices?.[0]?.message?.content;
 
   if (typeof content === "string") {
@@ -125,4 +156,18 @@ function extractResponseText(data: OpenAiCompatibleResponse) {
   }
 
   return "";
+}
+
+function resolveResponsesEndpoint(baseUrl: string) {
+  const trimmed = baseUrl.replace(/\/+$/, "");
+
+  if (trimmed.endsWith("/responses")) {
+    return trimmed;
+  }
+
+  if (trimmed.endsWith("/chat/completions")) {
+    return trimmed.replace(/\/chat\/completions$/, "/responses");
+  }
+
+  return `${trimmed}/responses`;
 }

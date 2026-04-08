@@ -9,3 +9,4 @@ dist
 *.log
 .tmp-home*.png
 .data/media/
+.data/presence.json

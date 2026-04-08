@@ -7,6 +7,7 @@ import { useEditorAccessEntries } from "@/features/editor/hooks/use-editor-acces
 import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
 import { useEditorHoveredBlock } from "@/features/editor/hooks/use-editor-hovered-block";
 import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
+import { useEditorPresence } from "@/features/editor/hooks/use-editor-presence";
 import { useEditorSelectionAi } from "@/features/editor/hooks/use-editor-selection-ai";
 import { useEditorShortcuts } from "@/features/editor/hooks/use-editor-shortcuts";
 import { useEditorSlashMenu } from "@/features/editor/hooks/use-editor-slash-menu";
@@ -75,6 +76,12 @@ export function useEditorSurfaceModel({
   const selectionAi = useEditorSelectionAi({
     canEditBody,
     editor,
+  });
+  const presence = useEditorPresence({
+    currentUser,
+    documentId: document.id,
+    editor,
+    editorContainerRef: ui.editorContainerRef,
   });
 
   useEffect(() => {
@@ -186,6 +193,7 @@ export function useEditorSurfaceModel({
     hovered,
     permission,
     permissionLabel,
+    presence,
     routerPushHome,
     searchHeaderLabel,
     selectionAi,

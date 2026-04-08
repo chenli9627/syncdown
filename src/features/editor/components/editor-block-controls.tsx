@@ -1,11 +1,20 @@
 "use client";
 
 import { GripVertical, Plus } from "lucide-react";
+import { useRef } from "react";
 import type { RefObject } from "react";
 import type { HoveredBlock } from "@/features/editor/lib/types";
 
 type EditorBlockControlsProps = {
   blockControlsRef: RefObject<HTMLDivElement | null>;
+  blockMenu: {
+    left: number;
+    open: boolean;
+    pos: number | null;
+    showTurnInto: boolean;
+    top: number;
+    turnIntoAlign: "bottom" | "top";
+  };
   blockMenuWidth: number;
   canEditBody: boolean;
   hoveredBlock: HoveredBlock | null;
@@ -27,6 +36,7 @@ type EditorBlockControlsProps = {
 
 export function EditorBlockControls({
   blockControlsRef,
+  blockMenu,
   blockMenuWidth,
   canEditBody,
   hoveredBlock,
@@ -35,6 +45,8 @@ export function EditorBlockControls({
   onOpenBlockMenu,
   shouldSuppressGripClick,
 }: EditorBlockControlsProps) {
+  const suppressNextMenuClickRef = useRef(false);
+
   if (!canEditBody || !hoveredBlock) {
     return null;
   }
@@ -66,12 +78,46 @@ export function EditorBlockControls({
           event.preventDefault();
         }}
         onPointerDown={(event) => {
+          if (blockMenu.open && blockMenu.pos === hoveredBlock.pos) {
+            event.preventDefault();
+            event.stopPropagation();
+            suppressNextMenuClickRef.current = true;
+            onOpenBlockMenu({
+              left: 0,
+              open: false,
+              pos: null,
+              showTurnInto: false,
+              top: 0,
+              turnIntoAlign: "top",
+            });
+            return;
+          }
+
           onGripPointerDown(event, hoveredBlock);
         }}
         onClick={(event) => {
+          if (suppressNextMenuClickRef.current) {
+            suppressNextMenuClickRef.current = false;
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
+
           if (shouldSuppressGripClick()) {
             event.preventDefault();
             event.stopPropagation();
+            return;
+          }
+
+          if (blockMenu.open && blockMenu.pos === hoveredBlock.pos) {
+            onOpenBlockMenu({
+              left: 0,
+              open: false,
+              pos: null,
+              showTurnInto: false,
+              top: 0,
+              turnIntoAlign: "top",
+            });
             return;
           }
 

@@ -2,6 +2,7 @@ export {
   loginUser,
   registerUser,
   resetPasswordForUser,
+  updateProfileNameForUser,
 } from "@/features/app-state/lib/mutations/auth";
 export {
   createDocumentForWorkspace,
