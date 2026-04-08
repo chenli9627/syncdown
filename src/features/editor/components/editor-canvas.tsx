@@ -553,6 +553,7 @@ export function EditorCanvas({
       <input
         accept=".md,.zip,text/markdown,application/zip"
         className="hidden"
+        name="markdown-import"
         onChange={(event) => {
           const file = event.target.files?.[0];
 
@@ -569,6 +570,7 @@ export function EditorCanvas({
       <input
         accept="image/png,image/jpeg,image/webp,image/gif"
         className="hidden"
+        name="image-upload"
         onChange={(event) => {
           const file = event.target.files?.[0];
 

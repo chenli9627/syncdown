@@ -35,6 +35,7 @@ export function EditorPermissionShareForm({
       <div className="flex items-center gap-3">
         <input
           className="h-10 min-w-0 flex-1 border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm text-[var(--color-foreground)] outline-none transition focus:border-[var(--color-ring)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-ring)_15%,transparent)]"
+          name="share-email"
           onChange={(event) => {
             onShareEmailChange(event.target.value);
           }}

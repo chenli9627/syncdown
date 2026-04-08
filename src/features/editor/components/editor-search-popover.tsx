@@ -66,6 +66,7 @@ export function EditorSearchPopover({
               <Search className="size-4 shrink-0 text-[var(--color-muted-foreground)]" />
               <input
                 className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none"
+                name="document-search"
                 onChange={(event) => {
                   onSearchChange(event.target.value);
                 }}

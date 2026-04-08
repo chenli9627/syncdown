@@ -124,6 +124,7 @@ export function WorkspaceSwitcherPopover({
                 <input
                   className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
                   id="workspace-name"
+                  name="workspace-name"
                   onChange={(event) => {
                     setWorkspaceName(event.target.value);
                   }}

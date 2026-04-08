@@ -102,6 +102,7 @@ function SettingsContent({
               <input
                 className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
                 id="settings-name"
+                name="settings-name"
                 onChange={(event) => setName(event.target.value)}
                 value={name}
               />

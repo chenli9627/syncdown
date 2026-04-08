@@ -34,6 +34,7 @@ export function EditorHeaderTitle({
         <input
           className="absolute inset-0 w-full border-none bg-transparent px-0 text-[1.15rem] font-semibold tracking-[-0.026em] outline-none placeholder:text-[var(--color-muted-foreground)] disabled:cursor-default md:text-[1.3rem]"
           disabled={!canEditTitle}
+          name="document-title"
           onBlur={() => void commitTitle()}
           onChange={(event) => setTitleDraft(event.target.value)}
           onKeyDown={(event) => {

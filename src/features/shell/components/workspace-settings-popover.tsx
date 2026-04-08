@@ -44,6 +44,7 @@ export function WorkspaceSettingsPopover({
         <input
           className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
           id="rename-workspace"
+          name="rename-workspace"
           onChange={(event) => {
             onRenameWorkspaceNameChange(event.target.value);
           }}
@@ -79,6 +80,7 @@ export function WorkspaceSettingsPopover({
         </p>
         <input
           className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
+          name="delete-workspace-confirmation"
           onChange={(event) => {
             onDeleteConfirmNameChange(event.target.value);
           }}
