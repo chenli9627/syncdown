@@ -3,11 +3,7 @@
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import {
-  ChevronDown,
-  GripVertical,
-  Plus,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -19,6 +15,7 @@ import type {
 } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu";
+import { EditorBlockControls } from "@/features/editor/components/editor-block-controls";
 import { EditorOverflowMenu } from "@/features/editor/components/editor-overflow-menu";
 import { EditorPermissionPopover } from "@/features/editor/components/editor-permission-popover";
 import { EditorSearchPopover } from "@/features/editor/components/editor-search-popover";
@@ -1840,53 +1837,14 @@ function EditorSurface({
               }}
             />
           ))}
-          {canEditBody && hoveredBlock ? (
-            <div
-              className="absolute left-[-50px] z-10 flex items-center gap-1"
-              ref={blockControlsRef}
-              style={{
-                top: `${Math.max(0, hoveredBlock.top + hoveredBlock.height / 2 - 14)}px`,
-              }}
-            >
-              <button
-                aria-label="Insert block"
-                className="flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-                onClick={handleInsertBlockBefore}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                }}
-                type="button"
-              >
-                <Plus className="size-4" />
-              </button>
-              <button
-                aria-label="Block menu"
-                className="flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-                onClick={(event) => {
-                  const triggerBounds = event.currentTarget.getBoundingClientRect();
-                  const nextLeft = Math.max(12, triggerBounds.left - blockMenuWidth - 8);
-                  const nextTop = Math.max(
-                    12,
-                    Math.min(triggerBounds.top - 8, window.innerHeight - 220),
-                  );
-
-                  setBlockMenu({
-                    left: nextLeft,
-                    open: true,
-                    pos: hoveredBlock.pos,
-                    showTurnInto: false,
-                    top: nextTop,
-                  });
-                }}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                }}
-                type="button"
-              >
-                <GripVertical className="size-4" />
-              </button>
-            </div>
-          ) : null}
+          <EditorBlockControls
+            blockControlsRef={blockControlsRef}
+            blockMenuWidth={blockMenuWidth}
+            canEditBody={canEditBody}
+            hoveredBlock={hoveredBlock}
+            onInsertBlockBefore={handleInsertBlockBefore}
+            onOpenBlockMenu={setBlockMenu}
+          />
           <EditorContent editor={editor} />
           {canEditBody && blockMenu.open && globalThis.document?.body
             ? createPortal(
