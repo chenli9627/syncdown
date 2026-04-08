@@ -8,3 +8,4 @@ coverage
 dist
 *.log
 .tmp-home*.png
+.data/media/
