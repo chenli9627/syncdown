@@ -53,8 +53,19 @@ type TableAxisMenuState = {
   index: number;
   left: number;
   open: boolean;
+  rect: { height: number; left: number; top: number; width: number };
   tablePos: number;
   top: number;
+};
+
+type TableAxisDragState = {
+  active: boolean;
+  axis: "column" | "row";
+  fromIndex: number;
+  indicatorLeft: number | null;
+  indicatorTop: number | null;
+  moved: boolean;
+  tablePos: number;
 };
 
 type EditorCanvasProps = {
@@ -84,11 +95,13 @@ type EditorCanvasProps = {
   handleInsertTableColumn: () => void;
   handleInsertTableRowAbove: () => void;
   handleInsertTableRow: () => void;
+  handleTableColumnMove: (tablePos: number, fromIndex: number, toIndex: number) => void;
   handleTableColumnAction: (
     tablePos: number,
     columnIndex: number,
     action: "delete" | "duplicate" | "insert-left" | "insert-right",
   ) => void;
+  handleTableRowMove: (tablePos: number, fromIndex: number, toIndex: number) => void;
   handleTableRowAction: (
     tablePos: number,
     rowIndex: number,
@@ -152,7 +165,9 @@ export function EditorCanvas({
   handleInsertTableColumn,
   handleInsertTableRowAbove,
   handleInsertTableRow,
+  handleTableColumnMove,
   handleTableColumnAction,
+  handleTableRowMove,
   handleTableRowAction,
   handleTurnInto,
   hoveredBlock,
@@ -178,10 +193,12 @@ export function EditorCanvas({
 }: EditorCanvasProps) {
   const activeBlockHighlightRef = useRef<HTMLSpanElement | null>(null);
   const tableAxisMenuRef = useRef<HTMLDivElement | null>(null);
+  const suppressNextTableHandleClickRef = useRef(false);
   const [imageDropIndicatorTop, setImageDropIndicatorTop] = useState<number | null>(null);
   const [tableAxisMenu, setTableAxisMenu] = useState<TableAxisMenuState | null>(null);
   const [tableColumnHandle, setTableColumnHandle] = useState<TableAxisHandleState | null>(null);
   const [tableRowHandle, setTableRowHandle] = useState<TableAxisHandleState | null>(null);
+  const [tableAxisDrag, setTableAxisDrag] = useState<TableAxisDragState | null>(null);
   const drag = useEditorBlockDrag({
     canEditBody,
     editor,
@@ -237,6 +254,156 @@ export function EditorCanvas({
           width: hoveredBlock.width,
         }
       : null;
+  const tableOverlayHeight = tableOverlay?.height ?? 0;
+  const tableOverlayLeft = tableOverlay?.left ?? 0;
+  const tableOverlayTop = tableOverlay?.top ?? 0;
+  const tableOverlayWidth = tableOverlay?.width ?? 0;
+
+  useEffect(() => {
+    if (!tableAxisDrag?.active || !editor) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const domNode = editor.view.nodeDOM(tableAxisDrag.tablePos);
+      const tableElement =
+        (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest("table") ?? null;
+      const container = editorContainerRef.current;
+
+      if (!(tableElement instanceof HTMLTableElement) || !(container instanceof HTMLElement)) {
+        return;
+      }
+
+      const containerBounds = container.getBoundingClientRect();
+
+      if (tableAxisDrag.axis === "row") {
+        const rows = Array.from(tableElement.rows);
+        let dropIndex = rows.length;
+        let indicatorTop = tableElement.getBoundingClientRect().bottom - containerBounds.top;
+
+        for (let index = 0; index < rows.length; index += 1) {
+          const bounds = rows[index].getBoundingClientRect();
+          const midpoint = bounds.top + bounds.height / 2;
+
+          if (event.clientY < midpoint) {
+            dropIndex = index;
+            indicatorTop = bounds.top - containerBounds.top;
+            break;
+          }
+        }
+
+        setTableAxisDrag((current) =>
+          current
+            ? {
+                ...current,
+                indicatorLeft: tableElement.getBoundingClientRect().left - containerBounds.left,
+                indicatorTop,
+                moved: true,
+              }
+            : current,
+        );
+        (handlePointerMove as unknown as { dropIndex?: number }).dropIndex = dropIndex;
+        return;
+      }
+
+      const firstRow = tableElement.rows.item(0);
+      const cells = firstRow ? Array.from(firstRow.cells) : [];
+      let dropIndex = cells.length;
+      let indicatorLeft = tableElement.getBoundingClientRect().right - containerBounds.left;
+
+      for (let index = 0; index < cells.length; index += 1) {
+        const bounds = cells[index].getBoundingClientRect();
+        const midpoint = bounds.left + bounds.width / 2;
+
+        if (event.clientX < midpoint) {
+          dropIndex = index;
+          indicatorLeft = bounds.left - containerBounds.left;
+          break;
+        }
+      }
+
+      setTableAxisDrag((current) =>
+        current
+          ? {
+              ...current,
+              indicatorLeft,
+              indicatorTop: tableElement.getBoundingClientRect().top - containerBounds.top,
+              moved: true,
+            }
+          : current,
+      );
+      (handlePointerMove as unknown as { dropIndex?: number }).dropIndex = dropIndex;
+    };
+
+    const handlePointerUp = () => {
+      const dropIndex = (handlePointerMove as unknown as { dropIndex?: number }).dropIndex;
+
+      if (typeof dropIndex === "number") {
+        suppressNextTableHandleClickRef.current = true;
+        if (tableAxisDrag.axis === "row") {
+          handleTableRowMove(tableAxisDrag.tablePos, tableAxisDrag.fromIndex, dropIndex);
+        } else {
+          handleTableColumnMove(tableAxisDrag.tablePos, tableAxisDrag.fromIndex, dropIndex);
+        }
+      } else if (!tableAxisDrag.moved) {
+        const handleState =
+          tableAxisDrag.axis === "row" ? tableRowHandle : tableColumnHandle;
+
+        if (handleState) {
+          setTableAxisMenu({
+            axis: tableAxisDrag.axis,
+            index: tableAxisDrag.fromIndex,
+            left:
+              tableAxisDrag.axis === "row"
+                ? Math.max(12, handleState.left + 18)
+                : Math.max(12, handleState.left + 12),
+            open: true,
+            rect:
+              tableAxisDrag.axis === "row"
+                ? {
+                    height: handleState.size.height,
+                    left: tableOverlayLeft,
+                    top: handleState.top + 10 - handleState.size.height / 2,
+                    width: tableOverlayWidth,
+                  }
+                : {
+                    height: tableOverlayHeight,
+                    left: handleState.left + 10 - handleState.size.width / 2,
+                    top: tableOverlayTop,
+                    width: handleState.size.width,
+                  },
+            tablePos: tableAxisDrag.tablePos,
+            top:
+              tableAxisDrag.axis === "row"
+                ? Math.max(12, handleState.top - 6)
+                : Math.max(12, handleState.top + 18),
+          });
+        }
+      }
+
+      setTableAxisDrag(null);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp, { once: true });
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [
+    editor,
+    editorContainerRef,
+    handleTableColumnMove,
+    handleTableRowMove,
+    tableOverlayHeight,
+    tableOverlayLeft,
+    tableOverlayTop,
+    tableOverlayWidth,
+    tableAxisDrag,
+    tableColumnHandle,
+    tableRowHandle,
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-10 py-8">
@@ -366,23 +533,33 @@ export function EditorCanvas({
           const cellBounds = cell.getBoundingClientRect();
           const rowIndex = Array.from(table.rows).indexOf(row);
           const columnIndex = Array.from(row.cells).indexOf(cell);
+          const nearLeftEdge = event.clientX - cellBounds.left <= 18;
+          const nearTopEdge = event.clientY - cellBounds.top <= 18;
 
-          setTableRowHandle({
-            axis: "row",
-            index: rowIndex,
-            left: tableInfo.left - 18,
-            size: { height: rowBounds.height, width: 14 },
-            tablePos: tableInfo.pos,
-            top: rowBounds.top - containerBounds.top + rowBounds.height / 2 - 10,
-          });
-          setTableColumnHandle({
-            axis: "column",
-            index: columnIndex,
-            left: cellBounds.left - containerBounds.left + cellBounds.width / 2 - 10,
-            size: { height: 14, width: cellBounds.width },
-            tablePos: tableInfo.pos,
-            top: tableInfo.top - 18,
-          });
+          setTableRowHandle(
+            nearLeftEdge
+              ? {
+                  axis: "row",
+                  index: rowIndex,
+                  left: cellBounds.left - containerBounds.left - 8,
+                  size: { height: rowBounds.height, width: 16 },
+                  tablePos: tableInfo.pos,
+                  top: rowBounds.top - containerBounds.top + rowBounds.height / 2 - 10,
+                }
+              : null,
+          );
+          setTableColumnHandle(
+            nearTopEdge
+              ? {
+                  axis: "column",
+                  index: columnIndex,
+                  left: cellBounds.left - containerBounds.left + cellBounds.width / 2 - 10,
+                  size: { height: 16, width: cellBounds.width },
+                  tablePos: tableInfo.pos,
+                  top: cellBounds.top - containerBounds.top - 8,
+                }
+              : null,
+          );
         }}
         onPointerLeave={(event) => {
           const nextTarget = event.relatedTarget;
@@ -508,6 +685,32 @@ export function EditorCanvas({
             }}
           />
         ) : null}
+        {tableAxisDrag?.active &&
+        tableAxisDrag.indicatorTop != null &&
+        tableAxisDrag.axis === "row" ? (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute z-[4] h-[2px] bg-[var(--color-primary)]"
+            style={{
+              left: `${tableAxisDrag.indicatorLeft ?? 0}px`,
+              top: `${tableAxisDrag.indicatorTop}px`,
+              width: `${tableOverlay?.width ?? 0}px`,
+            }}
+          />
+        ) : null}
+        {tableAxisDrag?.active &&
+        tableAxisDrag.indicatorLeft != null &&
+        tableAxisDrag.axis === "column" ? (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute z-[4] w-[2px] bg-[var(--color-primary)]"
+            style={{
+              height: `${tableOverlay?.height ?? 0}px`,
+              left: `${tableAxisDrag.indicatorLeft}px`,
+              top: `${tableAxisDrag.indicatorTop ?? 0}px`,
+            }}
+          />
+        ) : null}
         {drag.dragState.active &&
         drag.dragState.previewTop != null &&
         drag.dragState.previewHtml != null &&
@@ -554,6 +757,18 @@ export function EditorCanvas({
             }}
           />
         ))}
+        {tableAxisMenu?.open ? (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute z-[3] border-2 border-[var(--color-primary)]"
+            style={{
+              height: `${tableAxisMenu.rect.height}px`,
+              left: `${tableAxisMenu.rect.left}px`,
+              top: `${tableAxisMenu.rect.top}px`,
+              width: `${tableAxisMenu.rect.width}px`,
+            }}
+          />
+        ) : null}
         <EditorBlockControls
           blockControlsRef={blockControlsRef}
           blockMenuWidth={blockMenuWidth}
@@ -651,16 +866,40 @@ export function EditorCanvas({
         {canEditBody && tableRowHandle ? (
           <button
             aria-label="Row actions"
-            className="absolute z-20 flex h-5 w-4 items-center justify-center rounded-[4px] bg-[var(--color-primary)] text-white shadow-[var(--shadow-whisper)] transition hover:opacity-90"
+            className="absolute z-20 flex h-[18px] w-[16px] items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
             data-table-row-handle="true"
             onClick={() => {
+              if (suppressNextTableHandleClickRef.current) {
+                suppressNextTableHandleClickRef.current = false;
+                return;
+              }
+
               setTableAxisMenu({
                 axis: "row",
                 index: tableRowHandle.index,
-                left: Math.max(12, tableRowHandle.left + 18),
+                left: Math.max(12, tableRowHandle.left + 24),
                 open: true,
+                rect: {
+                  height: tableRowHandle.size.height,
+                  left: tableOverlayLeft,
+                  top: tableRowHandle.top + 10 - tableRowHandle.size.height / 2,
+                  width: tableOverlayWidth,
+                },
                 tablePos: tableRowHandle.tablePos,
-                top: Math.max(12, tableRowHandle.top - 6),
+                top: Math.max(12, tableRowHandle.top - 10),
+              });
+            }}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              setTableAxisMenu(null);
+              setTableAxisDrag({
+                active: true,
+                axis: "row",
+                fromIndex: tableRowHandle.index,
+                indicatorLeft: tableOverlay?.left ?? null,
+                indicatorTop: tableRowHandle.top,
+                moved: false,
+                tablePos: tableRowHandle.tablePos,
               });
             }}
             style={{
@@ -676,16 +915,40 @@ export function EditorCanvas({
         {canEditBody && tableColumnHandle ? (
           <button
             aria-label="Column actions"
-            className="absolute z-20 flex h-4 w-5 items-center justify-center rounded-[4px] bg-[var(--color-primary)] text-white shadow-[var(--shadow-whisper)] transition hover:opacity-90"
+            className="absolute z-20 flex h-[16px] w-[18px] items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
             data-table-column-handle="true"
             onClick={() => {
+              if (suppressNextTableHandleClickRef.current) {
+                suppressNextTableHandleClickRef.current = false;
+                return;
+              }
+
               setTableAxisMenu({
                 axis: "column",
                 index: tableColumnHandle.index,
-                left: Math.max(12, tableColumnHandle.left + 12),
+                left: Math.max(12, tableColumnHandle.left - 18),
                 open: true,
+                rect: {
+                  height: tableOverlayHeight,
+                  left: tableColumnHandle.left + 10 - tableColumnHandle.size.width / 2,
+                  top: tableOverlayTop,
+                  width: tableColumnHandle.size.width,
+                },
                 tablePos: tableColumnHandle.tablePos,
-                top: Math.max(12, tableColumnHandle.top + 18),
+                top: Math.max(12, tableColumnHandle.top + 24),
+              });
+            }}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              setTableAxisMenu(null);
+              setTableAxisDrag({
+                active: true,
+                axis: "column",
+                fromIndex: tableColumnHandle.index,
+                indicatorLeft: tableColumnHandle.left,
+                indicatorTop: tableOverlay?.top ?? null,
+                moved: false,
+                tablePos: tableColumnHandle.tablePos,
               });
             }}
             style={{
