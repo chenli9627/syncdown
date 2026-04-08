@@ -4,20 +4,12 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
-  Bold,
   ChevronDown,
   GripVertical,
-  Heading1,
-  Heading2,
-  Italic,
-  List,
-  ListOrdered,
   Plus,
-  Quote,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useLocale } from "@/components/providers/locale-provider";
 import type {
@@ -31,6 +23,7 @@ import { EditorOverflowMenu } from "@/features/editor/components/editor-overflow
 import { EditorPermissionPopover } from "@/features/editor/components/editor-permission-popover";
 import { EditorSearchPopover } from "@/features/editor/components/editor-search-popover";
 import { DocumentStatusState } from "@/features/editor/components/document-status-state";
+import { EditorToolbar } from "@/features/editor/components/editor-toolbar";
 import {
   editorHtmlToMarkdown,
   markdownToEditorHtml,
@@ -45,14 +38,6 @@ type EditorSurfaceProps = {
   document: DocumentRecord;
   permission: "owner" | "can_edit" | "can_view";
   saveDocument: ReturnType<typeof useAppState>["saveDocument"];
-};
-
-type ToolbarButtonProps = {
-  active?: boolean;
-  disabled?: boolean;
-  label: string;
-  onClick: () => void;
-  children: ReactNode;
 };
 
 type SlashItem = {
@@ -465,34 +450,6 @@ function PermissionDropdown({
         </div>
       ) : null}
     </div>
-  );
-}
-
-function ToolbarButton({
-  active = false,
-  children,
-  disabled = false,
-  label,
-  onClick,
-}: ToolbarButtonProps) {
-  return (
-    <button
-      aria-label={label}
-      className={`flex h-9 items-center justify-center gap-1.5 rounded-[4px] border px-2.5 text-[13px] text-[var(--color-muted-foreground)] transition ${
-        active
-          ? "border-[var(--color-border)] bg-[var(--color-hover)] text-[var(--color-foreground)]"
-          : "border-transparent hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-      } disabled:opacity-40`}
-      disabled={disabled}
-      onMouseDown={(event) => {
-        event.preventDefault();
-      }}
-      onClick={onClick}
-      type="button"
-    >
-      {children}
-      <span>{label}</span>
-    </button>
   );
 }
 
@@ -1843,83 +1800,7 @@ function EditorSurface({
             <p className="mt-2 text-sm text-[#dd5b00]">{titleError}</p>
           ) : null}
 
-          {canEditBody ? (
-            <div className="mt-5 flex flex-wrap items-center gap-1 border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-whisper)]">
-              <ToolbarButton
-                active={Boolean(editor?.isActive("bold"))}
-                disabled={!canEditBody}
-                label="Bold"
-                onClick={() => {
-                  editor?.chain().focus().toggleBold().run();
-                }}
-              >
-                <Bold className="size-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                active={Boolean(editor?.isActive("italic"))}
-                disabled={!canEditBody}
-                label="Italic"
-                onClick={() => {
-                  editor?.chain().focus().toggleItalic().run();
-                }}
-              >
-                <Italic className="size-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                active={Boolean(editor?.isActive("heading", { level: 1 }))}
-                disabled={!canEditBody}
-                label="Heading 1"
-                onClick={() => {
-                  editor?.chain().focus().toggleHeading({ level: 1 }).run();
-                }}
-              >
-                <Heading1 className="size-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                active={Boolean(editor?.isActive("heading", { level: 2 }))}
-                disabled={!canEditBody}
-                label="Heading 2"
-                onClick={() => {
-                  editor?.chain().focus().toggleHeading({ level: 2 }).run();
-                }}
-              >
-                <Heading2 className="size-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                active={Boolean(editor?.isActive("bulletList"))}
-                disabled={!canEditBody}
-                label="Bullet list"
-                onClick={() => {
-                  editor?.chain().focus().toggleBulletList().run();
-                }}
-              >
-                <List className="size-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                active={Boolean(editor?.isActive("orderedList"))}
-                disabled={!canEditBody}
-                label="Ordered list"
-                onClick={() => {
-                  editor?.chain().focus().toggleOrderedList().run();
-                }}
-              >
-                <ListOrdered className="size-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                active={Boolean(editor?.isActive("blockquote"))}
-                disabled={!canEditBody}
-                label="Quote"
-                onClick={() => {
-                  if (editor?.isActive("bulletList") || editor?.isActive("orderedList")) {
-                    editor?.chain().focus().liftListItem("listItem").run();
-                  }
-                  editor?.chain().focus().toggleBlockquote().run();
-                }}
-              >
-                <Quote className="size-4" />
-              </ToolbarButton>
-            </div>
-          ) : null}
+          <EditorToolbar canEditBody={canEditBody} editor={editor} />
         </div>
       </div>
 
