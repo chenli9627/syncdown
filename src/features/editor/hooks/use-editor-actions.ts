@@ -130,6 +130,7 @@ export function useEditorActions({
     [blockMenu.pos, editor],
   );
   const isImageBlock = currentTransformActiveId === "image";
+  const isTableBlock = currentTransformActiveId === "table";
 
   const canUndo = Boolean(editor?.can().chain().focus().undo().run());
   const actionBaseArgs: EditorActionBaseArgs = {
@@ -266,19 +267,56 @@ export function useEditorActions({
     }
   }
 
+  function updateTable(command: (currentEditor: Editor) => boolean) {
+    if (!editor || blockMenu.pos == null) {
+      return;
+    }
+
+    const selectionPos = Math.min(blockMenu.pos + 3, editor.state.doc.content.size);
+    editor.chain().focus().setTextSelection(selectionPos).run();
+
+    if (!command(editor)) {
+      setActionError("Failed to update table");
+      setActionNotice(null);
+      return;
+    }
+
+    setActionError(null);
+    setActionNotice("Table updated");
+    setBlockMenu((current) => ({
+      ...current,
+      open: false,
+      pos: null,
+      showTurnInto: false,
+    }));
+  }
+
   return {
     canUndo,
     currentTransformActiveId,
     handleCopyImage,
     handleDeleteBlock: blockActions.handleDeleteBlock,
+    handleDeleteTableColumn: () => {
+      updateTable((currentEditor) => currentEditor.chain().focus().deleteColumn().run());
+    },
+    handleDeleteTableRow: () => {
+      updateTable((currentEditor) => currentEditor.chain().focus().deleteRow().run());
+    },
     handleDownloadImage,
     handleDuplicateBlock: blockActions.handleDuplicateBlock,
     handleExportMarkdown: searchMarkdownActions.handleExportMarkdown,
     handleImportMarkdown: searchMarkdownActions.handleImportMarkdown,
     handleInsertImage,
     handleInsertBlockBefore: blockActions.handleInsertBlockBefore,
+    handleInsertTableColumn: () => {
+      updateTable((currentEditor) => currentEditor.chain().focus().addColumnAfter().run());
+    },
+    handleInsertTableRow: () => {
+      updateTable((currentEditor) => currentEditor.chain().focus().addRowAfter().run());
+    },
     handleTurnInto: blockActions.handleTurnInto,
     isImageBlock,
+    isTableBlock,
     runSearch: searchMarkdownActions.runSearch,
     statusLabel,
   };

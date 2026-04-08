@@ -52,11 +52,15 @@ type EditorCanvasProps = {
   handleCloseSlashMenu: () => void;
   handleCopyImage: () => Promise<void>;
   handleDeleteBlock: () => void;
+  handleDeleteTableColumn: () => void;
+  handleDeleteTableRow: () => void;
   handleDownloadImage: () => Promise<void>;
   handleDuplicateBlock: () => void;
   handleImportMarkdown: (file: File) => Promise<void>;
   handleInsertImage: (file: File, position?: number) => Promise<void>;
   handleInsertBlockBefore: () => void;
+  handleInsertTableColumn: () => void;
+  handleInsertTableRow: () => void;
   handleTurnInto: (item: BlockTransformItem) => void;
   hoveredBlock: HoveredBlock | null;
   imageInputRef: RefObject<HTMLInputElement | null>;
@@ -103,11 +107,15 @@ export function EditorCanvas({
   handleCloseSlashMenu,
   handleCopyImage,
   handleDeleteBlock,
+  handleDeleteTableColumn,
+  handleDeleteTableRow,
   handleDownloadImage,
   handleDuplicateBlock,
   handleImportMarkdown,
   handleInsertImage,
   handleInsertBlockBefore,
+  handleInsertTableColumn,
+  handleInsertTableRow,
   handleTurnInto,
   hoveredBlock,
   imageInputRef,
@@ -450,12 +458,17 @@ export function EditorCanvas({
                   void handleCopyImage();
                 }}
                 handleDeleteBlock={handleDeleteBlock}
+                handleDeleteTableColumn={handleDeleteTableColumn}
+                handleDeleteTableRow={handleDeleteTableRow}
                 handleDownloadImage={() => {
                   void handleDownloadImage();
                 }}
                 handleDuplicateBlock={handleDuplicateBlock}
+                handleInsertTableColumn={handleInsertTableColumn}
+                handleInsertTableRow={handleInsertTableRow}
                 handleTurnInto={handleTurnInto}
                 isImageBlock={currentTransformActiveId === "image"}
+                isTableBlock={currentTransformActiveId === "table"}
                 setBlockMenu={setBlockMenu}
                 showTurnInto={blockMenu.showTurnInto}
                 turnIntoAlign={blockMenu.turnIntoAlign}

@@ -59,7 +59,6 @@ const blockTransformConfigs: BlockTransformConfig[] = [
   { id: "ordered-list", label: "Numbered list", run: runOrderedList },
   { id: "todo-list", label: "Todo list", run: runTaskList },
   { id: "quote", label: "Quote", run: runQuote },
-  { id: "table", label: "Table", run: runTable },
   { id: "code", label: "Code", run: runCodeBlock },
 ];
 
@@ -79,11 +78,6 @@ function createBlockTransformItem(config: BlockTransformConfig): BlockTransformI
     label: config.label,
     run: (editor, pos) => {
       const currentNode = editor.state.doc.nodeAt(pos);
-
-      if (config.id === "table") {
-        runTable(editor, pos);
-        return;
-      }
 
       if (currentNode?.type.name === "table") {
         replaceTableWithBlock(editor, pos, config.id);

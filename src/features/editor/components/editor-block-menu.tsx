@@ -1,10 +1,14 @@
 "use client";
 
 import {
+  Columns2,
+  Rows2,
   ArrowRightLeft,
   ChevronRight,
   Copy,
   Download,
+  Minus,
+  Plus,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -21,10 +25,15 @@ type EditorBlockMenuProps = {
   currentTransformActiveId: string | null;
   handleCopyImage: () => void;
   handleDeleteBlock: () => void;
+  handleDeleteTableColumn: () => void;
+  handleDeleteTableRow: () => void;
   handleDownloadImage: () => void;
   handleDuplicateBlock: () => void;
+  handleInsertTableColumn: () => void;
+  handleInsertTableRow: () => void;
   handleTurnInto: (item: BlockTransformItem) => void;
   isImageBlock: boolean;
+  isTableBlock: boolean;
   setBlockMenu: (
     value:
       | {
@@ -65,10 +74,15 @@ export function EditorBlockMenu({
   currentTransformActiveId,
   handleCopyImage,
   handleDeleteBlock,
+  handleDeleteTableColumn,
+  handleDeleteTableRow,
   handleDownloadImage,
   handleDuplicateBlock,
+  handleInsertTableColumn,
+  handleInsertTableRow,
   handleTurnInto,
   isImageBlock,
+  isTableBlock,
   setBlockMenu,
   showTurnInto,
   turnIntoAlign,
@@ -86,7 +100,7 @@ export function EditorBlockMenu({
         top: `${blockMenuTop}px`,
       }}
     >
-      {!isImageBlock ? (
+      {!isImageBlock && !isTableBlock ? (
         <div
           className="relative"
           onMouseEnter={() => {
@@ -159,7 +173,54 @@ export function EditorBlockMenu({
           <span>Duplicate</span>
         </span>
       </button>
-      {isImageBlock ? (
+      {isTableBlock ? (
+        <>
+          <button
+            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
+            onClick={handleInsertTableRow}
+            type="button"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Rows2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
+              <span>Add row below</span>
+            </span>
+            <Plus className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
+          </button>
+          <button
+            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
+            onClick={handleInsertTableColumn}
+            type="button"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Columns2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
+              <span>Add column right</span>
+            </span>
+            <Plus className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
+          </button>
+          <button
+            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
+            onClick={handleDeleteTableRow}
+            type="button"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Rows2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
+              <span>Delete row</span>
+            </span>
+            <Minus className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
+          </button>
+          <button
+            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
+            onClick={handleDeleteTableColumn}
+            type="button"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Columns2 className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
+              <span>Delete column</span>
+            </span>
+            <Minus className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
+          </button>
+        </>
+      ) : isImageBlock ? (
         <>
           <button
             className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
