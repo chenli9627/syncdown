@@ -1,6 +1,7 @@
 "use client";
 
 import { useEditor } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,25 +15,20 @@ import { EditorHeader } from "@/features/editor/components/editor-header";
 import { DocumentStatusState } from "@/features/editor/components/document-status-state";
 import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
 import { useDocumentShellState } from "@/features/editor/hooks/use-document-shell-state";
+import { useEditorHoveredBlock } from "@/features/editor/hooks/use-editor-hovered-block";
 import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
+import { useEditorSlashMenu } from "@/features/editor/hooks/use-editor-slash-menu";
 import {
   createBlockTransformItems,
-  createSlashItems,
 } from "@/features/editor/lib/menu-config";
 import {
   type SearchRect,
 } from "@/features/editor/lib/search";
 import type {
   BlockTransformItem,
-  HoveredBlock,
-  SlashContext,
-  SlashItem,
 } from "@/features/editor/lib/types";
 import {
   getAccessEntries,
-  getHoveredBlockFromPointer,
-  getSlashContext,
-  getTopLevelBlock,
   permissionLabel,
 } from "@/features/editor/lib/utils";
 
@@ -99,12 +95,10 @@ function EditorSurface({
   const permissionMenuRef = useRef<HTMLDivElement | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
-  const slashContextRef = useRef<SlashContext | null>(null);
-  const filteredSlashItemsRef = useRef<SlashItem[]>([]);
+  const editorRef = useRef<Editor | null>(null);
   const [titleDraft, setTitleDraft] = useState(document.title);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [titleError, setTitleError] = useState<string | null>(null);
-  const [hoveredBlock, setHoveredBlock] = useState<HoveredBlock | null>(null);
   const [searchMenuOpen, setSearchMenuOpen] = useState(false);
   const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,10 +113,10 @@ function EditorSurface({
   const [sharePermission, setSharePermission] = useState<"can_edit" | "can_view">(
     "can_view",
   );
-  const [slashContextState, setSlashContextState] = useState<SlashContext | null>(null);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
   const [permissionBusy, setPermissionBusy] = useState(false);
+  const [editorReadyVersion, setEditorReadyVersion] = useState(0);
   const [blockMenu, setBlockMenu] = useState<{
     left: number;
     open: boolean;
@@ -136,22 +130,6 @@ function EditorSurface({
     showTurnInto: false,
     top: 0,
   });
-  const [slashMenu, setSlashMenu] = useState<{
-    activeIndex: number;
-    left: number;
-    open: boolean;
-    query: string;
-    top: number;
-    placement: "above" | "below";
-  }>({
-    activeIndex: 0,
-    left: 0,
-    open: false,
-    query: "",
-    top: 0,
-    placement: "below",
-  });
-  const slashMenuRef = useRef(slashMenu);
   const canEditTitle = permission === "owner";
   const canEditBody = permission === "owner" || permission === "can_edit";
   const canManageAccess = permission === "owner";
@@ -185,9 +163,19 @@ function EditorSurface({
   );
   const sharedAvatars = accessEntries.slice(0, 4);
 
-  useEffect(() => {
-    slashMenuRef.current = slashMenu;
-  }, [slashMenu]);
+  const {
+    enabledSlashItems,
+    filteredSlashItems,
+    handleEditorKeyDown,
+    setSlashMenu,
+    slashContextState,
+    slashMenu,
+  } = useEditorSlashMenu({
+    canEditBody,
+    editorReadyVersion,
+    editorRef,
+    editorContainerRef,
+  });
 
   useEditorOverlays({
     blockMenu,
@@ -225,75 +213,16 @@ function EditorSurface({
           "syntext-editor min-h-[60vh] max-w-none pl-6 outline-none text-base leading-8 text-[var(--color-foreground)]",
       },
       handleKeyDown: (_view, event) => {
-        if (!slashMenuRef.current.open) {
-          return false;
-        }
-
-        const enabledItems = filteredSlashItemsRef.current.filter((item) => item.enabled);
-
-        if (!enabledItems.length) {
-          return false;
-        }
-
-        if (event.key === "ArrowDown") {
-          event.preventDefault();
-          setSlashMenu((current) => ({
-            ...current,
-            activeIndex: (current.activeIndex + 1) % enabledItems.length,
-          }));
-          return true;
-        }
-
-        if (event.key === "ArrowUp") {
-          event.preventDefault();
-          setSlashMenu((current) => ({
-            ...current,
-            activeIndex:
-              (current.activeIndex - 1 + enabledItems.length) % enabledItems.length,
-          }));
-          return true;
-        }
-
-        if (event.key === "Enter") {
-          event.preventDefault();
-          const item = enabledItems[slashMenu.activeIndex] ?? enabledItems[0];
-          const slashContext = slashContextRef.current;
-          const currentEditor = editor;
-
-          if (!item || !slashContext || !currentEditor) {
-            return true;
-          }
-
-          currentEditor
-            ?.chain()
-            .focus()
-            .deleteRange({ from: slashContext.from, to: slashContext.to })
-            .run();
-          item.run(currentEditor);
-          setSlashMenu((current) => ({
-            ...current,
-            activeIndex: 0,
-            open: false,
-            placement: "below",
-            query: "",
-          }));
-          return true;
-        }
-
-        if (event.key === "Escape") {
-          event.preventDefault();
-          setSlashMenu((current) => ({
-            ...current,
-            activeIndex: 0,
-            open: false,
-            placement: "below",
-            query: "",
-          }));
-          return true;
-        }
-
-        return false;
+        return handleEditorKeyDown(event);
       },
+    },
+    onCreate: ({ editor: currentEditor }) => {
+      editorRef.current = currentEditor;
+      setEditorReadyVersion((current) => current + 1);
+    },
+    onDestroy: () => {
+      editorRef.current = null;
+      setEditorReadyVersion((current) => current + 1);
     },
     onUpdate: ({ editor: currentEditor }) => {
       if (!canEditBody) {
@@ -349,195 +278,22 @@ function EditorSurface({
     editor.setEditable(canEditBody);
   }, [canEditBody, editor]);
 
-  const slashItems = useMemo<SlashItem[]>(() => createSlashItems(), []);
-
-  const filteredSlashItems = useMemo(() => {
-    const normalizedQuery = slashMenu.query.trim().toLowerCase();
-
-    if (!normalizedQuery) {
-      return slashItems;
-    }
-
-    return slashItems.filter(
-      (item) =>
-        item.label.toLowerCase().includes(normalizedQuery) ||
-        item.shortcut.toLowerCase().includes(normalizedQuery),
-    );
-  }, [slashItems, slashMenu.query]);
-
-  const enabledSlashItems = useMemo(
-    () => filteredSlashItems.filter((item) => item.enabled),
-    [filteredSlashItems],
-  );
+  const {
+    hoveredBlock,
+    setHoveredBlock,
+    syncHoveredBlockFromPos,
+  } = useEditorHoveredBlock({
+    blockControlsRef,
+    blockMenuRef,
+    canEditBody,
+    editor,
+    editorContainerRef,
+  });
 
   const blockTransformItems = useMemo<BlockTransformItem[]>(
     () => createBlockTransformItems(),
     [],
   );
-
-  useEffect(() => {
-    filteredSlashItemsRef.current = filteredSlashItems;
-  }, [filteredSlashItems]);
-
-  useEffect(() => {
-    if (!editor || !canEditBody) {
-      return;
-    }
-
-    const syncSlashMenu = () => {
-      if (!editor.isFocused) {
-        slashContextRef.current = null;
-        setSlashContextState(null);
-        setSlashMenu((current) => ({
-          ...current,
-          activeIndex: 0,
-          open: false,
-          placement: "below",
-          query: "",
-        }));
-        return;
-      }
-
-      const slashContext = getSlashContext(editor);
-
-      if (!slashContext) {
-        slashContextRef.current = null;
-        setSlashContextState(null);
-        setSlashMenu((current) => ({
-          ...current,
-          activeIndex: 0,
-          open: false,
-          placement: "below",
-          query: "",
-        }));
-        return;
-      }
-
-      const container = editorContainerRef.current;
-
-      if (!container) {
-        return;
-      }
-
-      const coords = editor.view.coordsAtPos(editor.state.selection.from);
-      const bounds = container.getBoundingClientRect();
-      const estimatedMenuHeight = Math.min(filteredSlashItemsRef.current.length * 38 + 10, 260);
-      const spaceBelow = window.innerHeight - coords.bottom;
-      const placeAbove = spaceBelow < estimatedMenuHeight + 16 && coords.top > estimatedMenuHeight;
-      const nextTop = placeAbove
-        ? coords.top - bounds.top - estimatedMenuHeight - 10
-        : coords.bottom - bounds.top + 10;
-      const nextLeft = Math.max(
-        12,
-        Math.min(coords.left - bounds.left, bounds.width - 228),
-      );
-
-      slashContextRef.current = slashContext;
-      setSlashContextState(slashContext);
-      setSlashMenu((current) => ({
-        activeIndex:
-          current.query !== slashContext.query || !current.open ? 0 : current.activeIndex,
-        left: nextLeft,
-        open: true,
-        placement: placeAbove ? "above" : "below",
-        query: slashContext.query,
-        top: Math.max(12, nextTop),
-      }));
-    };
-
-    syncSlashMenu();
-    editor.on("selectionUpdate", syncSlashMenu);
-    editor.on("transaction", syncSlashMenu);
-    editor.on("blur", syncSlashMenu);
-    editor.on("focus", syncSlashMenu);
-
-    return () => {
-      editor.off("selectionUpdate", syncSlashMenu);
-      editor.off("transaction", syncSlashMenu);
-      editor.off("blur", syncSlashMenu);
-      editor.off("focus", syncSlashMenu);
-    };
-  }, [canEditBody, editor]);
-
-  useEffect(() => {
-    if (!editor || !canEditBody) {
-      return;
-    }
-
-    const container = editorContainerRef.current;
-    const editorRoot = container?.querySelector(".ProseMirror");
-
-    if (!(editorRoot instanceof HTMLElement) || !container) {
-      return;
-    }
-
-    const syncHoveredBlock = (target: EventTarget | null, clientY?: number) => {
-      if (target instanceof Node) {
-        if (blockControlsRef.current?.contains(target) || blockMenuRef.current?.contains(target)) {
-          return;
-        }
-      }
-
-      if (typeof clientY === "number") {
-        const hoveredBlockFromPointer = getHoveredBlockFromPointer(
-          editor,
-          editorRoot,
-          container,
-          clientY,
-        );
-
-        if (hoveredBlockFromPointer) {
-          setHoveredBlock(hoveredBlockFromPointer);
-          return;
-        }
-      }
-
-      const blockElement = getTopLevelBlock(target, editorRoot);
-
-      if (!blockElement) {
-        setHoveredBlock(null);
-        return;
-      }
-
-      let pos: number | null = null;
-
-      try {
-        pos = editor.view.posAtDOM(blockElement, 0);
-      } catch {
-        pos = null;
-      }
-
-      if (pos == null) {
-        setHoveredBlock(null);
-        return;
-      }
-
-      const blockBounds = blockElement.getBoundingClientRect();
-      const containerBounds = container.getBoundingClientRect();
-
-      setHoveredBlock({
-        height: blockBounds.height,
-        pos,
-        top: blockBounds.top - containerBounds.top,
-      });
-    };
-
-    const handlePointerMove = (event: PointerEvent) => {
-      syncHoveredBlock(event.target, event.clientY);
-    };
-
-    const handlePointerLeave = () => {
-      setHoveredBlock(null);
-    };
-
-    container.addEventListener("pointermove", handlePointerMove);
-    container.addEventListener("pointerleave", handlePointerLeave);
-
-    return () => {
-      container.removeEventListener("pointermove", handlePointerMove);
-      container.removeEventListener("pointerleave", handlePointerLeave);
-    };
-  }, [canEditBody, editor]);
 
   useEffect(() => {
     return () => {
@@ -562,27 +318,6 @@ function EditorSurface({
     };
   }, [canEditTitle, document.id, document.title]);
 
-  function syncHoveredBlockFromPos(position: number) {
-    if (!editor) {
-      return;
-    }
-
-    const container = editorContainerRef.current;
-    const domNode = editor.view.nodeDOM(position);
-
-    if (!(container instanceof HTMLElement) || !(domNode instanceof HTMLElement)) {
-      return;
-    }
-
-    const blockBounds = domNode.getBoundingClientRect();
-    const containerBounds = container.getBoundingClientRect();
-
-    setHoveredBlock({
-      height: blockBounds.height,
-      pos: position,
-      top: blockBounds.top - containerBounds.top,
-    });
-  }
   async function commitTitle() {
     if (!canEditTitle) {
       return;
