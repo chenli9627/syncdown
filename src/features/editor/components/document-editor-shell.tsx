@@ -22,6 +22,7 @@ import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu"
 import { EditorOverflowMenu } from "@/features/editor/components/editor-overflow-menu";
 import { EditorPermissionPopover } from "@/features/editor/components/editor-permission-popover";
 import { EditorSearchPopover } from "@/features/editor/components/editor-search-popover";
+import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu";
 import { DocumentStatusState } from "@/features/editor/components/document-status-state";
 import { EditorToolbar } from "@/features/editor/components/editor-toolbar";
 import {
@@ -526,6 +527,7 @@ function EditorSurface({
   const [sharePermission, setSharePermission] = useState<"can_edit" | "can_view">(
     "can_view",
   );
+  const [slashContextState, setSlashContextState] = useState<SlashContext | null>(null);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
   const [permissionBusy, setPermissionBusy] = useState(false);
@@ -1101,6 +1103,7 @@ function EditorSurface({
     const syncSlashMenu = () => {
       if (!editor.isFocused) {
         slashContextRef.current = null;
+        setSlashContextState(null);
         setSlashMenu((current) => ({
           ...current,
           activeIndex: 0,
@@ -1115,6 +1118,7 @@ function EditorSurface({
 
       if (!slashContext) {
         slashContextRef.current = null;
+        setSlashContextState(null);
         setSlashMenu((current) => ({
           ...current,
           activeIndex: 0,
@@ -1145,6 +1149,7 @@ function EditorSurface({
       );
 
       slashContextRef.current = slashContext;
+      setSlashContextState(slashContext);
       setSlashMenu((current) => ({
         activeIndex:
           current.query !== slashContext.query || !current.open ? 0 : current.activeIndex,
@@ -1902,74 +1907,32 @@ function EditorSurface({
                 globalThis.document.body,
               )
             : null}
-          {canEditBody && slashMenu.open && filteredSlashItems.length ? (
-            <div
-              className="absolute z-20 max-h-[260px] w-[216px] overflow-y-auto border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-soft-card)]"
-              style={{
-                left: `${slashMenu.left}px`,
-                top: `${slashMenu.top}px`,
-              }}
-            >
-              {filteredSlashItems.map((item) => {
-                const enabledIndex = enabledSlashItems.findIndex((candidate) => candidate.id === item.id);
-                const isActive = item.enabled && enabledIndex === slashMenu.activeIndex;
-
-                return (
-                  <button
-                    className={`flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] transition ${
-                      item.enabled
-                        ? isActive
-                          ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
-                          : "text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
-                        : "cursor-not-allowed text-[var(--color-muted-foreground)] opacity-55"
-                    }`}
-                    disabled={!item.enabled}
-                    key={item.id}
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                    }}
-                    onMouseEnter={() => {
-                      if (!item.enabled) {
-                        return;
-                      }
-
-                      setSlashMenu((current) => ({
-                        ...current,
-                        activeIndex: enabledIndex >= 0 ? enabledIndex : current.activeIndex,
-                      }));
-                    }}
-                    onClick={() => {
-                      const slashContext = slashContextRef.current;
-                      const currentEditor = editor;
-
-                      if (!currentEditor || !item.enabled || !slashContext) {
-                        return;
-                      }
-
-                      currentEditor
-                        .chain()
-                        .focus()
-                        .deleteRange({ from: slashContext.from, to: slashContext.to })
-                        .run();
-                      item.run(currentEditor);
-                      setSlashMenu((current) => ({
-                        ...current,
-                        activeIndex: 0,
-                        open: false,
-                        query: "",
-                      }));
-                    }}
-                    type="button"
-                  >
-                    <span>{item.label}</span>
-                    <span className="text-xs text-[var(--color-muted-foreground)]">
-                      {item.enabled ? item.shortcut || " " : "Soon"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
+          <EditorSlashMenu
+            activeIndex={slashMenu.activeIndex}
+            editor={editor}
+            enabledItems={enabledSlashItems}
+            filteredItems={filteredSlashItems}
+            onActivateItem={(nextIndex) => {
+              setSlashMenu((current) => ({
+                ...current,
+                activeIndex: nextIndex,
+              }));
+            }}
+            onClose={() => {
+              setSlashMenu((current) => ({
+                ...current,
+                activeIndex: 0,
+                open: false,
+                query: "",
+              }));
+            }}
+            open={canEditBody && slashMenu.open}
+            position={{
+              left: slashMenu.left,
+              top: slashMenu.top,
+            }}
+            slashContext={slashContextState}
+          />
         </div>
       </div>
     </div>
