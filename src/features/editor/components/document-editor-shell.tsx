@@ -12,14 +12,8 @@ import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import { EditorCanvas } from "@/features/editor/components/editor-canvas";
 import { EditorHeader } from "@/features/editor/components/editor-header";
 import { DocumentStatusState } from "@/features/editor/components/document-status-state";
+import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
 import {
-  editorHtmlToMarkdown,
-  markdownToEditorHtml,
-  sanitizeMarkdownFilename,
-} from "@/features/editor/lib/markdown";
-import {
-  collectSearchMatches,
-  getSearchRects,
   type SearchRect,
 } from "@/features/editor/lib/search";
 import type {
@@ -31,7 +25,6 @@ import type {
 import {
   getAccessEntries,
   getAccessPermission,
-  getBlockTransformActiveId,
   getHoveredBlockFromPointer,
   getSlashContext,
   getTopLevelBlock,
@@ -895,7 +888,6 @@ function EditorSurface({
       top: blockBounds.top - containerBounds.top,
     });
   }
-
   async function commitTitle() {
     if (!canEditTitle) {
       return;
@@ -917,118 +909,6 @@ function EditorSurface({
     }, 1200);
   }
 
-  function handleInsertBlockBefore() {
-    if (!editor || !hoveredBlock) {
-      return;
-    }
-
-    setBlockMenu({
-      left: 0,
-      open: false,
-      pos: null,
-      showTurnInto: false,
-      top: 0,
-    });
-
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(hoveredBlock.pos, {
-        type: "paragraph",
-        content: [{ type: "text", text: "/" }],
-      })
-      .setTextSelection(hoveredBlock.pos + 2)
-      .run();
-  }
-
-  function handleDuplicateBlock() {
-    if (!editor || blockMenu.pos == null) {
-      return;
-    }
-
-    const node = editor.state.doc.nodeAt(blockMenu.pos);
-
-    if (!node) {
-      return;
-    }
-
-    const duplicatedPos = blockMenu.pos + node.nodeSize;
-
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(duplicatedPos, node.toJSON())
-      .run();
-
-    setBlockMenu({
-      left: 0,
-      open: false,
-      pos: null,
-      showTurnInto: false,
-      top: 0,
-    });
-
-    window.requestAnimationFrame(() => {
-      syncHoveredBlockFromPos(duplicatedPos);
-    });
-  }
-
-  function handleDeleteBlock() {
-    if (!editor || blockMenu.pos == null) {
-      return;
-    }
-
-    const node = editor.state.doc.nodeAt(blockMenu.pos);
-
-    if (!node) {
-      return;
-    }
-
-    editor
-      .chain()
-      .focus()
-      .deleteRange({ from: blockMenu.pos, to: blockMenu.pos + node.nodeSize })
-      .run();
-
-    setBlockMenu({
-      left: 0,
-      open: false,
-      pos: null,
-      showTurnInto: false,
-      top: 0,
-    });
-    setHoveredBlock(null);
-  }
-
-  function handleTurnInto(item: BlockTransformItem) {
-    if (!editor || blockMenu.pos == null) {
-      return;
-    }
-
-    item.run(editor, blockMenu.pos);
-    setBlockMenu({
-      left: 0,
-      open: false,
-      pos: null,
-      showTurnInto: false,
-      top: 0,
-    });
-    window.requestAnimationFrame(() => {
-      syncHoveredBlockFromPos(blockMenu.pos ?? 0);
-    });
-  }
-
-  const statusLabel =
-    status === "saving"
-      ? "Saving..."
-      : status === "saved"
-        ? "Saved"
-        : status === "error"
-          ? "Save failed"
-          : null;
-  const currentTransformActiveId =
-    editor && blockMenu.pos != null ? getBlockTransformActiveId(editor, blockMenu.pos) : null;
-  const canUndo = Boolean(editor?.can().chain().focus().undo().run());
   const guestBadgeClass =
     "rounded-full border border-[#f0d9a7] bg-[#fbefcf] px-2 py-0.5 text-[11px] font-semibold text-[#c98a10]";
   const searchHeaderLabel =
@@ -1037,117 +917,39 @@ function EditorSurface({
       : searchMatchIndex >= 0
         ? `${searchMatchIndex + 1} / ${searchMatchCount}`
         : "";
-  function runSearch(direction: "forward" | "backward") {
-    const query = searchQuery.trim();
-
-    if (!query) {
-      setSearchRects([]);
-      setSearchMatchCount(0);
-      setSearchMatchIndex(-1);
-      setSearchNotice("Enter text to search");
-      return;
-    }
-
-    const container = editorContainerRef.current;
-    const editorRoot = container?.querySelector(".ProseMirror");
-
-    if (!(editorRoot instanceof HTMLElement) || !(container instanceof HTMLElement)) {
-      setSearchRects([]);
-      setSearchMatchCount(0);
-      setSearchNotice("No match found");
-      return;
-    }
-
-    const matches = collectSearchMatches(editorRoot, query);
-
-    if (!matches.length) {
-      setSearchRects([]);
-      setSearchMatchCount(0);
-      setSearchMatchIndex(-1);
-      setSearchNotice("No match found");
-      return;
-    }
-
-    const nextIndex =
-      searchMatchIndex < 0
-        ? direction === "forward"
-          ? 0
-          : matches.length - 1
-        : direction === "forward"
-          ? (searchMatchIndex + 1) % matches.length
-          : (searchMatchIndex - 1 + matches.length) % matches.length;
-    const nextMatch = matches[nextIndex];
-    const nextRects = getSearchRects(nextMatch.range, container);
-
-    setSearchRects(nextRects);
-    setSearchMatchCount(matches.length);
-    setSearchMatchIndex(nextIndex);
-    setSearchNotice(null);
-    nextMatch.range.startContainer.parentElement?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-    window.requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
-      const length = searchInputRef.current?.value.length ?? 0;
-      searchInputRef.current?.setSelectionRange(length, length);
-    });
-  }
-
-  async function handleExportMarkdown() {
-    const html = editor?.getHTML() ?? document.content;
-    const markdown = editorHtmlToMarkdown(html);
-    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
-    const downloadUrl = URL.createObjectURL(blob);
-    const anchor = globalThis.document.createElement("a");
-    anchor.href = downloadUrl;
-    anchor.download = sanitizeMarkdownFilename(document.title);
-    anchor.click();
-    URL.revokeObjectURL(downloadUrl);
-    setActionError(null);
-    setActionNotice("Markdown exported");
-  }
-
-  async function handleImportMarkdown(file: File) {
-    if (!canEditBody) {
-      setActionError("You do not have permission to import");
-      setActionNotice(null);
-      return;
-    }
-
-    if (!file.name.toLowerCase().endsWith(".md")) {
-      setActionError("Only .md files are supported right now");
-      setActionNotice(null);
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setActionError("上传文件过大");
-      setActionNotice(null);
-      return;
-    }
-
-    const markdown = await file.text();
-    const html = markdownToEditorHtml(markdown);
-
-    if (!editor) {
-      setActionError("Editor is not ready");
-      setActionNotice(null);
-      return;
-    }
-
-    editor.chain().focus().insertContent(html).run();
-    const result = await saveDocument(document.id, { content: editor.getHTML() });
-
-    if (!result.ok) {
-      setActionError(result.error);
-      setActionNotice(null);
-      return;
-    }
-
-    setActionError(null);
-    setActionNotice("Markdown imported");
-  }
+  const {
+    canUndo,
+    currentTransformActiveId,
+    handleDeleteBlock,
+    handleDuplicateBlock,
+    handleExportMarkdown,
+    handleImportMarkdown,
+    handleInsertBlockBefore,
+    handleTurnInto,
+    runSearch,
+    statusLabel,
+  } = useEditorActions({
+    blockMenu,
+    canEditBody,
+    document,
+    editor,
+    editorContainerRef,
+    hoveredBlock,
+    saveDocument,
+    searchInputRef,
+    searchMatchIndex,
+    searchQuery,
+    setActionError,
+    setActionNotice,
+    setBlockMenu,
+    setHoveredBlock,
+    setSearchMatchCount,
+    setSearchMatchIndex,
+    setSearchNotice,
+    setSearchRects,
+    status,
+    syncHoveredBlockFromPos,
+  });
 
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
