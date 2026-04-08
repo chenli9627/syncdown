@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0 --port 3000",
     "lint": "eslint .",
-    "test": "node --test",
+    "test": "tsx --test tests/**/*.test.ts",
     "reset-password": "node ./scripts/reset-password.mjs"
   },
   "dependencies": {
@@ -43,6 +43,7 @@
     "eslint": "^9.25.1",
     "eslint-config-next": "^16.2.2",
     "tailwindcss": "^4.1.4",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   },
   "packageManager": "pnpm@10.28.0"

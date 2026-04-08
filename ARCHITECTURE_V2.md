@@ -398,7 +398,6 @@ Required slash items:
 - bulleted list
 - numbered list
 - todo list
-- toggle list
 - quote
 - table
 - divider
