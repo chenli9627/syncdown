@@ -44,6 +44,7 @@ export function EditorSurface({
         editor={model.editor}
         guestBadgeClass={model.guestBadgeClass}
         handleExportMarkdown={model.actions.handleExportMarkdown}
+        handleExportMarkdownZip={model.actions.handleExportMarkdownZip}
         imageInputRef={model.ui.imageInputRef}
         importInputRef={model.ui.importInputRef}
         moveDocumentToTrash={model.moveDocumentToTrash}

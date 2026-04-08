@@ -271,6 +271,7 @@ export function useEditorActions({
     handleDownloadImage,
     handleDuplicateBlock: blockActions.handleDuplicateBlock,
     handleExportMarkdown: searchMarkdownActions.handleExportMarkdown,
+    handleExportMarkdownZip: searchMarkdownActions.handleExportMarkdownZip,
     handleImportMarkdown: searchMarkdownActions.handleImportMarkdown,
     handleInsertImage,
     handleInsertBlockBefore: blockActions.handleInsertBlockBefore,

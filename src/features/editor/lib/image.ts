@@ -11,8 +11,12 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/gif",
 ]);
 
+export function isSupportedImageMimeType(mimeType: string) {
+  return ALLOWED_IMAGE_TYPES.has(mimeType);
+}
+
 export function isSupportedImageFile(file: File) {
-  return ALLOWED_IMAGE_TYPES.has(file.type);
+  return isSupportedImageMimeType(file.type);
 }
 
 export function readFileAsDataUrl(file: File) {

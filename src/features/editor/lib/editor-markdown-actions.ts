@@ -1,20 +1,47 @@
 import {
+  editorHtmlToMarkdown,
   editorHtmlToMarkdownBundle,
   getMarkdownImportLimit,
   inferMimeTypeFromPath,
   markdownToEditorHtml,
   markdownToEditorHtmlWithAssets,
   normalizeZipPath,
+  sanitizeMarkdownFilename,
   sanitizeZipFilename,
 } from "@/features/editor/lib/markdown";
 import type { EditorActionBaseArgs } from "@/features/editor/lib/editor-action-types";
+import { isSupportedImageMimeType } from "@/features/editor/lib/image";
 import JSZip from "jszip";
 
 export function exportEditorMarkdown({ document, editor, setActionError, setActionNotice }: Pick<
   EditorActionBaseArgs,
   "document" | "editor" | "setActionError" | "setActionNotice"
 >) {
-  return exportEditorMarkdownZip({
+  const html = editor?.getHTML() ?? document.content;
+
+  if (containsEmbeddedImages(html)) {
+    setActionError("This document contains images. Export .zip instead");
+    setActionNotice(null);
+    return;
+  }
+
+  const markdown = editorHtmlToMarkdown(html);
+  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+  const downloadUrl = URL.createObjectURL(blob);
+  const anchor = globalThis.document.createElement("a");
+  anchor.href = downloadUrl;
+  anchor.download = sanitizeMarkdownFilename(document.title);
+  anchor.click();
+  URL.revokeObjectURL(downloadUrl);
+  setActionError(null);
+  setActionNotice("Markdown exported");
+}
+
+export async function exportEditorMarkdownZip({ document, editor, setActionError, setActionNotice }: Pick<
+  EditorActionBaseArgs,
+  "document" | "editor" | "setActionError" | "setActionNotice"
+>) {
+  return exportEditorMarkdownZipInternal({
     document,
     editor,
     setActionError,
@@ -51,7 +78,7 @@ export async function importEditorMarkdown(args: EditorActionBaseArgs, file: Fil
   await insertMarkdownIntoEditor(args, markdownToEditorHtml(markdown), "Markdown imported");
 }
 
-async function exportEditorMarkdownZip({
+async function exportEditorMarkdownZipInternal({
   document,
   editor,
   setActionError,
@@ -92,6 +119,14 @@ async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
 
   const markdown = await markdownEntry.async("text");
   const markdownDirectory = normalizeZipPath(markdownEntry.name.split("/").slice(0, -1).join("/"));
+  const assetValidation = validateZipMarkdownAssets(zip, markdown, markdownDirectory);
+
+  if (!assetValidation.ok) {
+    args.setActionError(assetValidation.error);
+    args.setActionNotice(null);
+    return;
+  }
+
   const html = await markdownToEditorHtmlWithAssets(markdown, async (source) => {
     if (/^(data:|https?:\/\/)/i.test(source)) {
       return source;
@@ -143,6 +178,59 @@ function pickMarkdownEntry(zip: JSZip) {
   const pageEntry = entries.find((entry) => normalizeZipPath(entry.name) === "page.md");
 
   return pageEntry ?? entries[0] ?? null;
+}
+
+function containsEmbeddedImages(html: string) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  return Array.from(doc.body.querySelectorAll("img")).some((image) =>
+    (image.getAttribute("src") ?? "").startsWith("data:"),
+  );
+}
+
+function validateZipMarkdownAssets(zip: JSZip, markdown: string, markdownDirectory: string) {
+  const missingAssets = new Set<string>();
+  const invalidAssets = new Set<string>();
+
+  for (const match of markdown.matchAll(/!\[(.*?)\]\((.+?)\)/g)) {
+    const source = match[2] ?? "";
+
+    if (!source || /^(data:|https?:\/\/)/i.test(source)) {
+      continue;
+    }
+
+    const assetPath = normalizeZipPath(
+      markdownDirectory ? `${markdownDirectory}/${source}` : source,
+    );
+    const assetEntry = zip.file(assetPath);
+
+    if (!assetEntry) {
+      missingAssets.add(source);
+      continue;
+    }
+
+    if (!isSupportedImageMimeType(inferMimeTypeFromPath(assetPath))) {
+      invalidAssets.add(source);
+    }
+  }
+
+  if (missingAssets.size > 0) {
+    return {
+      error: `Zip archive is missing image assets: ${Array.from(missingAssets).slice(0, 3).join(", ")}`,
+      ok: false as const,
+    };
+  }
+
+  if (invalidAssets.size > 0) {
+    return {
+      error: `Zip archive contains unsupported image assets: ${Array.from(invalidAssets).slice(0, 3).join(", ")}`,
+      ok: false as const,
+    };
+  }
+
+  return {
+    ok: true as const,
+  };
 }
 
 async function uint8ArrayToDataUrl(bytes: Uint8Array, mimeType: string) {
