@@ -3,7 +3,6 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -14,12 +13,11 @@ import {
 } from "@/features/app-state/hooks/use-app-state-actions";
 import { useAppStateSync } from "@/features/app-state/hooks/use-app-state-sync";
 import {
-  getAccessibleWorkspaces,
-  getCurrentWorkspace,
-  getUserBySession,
   getWorkspaceBuckets,
 } from "@/features/app-state/lib/state-utils";
 import type { Session, SyntextState, User, Workspace } from "@/features/app-state/types";
+import { useAppStateDerived } from "@/features/app-state/hooks/use-app-state-derived";
+import { useAppStateSessionGuard } from "@/features/app-state/hooks/use-app-state-session-guard";
 
 type AppStateContextValue = {
   ready: boolean;
@@ -57,17 +55,8 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     setState,
   });
 
-  const currentUser = getUserBySession(state, session);
-  const accessibleWorkspaces = useMemo(
-    () => (currentUser ? getAccessibleWorkspaces(state, currentUser) : []),
-    [currentUser, state],
-  );
-  const currentWorkspace =
-    currentUser && session ? getCurrentWorkspace(state, currentUser, session) : null;
-  const buckets =
-    currentUser && currentWorkspace
-      ? getWorkspaceBuckets(state, currentWorkspace.id, currentUser)
-      : null;
+  const { accessibleWorkspaces, buckets, currentUser, currentWorkspace } =
+    useAppStateDerived(state, session);
   const actions = useAppStateActions({
     currentUser,
     currentWorkspace,
@@ -76,30 +65,13 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     state,
   });
 
-  useEffect(() => {
-    if (!ready || !session || !currentUser || accessibleWorkspaces.length === 0) {
-      return;
-    }
-
-    const hasCurrentWorkspace = accessibleWorkspaces.some(
-      (workspace) => workspace.id === session.currentWorkspaceId,
-    );
-
-    if (hasCurrentWorkspace) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setSession({
-        userId: currentUser.id,
-        currentWorkspaceId: accessibleWorkspaces[0].id,
-      });
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [accessibleWorkspaces, currentUser, ready, session]);
+  useAppStateSessionGuard({
+    accessibleWorkspaces,
+    currentUser,
+    ready,
+    session,
+    setSession,
+  });
 
   const value = useMemo<AppStateContextValue>(
     () => ({
