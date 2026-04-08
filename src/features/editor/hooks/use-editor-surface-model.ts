@@ -7,6 +7,7 @@ import { useEditorAccessEntries } from "@/features/editor/hooks/use-editor-acces
 import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
 import { useEditorHoveredBlock } from "@/features/editor/hooks/use-editor-hovered-block";
 import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
+import { useEditorSelectionAi } from "@/features/editor/hooks/use-editor-selection-ai";
 import { useEditorShortcuts } from "@/features/editor/hooks/use-editor-shortcuts";
 import { useEditorSlashMenu } from "@/features/editor/hooks/use-editor-slash-menu";
 import { useEditorSurfaceUiState } from "@/features/editor/hooks/use-editor-surface-ui";
@@ -70,6 +71,10 @@ export function useEditorSurfaceModel({
     editorReadyVersion,
     editorRef,
     editorContainerRef: ui.editorContainerRef,
+  });
+  const selectionAi = useEditorSelectionAi({
+    canEditBody,
+    editor,
   });
 
   useEffect(() => {
@@ -172,6 +177,7 @@ export function useEditorSurfaceModel({
     permissionLabel,
     routerPushHome,
     searchHeaderLabel,
+    selectionAi,
     sharedAvatars,
     slash,
     titleError,

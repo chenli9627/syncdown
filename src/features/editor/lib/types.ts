@@ -29,6 +29,28 @@ export type HoveredBlock = {
   top: number;
 };
 
+export type SelectionBubbleState = {
+  from: number;
+  left: number;
+  open: boolean;
+  text: string;
+  to: number;
+  top: number;
+};
+
+export type AiBubbleState = {
+  action: import("@/features/editor/lib/ai").AiActionKind | null;
+  from: number;
+  left: number;
+  open: boolean;
+  prompt: string;
+  result: string;
+  text: string;
+  to: number;
+  top: number;
+  viewOnly: boolean;
+};
+
 export type BlockTransformItem = {
   id: string;
   label: string;

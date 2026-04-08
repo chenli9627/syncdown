@@ -6,10 +6,15 @@ import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import { EditorBlockControls } from "@/features/editor/components/editor-block-controls";
 import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu";
+import { EditorAiBubble } from "@/features/editor/components/editor-ai-bubble";
+import { EditorSelectionBubble } from "@/features/editor/components/editor-selection-bubble";
 import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu";
+import type { AiActionKind } from "@/features/editor/lib/ai";
 import type {
+  AiBubbleState,
   BlockTransformItem,
   HoveredBlock,
+  SelectionBubbleState,
   SlashContext,
   SlashItem,
 } from "@/features/editor/lib/types";
@@ -52,6 +57,17 @@ type EditorCanvasProps = {
   hoveredBlock: HoveredBlock | null;
   importInputRef: RefObject<HTMLInputElement | null>;
   searchRects: SearchRect[];
+  aiBubble: AiBubbleState;
+  aiBubbleRef: RefObject<HTMLDivElement | null>;
+  onAiApply: () => void;
+  onAiClose: () => void;
+  onAiInsertBelow: () => void;
+  onAiPreviewAction: (action: AiActionKind) => void;
+  onAiPromptChange: (value: string) => void;
+  onFormatSelection: (command: "bold" | "italic" | "strike" | "code") => void;
+  onOpenAiMenu: () => void;
+  selectionBubble: SelectionBubbleState;
+  selectionBubbleRef: RefObject<HTMLDivElement | null>;
   setBlockMenu: (
     value:
       | BlockMenuState
@@ -86,6 +102,17 @@ export function EditorCanvas({
   hoveredBlock,
   importInputRef,
   searchRects,
+  aiBubble,
+  aiBubbleRef,
+  onAiApply,
+  onAiClose,
+  onAiInsertBelow,
+  onAiPreviewAction,
+  onAiPromptChange,
+  onFormatSelection,
+  onOpenAiMenu,
+  selectionBubble,
+  selectionBubbleRef,
   setBlockMenu,
   setSlashMenu,
   slashContextState,
@@ -132,6 +159,21 @@ export function EditorCanvas({
           onOpenBlockMenu={setBlockMenu}
         />
         <EditorContent editor={editor} />
+        <EditorSelectionBubble
+          onFormat={onFormatSelection}
+          onOpenAi={onOpenAiMenu}
+          selectionBubble={selectionBubble}
+          selectionBubbleRef={selectionBubbleRef}
+        />
+        <EditorAiBubble
+          aiBubble={aiBubble}
+          aiBubbleRef={aiBubbleRef}
+          onApply={onAiApply}
+          onClose={onAiClose}
+          onInsertBelow={onAiInsertBelow}
+          onPreviewAction={onAiPreviewAction}
+          onPromptChange={onAiPromptChange}
+        />
         {canEditBody && blockMenu.open && globalThis.document?.body
           ? createPortal(
               <EditorBlockMenu

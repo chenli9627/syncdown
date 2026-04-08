@@ -451,6 +451,7 @@ AI actions:
 
 AI rules:
 
+- current build shows a selection bubble on text selection with formatting actions and an `AI` entry
 - result appears in its own bubble
 - replace/insert operations require confirmation
 - explain/summarize are view-only outputs
@@ -458,6 +459,7 @@ AI rules:
 - no AI result history in v2 initial build
 - `can_view` users do not see AI entry points
 - current build only implements AI interaction surfaces, not real model integration
+- current build uses front-end mock AI previews to validate the UI and confirmation flow
 
 ### 8.5 Collaboration-Ready Layer
 

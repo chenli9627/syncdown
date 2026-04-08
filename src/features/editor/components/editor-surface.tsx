@@ -114,6 +114,17 @@ export function EditorSurface({
         hoveredBlock={model.hovered.hoveredBlock}
         importInputRef={model.ui.importInputRef}
         searchRects={model.ui.searchBody.searchRects}
+        aiBubble={model.selectionAi.aiBubble}
+        aiBubbleRef={model.selectionAi.aiBubbleRef}
+        onAiApply={model.selectionAi.actions.applyResult}
+        onAiClose={model.selectionAi.actions.closeAll}
+        onAiInsertBelow={model.selectionAi.actions.insertBelow}
+        onAiPreviewAction={model.selectionAi.actions.previewAction}
+        onAiPromptChange={model.selectionAi.actions.setPrompt}
+        onFormatSelection={model.selectionAi.actions.formatSelection}
+        onOpenAiMenu={model.selectionAi.actions.openAiMenu}
+        selectionBubble={model.selectionAi.selectionBubble}
+        selectionBubbleRef={model.selectionAi.selectionBubbleRef}
         setBlockMenu={model.ui.setBlockMenu}
         setSlashMenu={model.slash.setSlashMenu}
         slashContextState={model.slash.slashContextState}
