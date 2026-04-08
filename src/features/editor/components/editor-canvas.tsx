@@ -2,6 +2,7 @@
 
 import { EditorContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
+import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -187,6 +188,20 @@ export function EditorCanvas({
     highlight.style.top = `${blockBounds.top - containerBounds.top}px`;
     highlight.style.opacity = "1";
   }, [blockMenu.open, blockMenu.pos, editor, editorContainerRef]);
+
+  const hoveredBlockType =
+    editor && hoveredBlock ? editor.state.doc.nodeAt(hoveredBlock.pos)?.type.name ?? null : null;
+  const tableOverlay =
+    canEditBody && hoveredBlock && hoveredBlockType === "table"
+      ? {
+          bottom: hoveredBlock.top + hoveredBlock.height,
+          height: hoveredBlock.height,
+          left: hoveredBlock.left,
+          right: hoveredBlock.left + hoveredBlock.width,
+          top: hoveredBlock.top,
+          width: hoveredBlock.width,
+        }
+      : null;
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-10 py-8">
@@ -485,6 +500,36 @@ export function EditorCanvas({
               globalThis.document.body,
             )
           : null}
+        {canEditBody && tableOverlay ? (
+          <>
+            <button
+              aria-label="Add table column"
+              className="absolute z-20 flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+              onClick={handleInsertTableColumn}
+              style={{
+                left: `${tableOverlay.right - 12}px`,
+                top: `${Math.max(0, tableOverlay.top + tableOverlay.height / 2 - 14)}px`,
+              }}
+              title="Add column"
+              type="button"
+            >
+              <Plus className="size-4" />
+            </button>
+            <button
+              aria-label="Add table row"
+              className="absolute z-20 flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+              onClick={handleInsertTableRow}
+              style={{
+                left: `${Math.max(0, tableOverlay.left + tableOverlay.width / 2 - 14)}px`,
+                top: `${tableOverlay.bottom - 12}px`,
+              }}
+              title="Add row"
+              type="button"
+            >
+              <Plus className="size-4" />
+            </button>
+          </>
+        ) : null}
         <EditorSlashMenu
           activeIndex={slashMenu.activeIndex}
           editor={editor}

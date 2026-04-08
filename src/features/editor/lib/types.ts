@@ -26,8 +26,10 @@ export type SlashMenuState = {
 
 export type HoveredBlock = {
   height: number;
+  left: number;
   pos: number;
   top: number;
+  width: number;
 };
 
 export type BlockDragState = {

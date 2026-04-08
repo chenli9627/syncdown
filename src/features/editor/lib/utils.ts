@@ -236,8 +236,10 @@ export function getHoveredBlockFromPointer(
 
   return {
     height: blockInfo.height,
+    left: blockInfo.left,
     pos: blockInfo.pos,
     top: blockInfo.top,
+    width: blockInfo.width,
   };
 }
 

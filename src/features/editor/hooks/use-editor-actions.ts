@@ -268,11 +268,13 @@ export function useEditorActions({
   }
 
   function updateTable(command: (currentEditor: Editor) => boolean) {
-    if (!editor || blockMenu.pos == null) {
+    const tablePos = blockMenu.pos ?? hoveredBlock?.pos ?? null;
+
+    if (!editor || tablePos == null) {
       return;
     }
 
-    const selectionPos = Math.min(blockMenu.pos + 3, editor.state.doc.content.size);
+    const selectionPos = Math.min(tablePos + 3, editor.state.doc.content.size);
     editor.chain().focus().setTextSelection(selectionPos).run();
 
     if (!command(editor)) {

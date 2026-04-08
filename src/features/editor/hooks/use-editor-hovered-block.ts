@@ -53,8 +53,10 @@ export function useEditorHoveredBlock({
 
       setHoveredBlock({
         height: blockInfo.height,
+        left: blockInfo.left,
         pos: blockInfo.pos,
         top: blockInfo.top,
+        width: blockInfo.width,
       });
     },
     [editor, editorContainerRef],
@@ -109,8 +111,10 @@ export function useEditorHoveredBlock({
 
       setHoveredBlock({
         height: blockInfo.height,
+        left: blockInfo.left,
         pos: blockInfo.pos,
         top: blockInfo.top,
+        width: blockInfo.width,
       });
     };
 
