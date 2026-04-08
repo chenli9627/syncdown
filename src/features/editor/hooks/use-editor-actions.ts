@@ -296,6 +296,9 @@ export function useEditorActions({
     currentTransformActiveId,
     handleCopyImage,
     handleDeleteBlock: blockActions.handleDeleteBlock,
+    handleDeleteTable: () => {
+      updateTable((currentEditor) => currentEditor.chain().focus().deleteTable().run());
+    },
     handleDeleteTableColumn: () => {
       updateTable((currentEditor) => currentEditor.chain().focus().deleteColumn().run());
     },
@@ -308,8 +311,14 @@ export function useEditorActions({
     handleImportMarkdown: searchMarkdownActions.handleImportMarkdown,
     handleInsertImage,
     handleInsertBlockBefore: blockActions.handleInsertBlockBefore,
+    handleInsertTableColumnLeft: () => {
+      updateTable((currentEditor) => currentEditor.chain().focus().addColumnBefore().run());
+    },
     handleInsertTableColumn: () => {
       updateTable((currentEditor) => currentEditor.chain().focus().addColumnAfter().run());
+    },
+    handleInsertTableRowAbove: () => {
+      updateTable((currentEditor) => currentEditor.chain().focus().addRowBefore().run());
     },
     handleInsertTableRow: () => {
       updateTable((currentEditor) => currentEditor.chain().focus().addRowAfter().run());

@@ -115,6 +115,7 @@ export function EditorSurface({
         handleCloseSlashMenu={model.slash.closeSlashMenuFromUi}
         handleCopyImage={model.actions.handleCopyImage}
         handleDeleteBlock={model.actions.handleDeleteBlock}
+        handleDeleteTable={model.actions.handleDeleteTable}
         handleDeleteTableColumn={model.actions.handleDeleteTableColumn}
         handleDeleteTableRow={model.actions.handleDeleteTableRow}
         handleDownloadImage={model.actions.handleDownloadImage}
@@ -122,7 +123,9 @@ export function EditorSurface({
         handleImportMarkdown={model.actions.handleImportMarkdown}
         handleInsertImage={model.actions.handleInsertImage}
         handleInsertBlockBefore={model.actions.handleInsertBlockBefore}
+        handleInsertTableColumnLeft={model.actions.handleInsertTableColumnLeft}
         handleInsertTableColumn={model.actions.handleInsertTableColumn}
+        handleInsertTableRowAbove={model.actions.handleInsertTableRowAbove}
         handleInsertTableRow={model.actions.handleInsertTableRow}
         handleTurnInto={model.actions.handleTurnInto}
         hoveredBlock={model.hovered.hoveredBlock}

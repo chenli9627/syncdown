@@ -52,6 +52,7 @@ type EditorCanvasProps = {
   handleCloseSlashMenu: () => void;
   handleCopyImage: () => Promise<void>;
   handleDeleteBlock: () => void;
+  handleDeleteTable: () => void;
   handleDeleteTableColumn: () => void;
   handleDeleteTableRow: () => void;
   handleDownloadImage: () => Promise<void>;
@@ -59,7 +60,9 @@ type EditorCanvasProps = {
   handleImportMarkdown: (file: File) => Promise<void>;
   handleInsertImage: (file: File, position?: number) => Promise<void>;
   handleInsertBlockBefore: () => void;
+  handleInsertTableColumnLeft: () => void;
   handleInsertTableColumn: () => void;
+  handleInsertTableRowAbove: () => void;
   handleInsertTableRow: () => void;
   handleTurnInto: (item: BlockTransformItem) => void;
   hoveredBlock: HoveredBlock | null;
@@ -107,6 +110,7 @@ export function EditorCanvas({
   handleCloseSlashMenu,
   handleCopyImage,
   handleDeleteBlock,
+  handleDeleteTable,
   handleDeleteTableColumn,
   handleDeleteTableRow,
   handleDownloadImage,
@@ -114,7 +118,9 @@ export function EditorCanvas({
   handleImportMarkdown,
   handleInsertImage,
   handleInsertBlockBefore,
+  handleInsertTableColumnLeft,
   handleInsertTableColumn,
+  handleInsertTableRowAbove,
   handleInsertTableRow,
   handleTurnInto,
   hoveredBlock,
@@ -458,13 +464,16 @@ export function EditorCanvas({
                   void handleCopyImage();
                 }}
                 handleDeleteBlock={handleDeleteBlock}
+                handleDeleteTable={handleDeleteTable}
                 handleDeleteTableColumn={handleDeleteTableColumn}
                 handleDeleteTableRow={handleDeleteTableRow}
                 handleDownloadImage={() => {
                   void handleDownloadImage();
                 }}
                 handleDuplicateBlock={handleDuplicateBlock}
+                handleInsertTableColumnLeft={handleInsertTableColumnLeft}
                 handleInsertTableColumn={handleInsertTableColumn}
+                handleInsertTableRowAbove={handleInsertTableRowAbove}
                 handleInsertTableRow={handleInsertTableRow}
                 handleTurnInto={handleTurnInto}
                 isImageBlock={currentTransformActiveId === "image"}
