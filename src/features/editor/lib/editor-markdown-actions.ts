@@ -11,7 +11,8 @@ import {
   sanitizeZipFilename,
 } from "@/features/editor/lib/markdown";
 import type { EditorActionBaseArgs } from "@/features/editor/lib/editor-action-types";
-import { isSupportedImageMimeType, uploadImageBlob } from "@/features/editor/lib/image";
+import { uploadImageBlob } from "@/features/editor/lib/image";
+import { isSupportedImageMimeType } from "@/features/editor/lib/image-shared";
 import JSZip from "jszip";
 
 export function exportEditorMarkdown({ document, editor, setActionError, setActionNotice }: Pick<

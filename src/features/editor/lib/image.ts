@@ -1,19 +1,10 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
-
-export const MAX_IMAGE_FILE_SIZE = 10 * 1024 * 1024;
-
-const ALLOWED_IMAGE_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/gif",
-]);
-
-export function isSupportedImageMimeType(mimeType: string) {
-  return ALLOWED_IMAGE_TYPES.has(mimeType);
-}
+import {
+  MAX_IMAGE_FILE_SIZE,
+  isSupportedImageMimeType,
+} from "@/features/editor/lib/image-shared";
 
 export function isSupportedImageFile(file: File) {
   return isSupportedImageMimeType(file.type);

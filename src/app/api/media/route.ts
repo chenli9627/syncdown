@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { MAX_IMAGE_FILE_SIZE, isSupportedImageMimeType } from "@/features/editor/lib/image";
+import {
+  MAX_IMAGE_FILE_SIZE,
+  isSupportedImageMimeType,
+} from "@/features/editor/lib/image-shared";
 import { writeMediaFile } from "@/lib/server/media-store";
 
 export async function POST(request: Request) {
@@ -52,4 +55,3 @@ function inferExtension(mimeType: string) {
       return "png";
   }
 }
-
