@@ -2,9 +2,13 @@
 
 import { useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
+import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
+import Image from "@tiptap/extension-image";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect, useRef, useState } from "react";
+import { syntextLowlight } from "@/features/editor/lib/code-highlighting";
 import { toEditorContent } from "@/features/editor/lib/content";
+import { insertImageFile } from "@/features/editor/lib/image";
 
 type SaveDocument = (
   documentId: string,
@@ -37,7 +41,16 @@ export function useSyntextEditor({
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
+      Image.configure({
+        allowBase64: true,
+        inline: false,
+      }),
+      CodeBlockLowlight.configure({
+        defaultLanguage: null,
+        lowlight: syntextLowlight,
+      }),
       StarterKit.configure({
+        codeBlock: false,
         heading: {
           levels: [1, 2, 3, 4],
         },
@@ -52,6 +65,33 @@ export function useSyntextEditor({
       },
       handleKeyDown: (_view, event) => {
         return onEditorKeyDown(event);
+      },
+      handlePaste: (_view, event) => {
+        if (!canEditBody) {
+          return false;
+        }
+
+        const file = Array.from(event.clipboardData?.files ?? []).find((item) =>
+          item.type.startsWith("image/"),
+        );
+
+        if (!file) {
+          return false;
+        }
+
+        event.preventDefault();
+        const currentEditor = editorRef.current;
+
+        if (!currentEditor) {
+          return true;
+        }
+
+        void insertImageFile(currentEditor, file).then((result) => {
+          if (!result.ok) {
+            setStatus("error");
+          }
+        });
+        return true;
       },
     },
     onCreate: ({ editor: currentEditor }) => {

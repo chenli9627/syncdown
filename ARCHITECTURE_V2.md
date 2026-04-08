@@ -458,8 +458,9 @@ AI rules:
 - closing the AI bubble discards the result
 - no AI result history in v2 initial build
 - `can_view` users do not see AI entry points
-- current build only implements AI interaction surfaces, not real model integration
-- current build uses front-end mock AI previews to validate the UI and confirmation flow
+- front end calls the app-owned `/api/ai/action` endpoint instead of calling model providers directly
+- the back end reads `AI_API_KEY`, `AI_BASE_URL`, and `AI_MODEL` from environment variables
+- if AI environment variables are not configured, the current build falls back to local mock results so the interaction remains usable
 
 ### 8.5 Collaboration-Ready Layer
 

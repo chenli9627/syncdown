@@ -6,6 +6,7 @@ import type { HoveredBlock } from "@/features/editor/lib/types";
 import {
   getHoveredBlockFromPointer,
   getTopLevelBlock,
+  getTopLevelBlockInfoFromElement,
 } from "@/features/editor/lib/utils";
 
 type UseEditorHoveredBlockArgs = {
@@ -34,17 +35,25 @@ export function useEditorHoveredBlock({
       const container = editorContainerRef.current;
       const domNode = editor.view.nodeDOM(position);
 
-      if (!(container instanceof HTMLElement) || !(domNode instanceof HTMLElement)) {
+      const blockElement =
+        (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
+          "p, h1, h2, h3, h4, blockquote, pre, li, hr, img",
+        ) ?? null;
+
+      if (!(container instanceof HTMLElement) || !(blockElement instanceof HTMLElement)) {
         return;
       }
 
-      const blockBounds = domNode.getBoundingClientRect();
-      const containerBounds = container.getBoundingClientRect();
+      const blockInfo = getTopLevelBlockInfoFromElement(editor, blockElement, container);
+
+      if (!blockInfo) {
+        return;
+      }
 
       setHoveredBlock({
-        height: blockBounds.height,
-        pos: position,
-        top: blockBounds.top - containerBounds.top,
+        height: blockInfo.height,
+        pos: blockInfo.pos,
+        top: blockInfo.top,
       });
     },
     [editor, editorContainerRef],
@@ -90,26 +99,17 @@ export function useEditorHoveredBlock({
         return;
       }
 
-      let pos: number | null = null;
+      const blockInfo = getTopLevelBlockInfoFromElement(editor, blockElement, container);
 
-      try {
-        pos = editor.view.posAtDOM(blockElement, 0);
-      } catch {
-        pos = null;
-      }
-
-      if (pos == null) {
+      if (!blockInfo) {
         setHoveredBlock(null);
         return;
       }
 
-      const blockBounds = blockElement.getBoundingClientRect();
-      const containerBounds = container.getBoundingClientRect();
-
       setHoveredBlock({
-        height: blockBounds.height,
-        pos,
-        top: blockBounds.top - containerBounds.top,
+        height: blockInfo.height,
+        pos: blockInfo.pos,
+        top: blockInfo.top,
       });
     };
 

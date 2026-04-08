@@ -11,6 +11,12 @@ import {
   Quote,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import {
+  normalizeListTransform,
+  normalizeParagraphTransform,
+  unwrapCodeBlockIfNeeded,
+  unwrapListIfNeeded,
+} from "@/features/editor/lib/utils";
 
 type ToolbarButtonProps = {
   active?: boolean;
@@ -85,7 +91,17 @@ export function EditorToolbar({ canEditBody, editor }: EditorToolbarProps) {
         disabled={!canEditBody}
         label="Heading 1"
         onClick={() => {
-          editor?.chain().focus().toggleHeading({ level: 1 }).run();
+          if (!editor) {
+            return;
+          }
+
+          if (editor.isActive("blockquote")) {
+            editor.chain().focus().lift("blockquote").setHeading({ level: 1 }).run();
+            return;
+          }
+
+          normalizeParagraphTransform(editor);
+          editor.chain().focus().setHeading({ level: 1 }).run();
         }}
       >
         <Heading1 className="size-4" />
@@ -95,7 +111,17 @@ export function EditorToolbar({ canEditBody, editor }: EditorToolbarProps) {
         disabled={!canEditBody}
         label="Heading 2"
         onClick={() => {
-          editor?.chain().focus().toggleHeading({ level: 2 }).run();
+          if (!editor) {
+            return;
+          }
+
+          if (editor.isActive("blockquote")) {
+            editor.chain().focus().lift("blockquote").setHeading({ level: 2 }).run();
+            return;
+          }
+
+          normalizeParagraphTransform(editor);
+          editor.chain().focus().setHeading({ level: 2 }).run();
         }}
       >
         <Heading2 className="size-4" />
@@ -105,7 +131,17 @@ export function EditorToolbar({ canEditBody, editor }: EditorToolbarProps) {
         disabled={!canEditBody}
         label="Bulleted list"
         onClick={() => {
-          editor?.chain().focus().toggleBulletList().run();
+          if (!editor) {
+            return;
+          }
+
+          if (editor.isActive("blockquote")) {
+            editor.chain().focus().lift("blockquote").toggleBulletList().run();
+            return;
+          }
+
+          normalizeListTransform(editor);
+          editor.chain().focus().toggleBulletList().run();
         }}
       >
         <List className="size-4" />
@@ -115,7 +151,17 @@ export function EditorToolbar({ canEditBody, editor }: EditorToolbarProps) {
         disabled={!canEditBody}
         label="Numbered list"
         onClick={() => {
-          editor?.chain().focus().toggleOrderedList().run();
+          if (!editor) {
+            return;
+          }
+
+          if (editor.isActive("blockquote")) {
+            editor.chain().focus().lift("blockquote").toggleOrderedList().run();
+            return;
+          }
+
+          normalizeListTransform(editor);
+          editor.chain().focus().toggleOrderedList().run();
         }}
       >
         <ListOrdered className="size-4" />
@@ -125,7 +171,13 @@ export function EditorToolbar({ canEditBody, editor }: EditorToolbarProps) {
         disabled={!canEditBody}
         label="Quote"
         onClick={() => {
-          editor?.chain().focus().toggleBlockquote().run();
+          if (!editor) {
+            return;
+          }
+
+          unwrapListIfNeeded(editor);
+          unwrapCodeBlockIfNeeded(editor);
+          editor.chain().focus().toggleBlockquote().run();
         }}
       >
         <Quote className="size-4" />

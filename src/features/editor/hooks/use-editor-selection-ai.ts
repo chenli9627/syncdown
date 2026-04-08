@@ -3,7 +3,11 @@
 import type { Editor } from "@tiptap/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
-import { generateAiPreview, toAiInsertHtml, type AiActionKind } from "@/features/editor/lib/ai";
+import {
+  getAiViewOnly,
+  toAiInsertHtml,
+  type AiActionKind,
+} from "@/features/editor/lib/ai";
 import type { AiBubbleState, SelectionBubbleState } from "@/features/editor/lib/types";
 
 type UseEditorSelectionAiArgs = {
@@ -31,31 +35,7 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
         setSelectionBubble(closedSelectionBubble());
         return;
       }
-
-      const { from, to } = editor.state.selection;
-
-      if (from === to) {
-        setSelectionBubble(closedSelectionBubble());
-        return;
-      }
-
-      const selectedText = editor.state.doc.textBetween(from, to, "\n").trim();
-
-      if (!selectedText) {
-        setSelectionBubble(closedSelectionBubble());
-        return;
-      }
-
-      const start = editor.view.coordsAtPos(from);
-      const end = editor.view.coordsAtPos(to);
-      setSelectionBubble({
-        from,
-        left: Math.max(16, (start.left + end.right) / 2),
-        open: true,
-        text: selectedText,
-        to,
-        top: Math.max(16, start.top - 56),
-      });
+      setSelectionBubble(getSelectionBubbleFromEditor(editor));
     };
 
     syncSelectionBubble();
@@ -140,28 +120,73 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
           return;
         }
 
+        const bubblePosition = getAiBubblePosition(editor, visibleSelectionBubble);
         setSelectionBubble(closedSelectionBubble());
         setAiBubble({
           action: null,
+          error: null,
           from: visibleSelectionBubble.from,
-          left: visibleSelectionBubble.left,
+          left: bubblePosition.left,
+          loading: false,
           open: true,
           prompt: "",
           result: "",
           text: visibleSelectionBubble.text,
           to: visibleSelectionBubble.to,
-          top: visibleSelectionBubble.top,
+          top: bubblePosition.top,
           viewOnly: false,
         });
       },
-      previewAction(action: AiActionKind) {
-        const preview = generateAiPreview(action, aiBubble.text, locale, aiBubble.prompt);
+      async previewAction(action: AiActionKind) {
         setAiBubble((current) => ({
           ...current,
           action,
-          result: preview.text,
-          viewOnly: preview.viewOnly,
+          error: null,
+          loading: true,
+          result: "",
+          viewOnly: getAiViewOnly(action),
         }));
+
+        try {
+          const response = await fetch("/api/ai/action", {
+            body: JSON.stringify({
+              action,
+              locale,
+              prompt: action === "custom" ? aiBubble.prompt : undefined,
+              selectedText: aiBubble.text,
+            }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+          });
+
+          const data = (await response.json().catch(() => null)) as
+            | { error?: string; ok?: boolean; result?: string; viewOnly?: boolean }
+            | null;
+
+          if (!response.ok || !data?.ok || !data.result) {
+            throw new Error(data?.error || "AI request failed");
+          }
+
+          setAiBubble((current) => ({
+            ...current,
+            action,
+            error: null,
+            loading: false,
+            result: data.result ?? "",
+            viewOnly: data.viewOnly ?? getAiViewOnly(action),
+          }));
+        } catch {
+          setAiBubble((current) => ({
+            ...current,
+            action,
+            error: "generation_failed",
+            loading: false,
+            result: "",
+            viewOnly: getAiViewOnly(action),
+          }));
+        }
       },
       setPrompt(value: string) {
         setAiBubble((current) => ({
@@ -170,8 +195,21 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
         }));
       },
       closeAll() {
+        if (!editor) {
+          setAiBubble(closedAiBubble());
+          setSelectionBubble(closedSelectionBubble());
+          return;
+        }
+
+        editor
+          .chain()
+          .focus()
+          .setTextSelection({ from: aiBubble.from, to: aiBubble.to })
+          .run();
         setAiBubble(closedAiBubble());
-        setSelectionBubble(closedSelectionBubble());
+        window.requestAnimationFrame(() => {
+          setSelectionBubble(getSelectionBubbleFromEditor(editor));
+        });
       },
       formatSelection(command: "bold" | "italic" | "strike" | "code") {
         if (!editor) {
@@ -198,6 +236,97 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
   };
 }
 
+function getSelectionBubbleFromEditor(editor: Editor): SelectionBubbleState {
+  const { from, to } = editor.state.selection;
+
+  if (from === to) {
+    return closedSelectionBubble();
+  }
+
+  const selectedText = editor.state.doc.textBetween(from, to, "\n").trim();
+
+  if (!selectedText) {
+    return closedSelectionBubble();
+  }
+
+  const start = editor.view.coordsAtPos(from);
+  const end = editor.view.coordsAtPos(to);
+
+  return {
+    from,
+    left: Math.max(16, (start.left + end.right) / 2),
+    open: true,
+    text: selectedText,
+    to,
+    top: Math.max(16, start.top - 56),
+  };
+}
+
+function getAiBubblePosition(editor: Editor | null, selectionBubble: SelectionBubbleState) {
+  const bubbleWidth = 320;
+  const bubbleHalfWidth = bubbleWidth / 2;
+  const bubbleHeight = 360;
+  const screenPadding = 16;
+
+  if (!editor) {
+    return {
+      left: selectionBubble.left,
+      top: selectionBubble.top + 72,
+    };
+  }
+
+  const start = editor.view.coordsAtPos(selectionBubble.from);
+  const end = editor.view.coordsAtPos(selectionBubble.to);
+  const selectionCenterY = (start.top + end.bottom) / 2;
+  const spaceBelow = window.innerHeight - end.bottom;
+  const spaceAbove = start.top;
+  const spaceRight = window.innerWidth - end.right;
+  const spaceLeft = start.left;
+
+  if (spaceBelow >= bubbleHeight + screenPadding) {
+    return {
+      left: clampBubbleLeft(selectionBubble.left, bubbleHalfWidth, screenPadding),
+      top: clampBubbleTop(end.bottom + 12, bubbleHeight, screenPadding),
+    };
+  }
+
+  if (spaceRight >= bubbleHalfWidth + 24) {
+    return {
+      left: clampBubbleLeft(end.right + bubbleHalfWidth + 12, bubbleHalfWidth, screenPadding),
+      top: clampBubbleTop(selectionCenterY - bubbleHeight / 2, bubbleHeight, screenPadding),
+    };
+  }
+
+  if (spaceLeft >= bubbleHalfWidth + 24) {
+    return {
+      left: clampBubbleLeft(start.left - bubbleHalfWidth - 12, bubbleHalfWidth, screenPadding),
+      top: clampBubbleTop(selectionCenterY - bubbleHeight / 2, bubbleHeight, screenPadding),
+    };
+  }
+
+  return {
+    left: clampBubbleLeft(selectionBubble.left, bubbleHalfWidth, screenPadding),
+    top:
+      spaceAbove >= bubbleHeight + screenPadding
+        ? Math.max(screenPadding, start.top - bubbleHeight - 12)
+        : clampBubbleTop(end.bottom + 12, bubbleHeight, screenPadding),
+  };
+}
+
+function clampBubbleLeft(left: number, bubbleHalfWidth: number, screenPadding: number) {
+  return Math.min(
+    window.innerWidth - bubbleHalfWidth - screenPadding,
+    Math.max(bubbleHalfWidth + screenPadding, left),
+  );
+}
+
+function clampBubbleTop(top: number, bubbleHeight: number, screenPadding: number) {
+  return Math.min(
+    window.innerHeight - bubbleHeight - screenPadding,
+    Math.max(screenPadding, top),
+  );
+}
+
 function closedSelectionBubble(): SelectionBubbleState {
   return {
     from: 0,
@@ -212,8 +341,10 @@ function closedSelectionBubble(): SelectionBubbleState {
 function closedAiBubble(): AiBubbleState {
   return {
     action: null,
+    error: null,
     from: 0,
     left: 0,
+    loading: false,
     open: false,
     prompt: "",
     result: "",

@@ -90,12 +90,29 @@ function htmlBlockToMarkdown(node: Element): string[] {
   }
 
   if (tag === "PRE") {
-    const code = node.querySelector("code")?.textContent ?? node.textContent ?? "";
-    return ["```", code.replace(/\n$/, ""), "```"];
+    const codeNode = node.querySelector("code");
+    const code = codeNode?.textContent ?? node.textContent ?? "";
+    const languageClass = Array.from(codeNode?.classList ?? []).find((className) =>
+      className.startsWith("language-"),
+    );
+    const language = languageClass?.replace("language-", "") ?? "";
+
+    return [`\`\`\`${language}`, code.replace(/\n$/, ""), "```"];
   }
 
   if (tag === "HR") {
     return ["---"];
+  }
+
+  if (tag === "IMG") {
+    const alt = node.getAttribute("alt") ?? "";
+    const src = node.getAttribute("src") ?? "";
+
+    if (!src) {
+      return [];
+    }
+
+    return [`![${alt}](${src})`];
   }
 
   return [Array.from(node.childNodes).map(htmlInlineToMarkdown).join("")];
@@ -130,7 +147,10 @@ export function markdownToEditorHtml(markdown: string) {
       continue;
     }
 
-    if (trimmed === "```") {
+    if (/^```[\w+-]*$/.test(trimmed)) {
+      const openingLine = trimmed;
+      const languageMatch = openingLine.match(/^```([\w+-]+)?$/);
+      const language = languageMatch?.[1]?.trim() ?? "";
       const codeLines: string[] = [];
       index += 1;
 
@@ -139,13 +159,24 @@ export function markdownToEditorHtml(markdown: string) {
         index += 1;
       }
 
-      blocks.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+      const languageClass = language ? ` class="language-${escapeHtml(language)}"` : "";
+      blocks.push(`<pre><code${languageClass}>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
       index += 1;
       continue;
     }
 
     if (/^---+$/.test(trimmed)) {
       blocks.push("<hr>");
+      index += 1;
+      continue;
+    }
+
+    const imageMatch = trimmed.match(/^!\[(.*?)\]\((.+?)\)$/);
+
+    if (imageMatch) {
+      blocks.push(
+        `<img alt="${escapeHtml(imageMatch[1] ?? "")}" src="${escapeHtml(imageMatch[2] ?? "")}">`,
+      );
       index += 1;
       continue;
     }

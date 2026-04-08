@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, MoreHorizontal, Trash2, Undo2, Upload } from "lucide-react";
+import { Download, ImagePlus, MoreHorizontal, Trash2, Undo2, Upload } from "lucide-react";
 import type { RefObject } from "react";
 
 type EditorOverflowMenuProps = {
@@ -9,6 +9,7 @@ type EditorOverflowMenuProps = {
   canEditBody: boolean;
   canUndo: boolean;
   onExport: () => void;
+  onInsertImage: () => void;
   onImport: () => void;
   onMoveToTrash: () => void;
   onOpenChange: (next: boolean | ((current: boolean) => boolean)) => void;
@@ -26,6 +27,7 @@ export function EditorOverflowMenu({
   canEditBody,
   canUndo,
   onExport,
+  onInsertImage,
   onImport,
   onMoveToTrash,
   onOpenChange,
@@ -39,7 +41,7 @@ export function EditorOverflowMenu({
   return (
     <div className="relative">
       <button
-        className="flex size-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
+        className="flex size-9 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
         onClick={() => {
           onOpenChange((current) => !current);
           onResetMessages();
@@ -48,7 +50,7 @@ export function EditorOverflowMenu({
         title="Actions"
         type="button"
       >
-        <MoreHorizontal className="size-4 text-[var(--color-muted-foreground)]" />
+        <MoreHorizontal className="size-3.5 text-[var(--color-muted-foreground)]" />
       </button>
 
       {overflowMenuOpen ? (
@@ -70,6 +72,15 @@ export function EditorOverflowMenu({
             >
               <span>Undo</span>
               <Undo2 className="ml-auto size-4 text-[var(--color-muted-foreground)]" />
+            </button>
+            <button
+              className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] disabled:opacity-40"
+              disabled={!canEditBody}
+              onClick={onInsertImage}
+              type="button"
+            >
+              <span>Upload image</span>
+              <ImagePlus className="ml-auto size-4" />
             </button>
             <button
               className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] disabled:opacity-40"

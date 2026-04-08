@@ -2,7 +2,7 @@
 
 import { EditorContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import { EditorBlockControls } from "@/features/editor/components/editor-block-controls";
@@ -12,6 +12,10 @@ import { EditorSelectionBubble } from "@/features/editor/components/editor-selec
 import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu";
 import { useEditorBlockDrag } from "@/features/editor/hooks/use-editor-block-drag";
 import type { AiActionKind } from "@/features/editor/lib/ai";
+import {
+  getBlockDropTargetFromPointer,
+  getTopLevelBlockInfoFromElement,
+} from "@/features/editor/lib/utils";
 import type {
   AiBubbleState,
   BlockTransformItem,
@@ -45,12 +49,16 @@ type EditorCanvasProps = {
   enabledSlashItems: SlashItem[];
   filteredSlashItems: SlashItem[];
   handleCloseSlashMenu: () => void;
+  handleCopyImage: () => Promise<void>;
   handleDeleteBlock: () => void;
+  handleDownloadImage: () => Promise<void>;
   handleDuplicateBlock: () => void;
   handleImportMarkdown: (file: File) => Promise<void>;
+  handleInsertImage: (file: File, position?: number) => Promise<void>;
   handleInsertBlockBefore: () => void;
   handleTurnInto: (item: BlockTransformItem) => void;
   hoveredBlock: HoveredBlock | null;
+  imageInputRef: RefObject<HTMLInputElement | null>;
   importInputRef: RefObject<HTMLInputElement | null>;
   searchRects: SearchRect[];
   aiBubble: AiBubbleState;
@@ -92,12 +100,16 @@ export function EditorCanvas({
   enabledSlashItems,
   filteredSlashItems,
   handleCloseSlashMenu,
+  handleCopyImage,
   handleDeleteBlock,
+  handleDownloadImage,
   handleDuplicateBlock,
   handleImportMarkdown,
+  handleInsertImage,
   handleInsertBlockBefore,
   handleTurnInto,
   hoveredBlock,
+  imageInputRef,
   importInputRef,
   searchRects,
   aiBubble,
@@ -118,6 +130,7 @@ export function EditorCanvas({
   slashMenu,
 }: EditorCanvasProps) {
   const activeBlockHighlightRef = useRef<HTMLSpanElement | null>(null);
+  const [imageDropIndicatorTop, setImageDropIndicatorTop] = useState<number | null>(null);
   const drag = useEditorBlockDrag({
     canEditBody,
     editor,
@@ -144,7 +157,7 @@ export function EditorCanvas({
     const domNode = editor.view.nodeDOM(blockMenu.pos);
     const blockElement =
       (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
-        "p, h1, h2, h3, h4, blockquote, pre, li, hr",
+        "p, h1, h2, h3, h4, blockquote, pre, li, hr, img",
       ) ?? null;
 
     if (!(container instanceof HTMLElement) || !(blockElement instanceof HTMLElement)) {
@@ -178,12 +191,166 @@ export function EditorCanvas({
         ref={importInputRef}
         type="file"
       />
-      <div className="relative" ref={editorContainerRef}>
+      <input
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+
+          if (!file) {
+            return;
+          }
+
+          void handleInsertImage(file);
+          event.currentTarget.value = "";
+        }}
+        ref={imageInputRef}
+        type="file"
+      />
+      <div
+        className="relative"
+        onContextMenu={(event) => {
+          if (!canEditBody || !editor) {
+            return;
+          }
+
+          const image = (event.target instanceof HTMLElement
+            ? event.target.closest("img")
+            : null) as HTMLImageElement | null;
+
+          if (!image) {
+            return;
+          }
+
+          const container = editorContainerRef.current;
+
+          if (!(container instanceof HTMLElement)) {
+            return;
+          }
+
+          const blockInfo = getTopLevelBlockInfoFromElement(editor, image, container);
+
+          if (!blockInfo) {
+            return;
+          }
+
+          event.preventDefault();
+
+          const menuHeight = 176;
+          const nextLeft = Math.max(12, event.clientX - blockMenuWidth - 2);
+          const nextTop = Math.max(
+            12,
+            Math.min(event.clientY - 8, window.innerHeight - menuHeight),
+          );
+          const turnIntoAlign =
+            window.innerHeight - event.clientY < 320 ? "bottom" : "top";
+
+          setBlockMenu({
+            left: nextLeft,
+            open: true,
+            pos: blockInfo.pos,
+            showTurnInto: false,
+            turnIntoAlign,
+            top: nextTop,
+          });
+        }}
+        onDragLeave={(event) => {
+          const nextTarget = event.relatedTarget;
+
+          if (
+            editorContainerRef.current instanceof HTMLElement &&
+            nextTarget instanceof Node &&
+            editorContainerRef.current.contains(nextTarget)
+          ) {
+            return;
+          }
+
+          setImageDropIndicatorTop(null);
+        }}
+        onDragOver={(event) => {
+          if (!canEditBody || !editor) {
+            return;
+          }
+
+          const hasImageFile = Array.from(event.dataTransfer?.items ?? []).some(
+            (item) => item.kind === "file" && item.type.startsWith("image/"),
+          );
+
+          if (!hasImageFile) {
+            setImageDropIndicatorTop(null);
+            return;
+          }
+
+          event.preventDefault();
+
+          const container = editorContainerRef.current;
+          const editorRoot = container?.querySelector(".ProseMirror");
+
+          if (!(container instanceof HTMLElement) || !(editorRoot instanceof HTMLElement)) {
+            return;
+          }
+
+          const target = getBlockDropTargetFromPointer(
+            editor,
+            editorRoot,
+            container,
+            event.clientY,
+            null,
+          );
+
+          setImageDropIndicatorTop(
+            target?.indicatorTop ?? editorRoot.getBoundingClientRect().bottom - container.getBoundingClientRect().top,
+          );
+        }}
+        onDrop={(event) => {
+          if (!canEditBody || !editor) {
+            return;
+          }
+
+          const file = Array.from(event.dataTransfer?.files ?? []).find((item) =>
+            item.type.startsWith("image/"),
+          );
+
+          if (!file) {
+            setImageDropIndicatorTop(null);
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          const container = editorContainerRef.current;
+          const editorRoot = container?.querySelector(".ProseMirror");
+          const target =
+            container instanceof HTMLElement && editorRoot instanceof HTMLElement
+              ? getBlockDropTargetFromPointer(
+                  editor,
+                  editorRoot,
+                  container,
+                  event.clientY,
+                  null,
+                )
+              : null;
+
+          setImageDropIndicatorTop(null);
+          void handleInsertImage(file, target?.dropPos ?? editor.state.doc.content.size);
+        }}
+        ref={editorContainerRef}
+      >
         <span
           aria-hidden="true"
           className="pointer-events-none absolute left-0 right-0 z-0 bg-[#dbe9f8] opacity-0"
           ref={activeBlockHighlightRef}
         />
+        {imageDropIndicatorTop != null ? (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 right-0 z-[3] h-[2px] bg-[var(--color-primary)]"
+            style={{
+              top: `${imageDropIndicatorTop}px`,
+            }}
+          />
+        ) : null}
         {drag.dragState.active && drag.dragState.indicatorTop != null ? (
           <span
             aria-hidden="true"
@@ -193,6 +360,39 @@ export function EditorCanvas({
             }}
           />
         ) : null}
+        {drag.dragState.active &&
+        drag.dragState.previewTop != null &&
+        drag.dragState.previewHtml != null &&
+        drag.dragState.previewLeft != null &&
+        drag.dragState.previewScale != null &&
+        drag.dragState.previewWidth != null &&
+        drag.dragState.previewHeight != null &&
+        globalThis.document?.body
+          ? createPortal(
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed z-[95] overflow-visible bg-transparent opacity-55"
+                style={{
+                  height: `${drag.dragState.previewHeight * drag.dragState.previewScale}px`,
+                  left: `${drag.dragState.previewLeft}px`,
+                  top: `${drag.dragState.previewTop}px`,
+                  width: `${drag.dragState.previewWidth * drag.dragState.previewScale}px`,
+                }}
+              >
+                <div
+                  className="syntext-editor prose-mirror-drag-preview px-0"
+                  dangerouslySetInnerHTML={{ __html: drag.dragState.previewHtml }}
+                  style={{
+                    height: `${drag.dragState.previewHeight}px`,
+                    transform: `scale(${drag.dragState.previewScale})`,
+                    transformOrigin: "top left",
+                    width: `${drag.dragState.previewWidth}px`,
+                  }}
+                />
+              </div>,
+              globalThis.document.body,
+            )
+          : null}
         {searchRects.map((rect, index) => (
           <span
             aria-hidden="true"
@@ -245,9 +445,16 @@ export function EditorCanvas({
                 blockTransformItems={blockTransformItems}
                 canEditBody={canEditBody}
                 currentTransformActiveId={currentTransformActiveId}
+                handleCopyImage={() => {
+                  void handleCopyImage();
+                }}
                 handleDeleteBlock={handleDeleteBlock}
+                handleDownloadImage={() => {
+                  void handleDownloadImage();
+                }}
                 handleDuplicateBlock={handleDuplicateBlock}
                 handleTurnInto={handleTurnInto}
+                isImageBlock={currentTransformActiveId === "image"}
                 setBlockMenu={setBlockMenu}
                 showTurnInto={blockMenu.showTurnInto}
                 turnIntoAlign={blockMenu.turnIntoAlign}

@@ -35,59 +35,71 @@ export function EditorSlashMenu({
 
   return (
     <div
-      className="absolute z-20 max-h-[260px] w-[216px] overflow-y-auto border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-soft-card)]"
+      className="absolute z-20 flex max-h-[260px] w-[208px] flex-col border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-soft-card)]"
       style={{
         left: `${position.left}px`,
         top: `${position.top}px`,
       }}
     >
-      {filteredItems.map((item) => {
-        const enabledIndex = enabledItems.findIndex((candidate) => candidate.id === item.id);
-        const isActive = item.enabled && enabledIndex === activeIndex;
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {filteredItems.map((item) => {
+          const enabledIndex = enabledItems.findIndex((candidate) => candidate.id === item.id);
+          const isActive = item.enabled && enabledIndex === activeIndex;
 
-        return (
-          <button
-            className={`flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] transition ${
-              item.enabled
-                ? isActive
-                  ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
-                  : "text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
-                : "cursor-not-allowed text-[var(--color-muted-foreground)] opacity-55"
-            }`}
-            disabled={!item.enabled}
-            key={item.id}
-            onMouseDown={(event) => {
-              event.preventDefault();
-            }}
-            onMouseEnter={() => {
-              if (!item.enabled) {
-                return;
-              }
+          return (
+            <button
+              className={`flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] transition ${
+                item.enabled
+                  ? isActive
+                    ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
+                    : "text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                  : "cursor-not-allowed text-[var(--color-muted-foreground)] opacity-55"
+              }`}
+              disabled={!item.enabled}
+              key={item.id}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              onMouseEnter={() => {
+                if (!item.enabled) {
+                  return;
+                }
 
-              onActivateItem(enabledIndex >= 0 ? enabledIndex : activeIndex);
-            }}
-            onClick={() => {
-              if (!editor || !item.enabled || !slashContext) {
-                return;
-              }
+                onActivateItem(enabledIndex >= 0 ? enabledIndex : activeIndex);
+              }}
+              onClick={() => {
+                if (!editor || !item.enabled || !slashContext) {
+                  return;
+                }
 
-              editor
-                .chain()
-                .focus()
-                .deleteRange({ from: slashContext.from, to: slashContext.to })
-                .run();
-              item.run(editor);
-              onClose();
-            }}
-            type="button"
-          >
-            <span>{item.label}</span>
-            <span className="text-xs text-[var(--color-muted-foreground)]">
-              {item.enabled ? item.shortcut || " " : "Soon"}
-            </span>
-          </button>
-        );
-      })}
+                editor
+                  .chain()
+                  .focus()
+                  .deleteRange({ from: slashContext.from, to: slashContext.to })
+                  .run();
+                item.run(editor);
+                onClose();
+              }}
+              type="button"
+            >
+              <span>{item.label}</span>
+              <span className="text-[11px] text-[var(--color-muted-foreground)]">
+                {item.enabled ? item.shortcut || " " : "Soon"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-1 border-t border-[var(--color-border)] pt-1">
+        <button
+          className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[11px] text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+          onClick={onClose}
+          type="button"
+        >
+          <span>Close menu</span>
+          <span className="text-[10px]">Esc</span>
+        </button>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ export type EditorBlockMenuState = {
   open: boolean;
   pos: number | null;
   showTurnInto: boolean;
+  turnIntoAlign: "bottom" | "top";
   top: number;
 };
 

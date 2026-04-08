@@ -35,6 +35,12 @@ export type BlockDragState = {
   draggedPos: number | null;
   dropPos: number | null;
   indicatorTop: number | null;
+  previewHeight: number | null;
+  previewHtml: string | null;
+  previewLeft: number | null;
+  previewScale: number | null;
+  previewTop: number | null;
+  previewWidth: number | null;
 };
 
 export type SelectionBubbleState = {
@@ -48,8 +54,10 @@ export type SelectionBubbleState = {
 
 export type AiBubbleState = {
   action: import("@/features/editor/lib/ai").AiActionKind | null;
+  error: string | null;
   from: number;
   left: number;
+  loading: boolean;
   open: boolean;
   prompt: string;
   result: string;

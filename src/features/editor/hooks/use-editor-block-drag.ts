@@ -11,6 +11,12 @@ const idleDragState: BlockDragState = {
   draggedPos: null,
   dropPos: null,
   indicatorTop: null,
+  previewHeight: null,
+  previewHtml: null,
+  previewLeft: null,
+  previewScale: null,
+  previewTop: null,
+  previewWidth: null,
 };
 
 type UseEditorBlockDragArgs = {
@@ -38,6 +44,7 @@ export function useEditorBlockDrag({
   const [dragState, setDragState] = useState<BlockDragState>(idleDragState);
   const suppressClickRef = useRef(false);
   const latestDropPosRef = useRef<number | null>(null);
+  const scrollFrameRef = useRef<HTMLElement | null>(null);
 
   const handleGripPointerDown = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>, hoveredBlock: HoveredBlock) => {
@@ -122,6 +129,24 @@ export function useEditorBlockDrag({
           return;
         }
 
+        const scrollFrame =
+          scrollFrameRef.current ??
+          container.closest("main") ??
+          container.parentElement;
+
+        if (scrollFrame instanceof HTMLElement) {
+          scrollFrameRef.current = scrollFrame;
+          const scrollBounds = scrollFrame.getBoundingClientRect();
+          const edgeThreshold = 64;
+          const scrollStep = 18;
+
+          if (moveEvent.clientY < scrollBounds.top + edgeThreshold) {
+            scrollFrame.scrollBy({ top: -scrollStep });
+          } else if (moveEvent.clientY > scrollBounds.bottom - edgeThreshold) {
+            scrollFrame.scrollBy({ top: scrollStep });
+          }
+        }
+
         const target = getBlockDropTargetFromPointer(
           editor,
           editorRoot,
@@ -134,11 +159,47 @@ export function useEditorBlockDrag({
           return;
         }
 
+        const hoveredNode = editor.view.nodeDOM(hoveredBlock.pos);
+        const hoveredElement =
+          (hoveredNode instanceof HTMLElement ? hoveredNode : hoveredNode?.parentElement)?.closest(
+            "p, h1, h2, h3, h4, blockquote, pre, li, hr, img",
+          ) ?? null;
+
+        if (!(hoveredElement instanceof HTMLElement)) {
+          return;
+        }
+
+        const hoveredBounds = hoveredElement.getBoundingClientRect();
+        const viewportPadding = 12;
+        const maxPreviewHeight = Math.max(80, window.innerHeight - viewportPadding * 2);
+        const maxPreviewWidth = Math.max(160, window.innerWidth - viewportPadding * 2);
+        const previewScale = Math.min(
+          1,
+          maxPreviewHeight / hoveredBounds.height,
+          maxPreviewWidth / hoveredBounds.width,
+        );
+        const previewHeight = hoveredBounds.height * previewScale;
+        const previewWidth = hoveredBounds.width * previewScale;
+        const previewTop = Math.min(
+          Math.max(moveEvent.clientY - previewHeight / 2, viewportPadding),
+          window.innerHeight - previewHeight - viewportPadding,
+        );
+        const previewLeft = Math.min(
+          Math.max(hoveredBounds.left, viewportPadding),
+          window.innerWidth - previewWidth - viewportPadding,
+        );
+
         setDragState({
           active: true,
           draggedPos: hoveredBlock.pos,
           dropPos: target.dropPos,
           indicatorTop: target.indicatorTop,
+          previewHeight: hoveredBounds.height,
+          previewHtml: hoveredElement.outerHTML,
+          previewLeft,
+          previewScale,
+          previewTop,
+          previewWidth: hoveredBounds.width,
         });
         latestDropPosRef.current = target.dropPos;
       };
@@ -153,6 +214,7 @@ export function useEditorBlockDrag({
         }
 
         latestDropPosRef.current = null;
+        scrollFrameRef.current = null;
         setDragState(idleDragState);
         window.setTimeout(() => {
           suppressClickRef.current = false;

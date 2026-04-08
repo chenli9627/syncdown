@@ -23,16 +23,16 @@ export function EditorHeaderTitle({
   titleInputRef,
 }: EditorHeaderTitleProps) {
   return (
-    <div className="inline-flex max-w-full items-center gap-2">
+    <div className="inline-flex max-w-full items-center gap-1.5">
       <div className="relative max-w-[min(100%,48rem)]">
         <span
           aria-hidden="true"
-          className="invisible block whitespace-pre border-none bg-transparent px-0 text-[1.35rem] font-semibold tracking-[-0.028em] md:text-[1.55rem]"
+          className="invisible block whitespace-pre border-none bg-transparent px-0 text-[1.15rem] font-semibold tracking-[-0.026em] md:text-[1.3rem]"
         >
           {titleDraft || "Untitled"}
         </span>
         <input
-          className="absolute inset-0 w-full border-none bg-transparent px-0 text-[1.35rem] font-semibold tracking-[-0.028em] outline-none placeholder:text-[var(--color-muted-foreground)] disabled:cursor-default md:text-[1.55rem]"
+          className="absolute inset-0 w-full border-none bg-transparent px-0 text-[1.15rem] font-semibold tracking-[-0.026em] outline-none placeholder:text-[var(--color-muted-foreground)] disabled:cursor-default md:text-[1.3rem]"
           disabled={!canEditTitle}
           onBlur={() => void commitTitle()}
           onChange={(event) => setTitleDraft(event.target.value)}
@@ -50,11 +50,11 @@ export function EditorHeaderTitle({
         />
       </div>
       {statusLabel ? (
-        <div className="shrink-0 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
+        <div className="shrink-0 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--color-muted-foreground)]">
           {statusLabel}
         </div>
       ) : (
-        <div className="invisible shrink-0 border border-[var(--color-border)] px-2 py-1 text-xs font-medium">
+        <div className="invisible shrink-0 border border-[var(--color-border)] px-1.5 py-0.5 text-[11px] font-medium">
           Saved
         </div>
       )}

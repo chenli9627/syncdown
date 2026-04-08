@@ -31,6 +31,8 @@ export const messages = {
     discard: "关闭",
     aiPreview: "AI 预览",
     aiSelectionEmpty: "请先选中文本",
+    aiGenerating: "生成中…",
+    aiGenerationFailed: "生成失败，请稍后重试。",
   },
   en: {
     appName: "Syntext",
@@ -60,6 +62,8 @@ export const messages = {
     discard: "Close",
     aiPreview: "AI Preview",
     aiSelectionEmpty: "Select some text first",
+    aiGenerating: "Generating…",
+    aiGenerationFailed: "Generation failed. Please try again.",
   },
 } as const satisfies Record<Locale, Record<string, string>>;
 

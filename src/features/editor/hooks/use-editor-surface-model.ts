@@ -105,11 +105,20 @@ export function useEditorSurfaceModel({
       return;
     }
     const domNode = editor.view.nodeDOM(ui.blockMenu.pos);
-    if (!(domNode instanceof HTMLElement)) {
+    const blockElement =
+      (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
+        "p, h1, h2, h3, h4, blockquote, pre, li, hr, img",
+      ) ?? null;
+
+    if (!(blockElement instanceof HTMLElement)) {
       return;
     }
-    domNode.classList.add("is-active-block");
-    return () => domNode.classList.remove("is-active-block");
+
+    blockElement.dataset.activeBlock = "true";
+
+    return () => {
+      delete blockElement.dataset.activeBlock;
+    };
   }, [editor, ui.blockMenu.open, ui.blockMenu.pos]);
 
   const hovered = useEditorHoveredBlock({
@@ -143,6 +152,7 @@ export function useEditorSurfaceModel({
     setActionNotice: ui.setActionNotice,
     setBlockMenu: ui.setBlockMenu,
     setHoveredBlock: hovered.setHoveredBlock,
+    openSlashMenuFromEditor: slash.openSlashMenuFromEditor,
     setSearchMatchCount: ui.searchBody.setSearchMatchCount,
     setSearchMatchIndex: ui.searchBody.setSearchMatchIndex,
     setSearchNotice: ui.searchBody.setSearchNotice,

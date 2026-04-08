@@ -19,14 +19,14 @@ export function EditorPermissionTrigger({
 }: EditorPermissionTriggerProps) {
   return (
     <button
-      className="flex min-h-10 items-center gap-2 border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-sm shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
+      className="flex min-h-9 items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-1.5 text-[12px] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
       onClick={onClick}
       ref={permissionButtonRef}
       type="button"
     >
       {documentStatus === "private" ? (
         <>
-          <Lock className="size-4 text-[var(--color-muted-foreground)]" />
+          <Lock className="size-3.5 text-[var(--color-muted-foreground)]" />
           <span>Private</span>
         </>
       ) : (
@@ -35,7 +35,7 @@ export function EditorPermissionTrigger({
           <div className="flex items-center -space-x-1">
             {sharedAvatars.map((entry) => (
               <span
-                className="flex size-6 items-center justify-center rounded-full border border-white bg-[var(--color-sidebar-panel)] text-[11px] font-semibold text-[var(--color-muted-foreground)]"
+                className="flex size-5 items-center justify-center rounded-full border border-white bg-[var(--color-sidebar-panel)] text-[10px] font-semibold text-[var(--color-muted-foreground)]"
                 key={entry.id}
                 title={entry.name}
               >
@@ -46,7 +46,7 @@ export function EditorPermissionTrigger({
         </>
       )}
       <ChevronDown
-        className={`size-4 text-[var(--color-muted-foreground)] transition ${
+        className={`size-3.5 text-[var(--color-muted-foreground)] transition ${
           permissionMenuOpen ? "rotate-180" : ""
         }`}
       />

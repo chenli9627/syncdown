@@ -44,6 +44,7 @@ export function EditorSurface({
         editor={model.editor}
         guestBadgeClass={model.guestBadgeClass}
         handleExportMarkdown={model.actions.handleExportMarkdown}
+        imageInputRef={model.ui.imageInputRef}
         importInputRef={model.ui.importInputRef}
         moveDocumentToTrash={model.moveDocumentToTrash}
         onSearchNext={() => model.actions.runSearch("forward")}
@@ -107,12 +108,16 @@ export function EditorSurface({
         enabledSlashItems={model.slash.enabledSlashItems}
         filteredSlashItems={model.slash.filteredSlashItems}
         handleCloseSlashMenu={model.slash.closeSlashMenuFromUi}
+        handleCopyImage={model.actions.handleCopyImage}
         handleDeleteBlock={model.actions.handleDeleteBlock}
+        handleDownloadImage={model.actions.handleDownloadImage}
         handleDuplicateBlock={model.actions.handleDuplicateBlock}
         handleImportMarkdown={model.actions.handleImportMarkdown}
+        handleInsertImage={model.actions.handleInsertImage}
         handleInsertBlockBefore={model.actions.handleInsertBlockBefore}
         handleTurnInto={model.actions.handleTurnInto}
         hoveredBlock={model.hovered.hoveredBlock}
+        imageInputRef={model.ui.imageInputRef}
         importInputRef={model.ui.importInputRef}
         searchRects={model.ui.searchBody.searchRects}
         aiBubble={model.selectionAi.aiBubble}

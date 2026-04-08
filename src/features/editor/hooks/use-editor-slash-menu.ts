@@ -5,9 +5,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditorSlashItems } from "@/features/editor/hooks/use-editor-slash-items";
 import { useEditorSlashSync } from "@/features/editor/hooks/use-editor-slash-sync";
 import {
+  closeSlashMenu,
   createInitialSlashMenuState,
+  getSlashMenuPosition,
   handleSlashMenuKeyDownEvent,
 } from "@/features/editor/lib/slash-menu";
+import { getSlashContext } from "@/features/editor/lib/utils";
 import type { SlashContext, SlashItem, SlashMenuState } from "@/features/editor/lib/types";
 
 type UseEditorSlashMenuArgs = {
@@ -49,22 +52,100 @@ export function useEditorSlashMenu({
     slashContextRef,
   });
 
+  const closeSlashMenuFromUi = useCallback(() => {
+    const editor = editorRef.current;
+    const slashContext = slashContextRef.current;
+    const shouldRemoveTrigger =
+      slashMenuRef.current.removeTriggerOnClose && editor && slashContext;
+
+    if (shouldRemoveTrigger) {
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from: slashContext.from, to: slashContext.to })
+        .run();
+    }
+
+    setSlashContextState(null);
+    slashContextRef.current = null;
+    setSlashMenu((current) => closeSlashMenu(current));
+  }, [editorRef]);
+
+  const openSlashMenuFromEditor = useCallback(
+    (options?: {
+      removeTriggerOnClose?: boolean;
+      slashContextOverride?: SlashContext;
+    }) => {
+      const removeTriggerOnClose = options?.removeTriggerOnClose ?? false;
+      const slashContextOverride = options?.slashContextOverride ?? null;
+      const tryOpen = (attempt: number) => {
+        const editor = editorRef.current;
+        const container = editorContainerRef.current;
+
+        if (!editor || !container) {
+          return;
+        }
+
+        const slashContext = slashContextOverride ?? getSlashContext(editor);
+
+        if (!slashContext) {
+          if (attempt < 2) {
+            window.requestAnimationFrame(() => {
+              tryOpen(attempt + 1);
+            });
+          }
+          return;
+        }
+
+        const position = getSlashMenuPosition(
+          editor,
+          container,
+          filteredSlashItemsRef.current.length,
+        );
+
+        slashContextRef.current = slashContext;
+        setSlashContextState(slashContext);
+        setSlashMenu({
+          activeIndex: 0,
+          left: position.left,
+          open: true,
+          placement: position.placement,
+          query: slashContext.query,
+          removeTriggerOnClose,
+          top: position.top,
+        });
+      };
+
+      tryOpen(0);
+    },
+    [editorContainerRef, editorRef],
+  );
+
   const handleEditorKeyDown = useCallback(
-    (event: KeyboardEvent) =>
-      handleSlashMenuKeyDownEvent(event, {
+    (event: KeyboardEvent) => {
+      if (event.key === "Escape" && slashMenuRef.current.open) {
+        event.preventDefault();
+        closeSlashMenuFromUi();
+        return true;
+      }
+
+      return handleSlashMenuKeyDownEvent(event, {
         editorRef,
         filteredSlashItemsRef,
         setSlashMenu,
         slashContextRef,
         slashMenuRef,
-      }),
-    [editorRef],
+      });
+    },
+    [closeSlashMenuFromUi, editorRef],
   );
 
   return {
+    closeSlashMenuFromUi,
     enabledSlashItems,
     filteredSlashItems,
     handleEditorKeyDown,
+    openSlashMenuFromEditor,
     setSlashMenu,
     slashContextState,
     slashMenu,

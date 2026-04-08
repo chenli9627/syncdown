@@ -95,8 +95,9 @@ button:disabled {
   margin-top: 0.85rem;
 }
 
-.syntext-editor > .is-active-block {
-  background: color-mix(in srgb, var(--color-accent) 48%, transparent);
+.syntext-editor [data-active-block="true"] {
+  background: #dbe9f8;
+  box-shadow: inset 0 0 0 1px rgba(9, 127, 232, 0.1);
 }
 
 .syntext-editor p.is-editor-empty:first-child::before {
@@ -185,5 +186,60 @@ button:disabled {
 
 .syntext-editor pre code {
   background: transparent;
+  color: #1f2937;
+  display: block;
   padding: 0;
+}
+
+.syntext-editor pre .hljs-comment,
+.syntext-editor pre .hljs-quote {
+  color: #6b7280;
+}
+
+.syntext-editor pre .hljs-keyword,
+.syntext-editor pre .hljs-selector-tag,
+.syntext-editor pre .hljs-subst {
+  color: #b45309;
+}
+
+.syntext-editor pre .hljs-string,
+.syntext-editor pre .hljs-doctag,
+.syntext-editor pre .hljs-attribute,
+.syntext-editor pre .hljs-template-variable {
+  color: #047857;
+}
+
+.syntext-editor pre .hljs-title,
+.syntext-editor pre .hljs-section,
+.syntext-editor pre .hljs-built_in,
+.syntext-editor pre .hljs-type,
+.syntext-editor pre .hljs-function .hljs-title {
+  color: #1d4ed8;
+}
+
+.syntext-editor pre .hljs-number,
+.syntext-editor pre .hljs-literal,
+.syntext-editor pre .hljs-symbol,
+.syntext-editor pre .hljs-bullet {
+  color: #9333ea;
+}
+
+.syntext-editor pre .hljs-variable,
+.syntext-editor pre .hljs-params,
+.syntext-editor pre .hljs-property,
+.syntext-editor pre .hljs-selector-id,
+.syntext-editor pre .hljs-selector-class {
+  color: #be123c;
+}
+
+.syntext-editor pre .hljs-meta,
+.syntext-editor pre .hljs-meta .hljs-keyword {
+  color: #0f766e;
+}
+
+.syntext-editor img {
+  display: block;
+  height: auto;
+  margin: 0.2rem 0;
+  max-width: min(100%, 46rem);
 }

@@ -7,6 +7,7 @@ type BlockMenuState = {
   open: boolean;
   pos: number | null;
   showTurnInto: boolean;
+  turnIntoAlign: "bottom" | "top";
   top: number;
 };
 
@@ -176,6 +177,7 @@ export function useEditorOverlays({
         open: false,
         pos: null,
         showTurnInto: false,
+        turnIntoAlign: "top",
         top: 0,
       });
     }

@@ -20,6 +20,7 @@ type EditorHeaderActionsProps = {
   editor: Editor | null;
   guestBadgeClass: string;
   handleExportMarkdown: () => Promise<void>;
+  imageInputRef: RefObject<HTMLInputElement | null>;
   importInputRef: RefObject<HTMLInputElement | null>;
   moveDocumentToTrash: (documentId: string) => Promise<{ error: string; ok: false } | { ok: true }>;
   onSearchNext: () => void;
@@ -91,6 +92,7 @@ export function EditorHeaderActions({
   editor,
   guestBadgeClass,
   handleExportMarkdown,
+  imageInputRef,
   importInputRef,
   moveDocumentToTrash,
   onSearchNext,
@@ -137,7 +139,7 @@ export function EditorHeaderActions({
   updateDocumentAccess,
 }: EditorHeaderActionsProps) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <EditorHeaderPermissionAction
         accessEntries={accessEntries}
         canManageAccess={canManageAccess}
@@ -204,6 +206,7 @@ export function EditorHeaderActions({
         documentId={documentId}
         editor={editor}
         handleExportMarkdown={handleExportMarkdown}
+        imageInputRef={imageInputRef}
         importInputRef={importInputRef}
         moveDocumentToTrash={moveDocumentToTrash}
         overflowButtonRef={overflowButtonRef}

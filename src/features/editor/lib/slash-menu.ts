@@ -10,6 +10,7 @@ export function createInitialSlashMenuState(): SlashMenuState {
     open: false,
     placement: "below",
     query: "",
+    removeTriggerOnClose: false,
     top: 0,
   };
 }
@@ -21,6 +22,7 @@ export function closeSlashMenu(current: SlashMenuState): SlashMenuState {
     open: false,
     placement: "below",
     query: "",
+    removeTriggerOnClose: false,
   };
 }
 

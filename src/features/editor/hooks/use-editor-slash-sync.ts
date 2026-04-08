@@ -100,6 +100,7 @@ function createSlashMenuSyncHandler({
       open: true,
       placement: position.placement,
       query: slashContext.query,
+      removeTriggerOnClose: current.removeTriggerOnClose,
       top: position.top,
     }));
   };

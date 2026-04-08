@@ -10,7 +10,6 @@ import {
   EditorHeaderTitle,
   type EditorHeaderTitleProps,
 } from "@/features/editor/components/editor-header-title";
-import { EditorToolbar } from "@/features/editor/components/editor-toolbar";
 import type { AccessEntry } from "@/features/editor/lib/types";
 
 type EditorHeaderProps = {
@@ -28,6 +27,7 @@ type EditorHeaderProps = {
   editor: Editor | null;
   guestBadgeClass: string;
   handleExportMarkdown: () => Promise<void>;
+  imageInputRef: RefObject<HTMLInputElement | null>;
   importInputRef: RefObject<HTMLInputElement | null>;
   moveDocumentToTrash: (documentId: string) => Promise<{ error: string; ok: false } | { ok: true }>;
   onSearchNext: () => void;
@@ -104,6 +104,7 @@ export function EditorHeader({
   editor,
   guestBadgeClass,
   handleExportMarkdown,
+  imageInputRef,
   importInputRef,
   moveDocumentToTrash,
   onSearchNext,
@@ -176,6 +177,7 @@ export function EditorHeader({
     editor,
     guestBadgeClass,
     handleExportMarkdown,
+    imageInputRef,
     importInputRef,
     moveDocumentToTrash,
     onSearchNext,
@@ -223,17 +225,15 @@ export function EditorHeader({
   };
 
   return (
-    <div className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[rgba(255,255,255,0.94)] px-4 py-4 backdrop-blur-md">
+    <div className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[rgba(255,255,255,0.94)] px-4 py-2 backdrop-blur-md">
       <div className="flex w-full flex-col">
         <div className="flex items-start justify-between gap-6">
           <EditorHeaderTitle {...titleProps} />
           <EditorHeaderActions {...actionsProps} />
         </div>
         {titleError ? (
-          <p className="mt-2 text-sm text-[#dd5b00]">{titleError}</p>
+          <p className="mt-1 text-[11px] text-[#dd5b00]">{titleError}</p>
         ) : null}
-
-        <EditorToolbar canEditBody={canEditBody} editor={editor} />
       </div>
     </div>
   );

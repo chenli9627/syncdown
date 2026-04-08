@@ -35,7 +35,7 @@ export function EditorSearchPopover({
   return (
     <div className="relative">
       <button
-        className="flex size-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
+        className="flex size-9 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
         onClick={() => {
           setOpen((current) => !current);
           onCloseOtherMenus();
@@ -43,7 +43,7 @@ export function EditorSearchPopover({
         ref={searchButtonRef}
         type="button"
       >
-        <Search className="size-4 text-[var(--color-muted-foreground)]" />
+        <Search className="size-3.5 text-[var(--color-muted-foreground)]" />
       </button>
 
       {open ? (

@@ -12,6 +12,7 @@ export function useEditorSurfaceUiState() {
   const overflowButtonRef = useRef<HTMLButtonElement | null>(null);
   const overflowMenuRef = useRef<HTMLDivElement | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const permissionButtonRef = useRef<HTMLButtonElement | null>(null);
   const permissionMenuRef = useRef<HTMLDivElement | null>(null);
@@ -38,6 +39,7 @@ export function useEditorSurfaceUiState() {
     open: false,
     pos: null as number | null,
     showTurnInto: false,
+    turnIntoAlign: "top" as "bottom" | "top",
     top: 0,
   });
 
@@ -49,6 +51,7 @@ export function useEditorSurfaceUiState() {
     blockMenuRef,
     editorContainerRef,
     editorKeyDownRef,
+    imageInputRef,
     importInputRef,
     overflowButtonRef,
     overflowMenuOpen,

@@ -34,7 +34,7 @@ export function EditorAiBubble({
 
   return createPortal(
     <div
-      className="fixed z-[93] w-[320px] border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
+      className="fixed z-[93] flex max-h-[calc(100vh-32px)] w-[304px] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)]"
       ref={aiBubbleRef}
       style={{
         left: `${aiBubble.left}px`,
@@ -42,8 +42,8 @@ export function EditorAiBubble({
         transform: "translateX(-50%)",
       }}
     >
-      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-[var(--color-foreground)]">
-        <Sparkles className="size-4 text-[var(--color-primary)]" />
+      <div className="mb-2.5 flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-foreground)]">
+        <Sparkles className="size-3.5 text-[var(--color-primary)]" />
         <span>{t("aiPreview")}</span>
       </div>
       {aiBubble.action ? (
@@ -82,8 +82,8 @@ function AiActionMenu({
   const { t } = useLocale();
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
+    <div className="space-y-2.5 overflow-y-auto">
+      <div className="grid grid-cols-2 gap-1.5">
         <AiActionButton label={t("improveWriting")} onClick={() => onPreviewAction("improve_writing")} />
         <AiActionButton label={t("explain")} onClick={() => onPreviewAction("explain")} />
         <AiActionButton label={t("reformat")} onClick={() => onPreviewAction("reformat")} />
@@ -91,7 +91,7 @@ function AiActionMenu({
       </div>
       <div className="space-y-2">
         <textarea
-          className="h-24 w-full resize-none border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-sm outline-none transition focus:border-[var(--color-ring)]"
+          className="h-24 w-full resize-none border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-2 text-[12px] outline-none transition focus:border-[var(--color-ring)]"
           onChange={(event) => {
             onPromptChange(event.target.value);
           }}
@@ -100,14 +100,16 @@ function AiActionMenu({
         />
         <div className="flex items-center justify-between gap-2">
           <button
-            className="border border-[var(--color-border)] px-3 py-2 text-sm transition hover:bg-[var(--color-hover)]"
+            className="border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] transition hover:bg-[var(--color-hover)]"
+            onMouseDown={preventBubbleBlur}
             onClick={onClose}
             type="button"
           >
             {t("discard")}
           </button>
           <button
-            className="bg-[var(--color-primary)] px-3 py-2 text-sm font-medium text-[var(--color-primary-foreground)] transition hover:brightness-95"
+            className="bg-[var(--color-primary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-primary-foreground)] transition hover:brightness-95"
+            onMouseDown={preventBubbleBlur}
             onClick={() => onPreviewAction("custom")}
             type="button"
           >
@@ -130,29 +132,36 @@ function AiResultView({ aiBubble, onApply, onClose, onInsertBelow }: AiResultVie
   const { t } = useLocale();
 
   return (
-    <div className="space-y-3">
-      <div className="max-h-48 overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3 py-2 text-sm leading-6 text-[var(--color-foreground)] whitespace-pre-wrap">
-        {aiBubble.result}
+    <div className="space-y-2.5 overflow-y-auto">
+      <div className="max-h-48 overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+        {aiBubble.loading
+          ? t("aiGenerating")
+          : aiBubble.error
+            ? t("aiGenerationFailed")
+            : aiBubble.result}
       </div>
       <div className="flex items-center justify-between gap-2">
         <button
-          className="border border-[var(--color-border)] px-3 py-2 text-sm transition hover:bg-[var(--color-hover)]"
+          className="border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] transition hover:bg-[var(--color-hover)]"
+          onMouseDown={preventBubbleBlur}
           onClick={onClose}
           type="button"
         >
           {t("discard")}
         </button>
-        {aiBubble.viewOnly ? null : (
+        {aiBubble.viewOnly || aiBubble.loading || aiBubble.error ? null : (
           <div className="flex items-center gap-2">
             <button
-              className="border border-[var(--color-border)] px-3 py-2 text-sm transition hover:bg-[var(--color-hover)]"
+              className="border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] transition hover:bg-[var(--color-hover)]"
+              onMouseDown={preventBubbleBlur}
               onClick={onInsertBelow}
               type="button"
             >
               {t("insertBelow")}
             </button>
             <button
-              className="bg-[var(--color-primary)] px-3 py-2 text-sm font-medium text-[var(--color-primary-foreground)] transition hover:brightness-95"
+              className="bg-[var(--color-primary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-primary-foreground)] transition hover:brightness-95"
+              onMouseDown={preventBubbleBlur}
               onClick={onApply}
               type="button"
             >
@@ -173,11 +182,16 @@ type AiActionButtonProps = {
 function AiActionButton({ label, onClick }: AiActionButtonProps) {
   return (
     <button
-      className="border border-[var(--color-border)] px-3 py-2 text-left text-sm transition hover:bg-[var(--color-hover)]"
+      className="border border-[var(--color-border)] px-2.5 py-1.5 text-left text-[12px] transition hover:bg-[var(--color-hover)]"
+      onMouseDown={preventBubbleBlur}
       onClick={onClick}
       type="button"
     >
       {label}
     </button>
   );
+}
+
+function preventBubbleBlur(event: React.MouseEvent<HTMLButtonElement>) {
+  event.preventDefault();
 }

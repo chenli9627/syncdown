@@ -38,16 +38,80 @@ export function getBlockTransformActiveId(editor: Editor, pos: number) {
     return "divider";
   }
 
+  if (node.type.name === "image") {
+    return "image";
+  }
+
   return "paragraph";
 }
 
 export function setSelectionToBlock(editor: Editor, pos: number) {
-  editor.chain().focus().setTextSelection(pos + 1).run();
+  const node = editor.state.doc.nodeAt(pos);
+
+  if (!node) {
+    editor.chain().focus().setTextSelection(pos + 1).run();
+    return;
+  }
+
+  let selectionPos = pos + 1;
+  let foundText = false;
+  let textblockFallbackPos: number | null = null;
+
+  node.descendants((child, offset) => {
+    if (child.isText && (child.text?.length ?? 0) > 0) {
+      selectionPos = pos + offset + 1;
+      foundText = true;
+      return false;
+    }
+
+    if (textblockFallbackPos == null && child.isTextblock) {
+      textblockFallbackPos = pos + offset + 2;
+    }
+
+    return true;
+  });
+
+  if (!foundText && textblockFallbackPos != null) {
+    selectionPos = textblockFallbackPos;
+  }
+
+  editor.chain().focus().setTextSelection(selectionPos).run();
 }
 
 export function unwrapListIfNeeded(editor: Editor) {
   if (editor.isActive("bulletList") || editor.isActive("orderedList")) {
     editor.chain().focus().liftListItem("listItem").run();
+  }
+}
+
+export function unwrapQuoteIfNeeded(editor: Editor) {
+  if (editor.isActive("blockquote")) {
+    editor.chain().focus().toggleBlockquote().run();
+  }
+}
+
+export function unwrapCodeBlockIfNeeded(editor: Editor) {
+  if (editor.isActive("codeBlock")) {
+    editor.chain().focus().toggleCodeBlock().run();
+  }
+}
+
+export function normalizeParagraphTransform(editor: Editor) {
+  unwrapListIfNeeded(editor);
+  unwrapQuoteIfNeeded(editor);
+  unwrapCodeBlockIfNeeded(editor);
+}
+
+export function normalizeListTransform(editor: Editor) {
+  unwrapQuoteIfNeeded(editor);
+  unwrapCodeBlockIfNeeded(editor);
+
+  if (editor.isActive("bulletList")) {
+    editor.chain().focus().toggleBulletList().run();
+  }
+
+  if (editor.isActive("orderedList")) {
+    editor.chain().focus().toggleOrderedList().run();
   }
 }
 
@@ -67,6 +131,55 @@ export function getTopLevelBlock(target: EventTarget | null, editorRoot: HTMLEle
   }
 
   return current;
+}
+
+export function getTopLevelBlockStartPos(editor: Editor, rawPos: number) {
+  const resolvedPos = editor.state.doc.resolve(
+    Math.max(0, Math.min(rawPos, editor.state.doc.content.size)),
+  );
+
+  return resolvedPos.depth >= 1 ? resolvedPos.before(1) : rawPos;
+}
+
+export function getTopLevelBlockInfoFromElement(
+  editor: Editor,
+  blockElement: HTMLElement,
+  container: HTMLElement,
+) {
+  let rawPos: number | null = null;
+
+  try {
+    rawPos = editor.view.posAtDOM(blockElement, 0);
+  } catch {
+    rawPos = null;
+  }
+
+  if (rawPos == null) {
+    return null;
+  }
+
+  const pos = getTopLevelBlockStartPos(editor, rawPos);
+  const normalizedNode = editor.view.nodeDOM(pos);
+  const normalizedElement =
+    (normalizedNode instanceof HTMLElement ? normalizedNode : normalizedNode?.parentElement)?.closest(
+      "p, h1, h2, h3, h4, blockquote, pre, li, hr, img",
+    ) ?? blockElement;
+
+  if (!(normalizedElement instanceof HTMLElement)) {
+    return null;
+  }
+
+  const blockBounds = normalizedElement.getBoundingClientRect();
+  const containerBounds = container.getBoundingClientRect();
+
+  return {
+    element: normalizedElement,
+    height: blockBounds.height,
+    left: blockBounds.left - containerBounds.left,
+    pos,
+    top: blockBounds.top - containerBounds.top,
+    width: blockBounds.width,
+  };
 }
 
 export function getHoveredBlockFromPointer(
@@ -95,25 +208,16 @@ export function getHoveredBlockFromPointer(
     return null;
   }
 
-  let pos: number | null = null;
+  const blockInfo = getTopLevelBlockInfoFromElement(editor, matchedBlock, container);
 
-  try {
-    pos = editor.view.posAtDOM(matchedBlock, 0);
-  } catch {
-    pos = null;
-  }
-
-  if (pos == null) {
+  if (!blockInfo) {
     return null;
   }
 
-  const blockBounds = matchedBlock.getBoundingClientRect();
-  const containerBounds = container.getBoundingClientRect();
-
   return {
-    height: blockBounds.height,
-    pos,
-    top: blockBounds.top - containerBounds.top,
+    height: blockInfo.height,
+    pos: blockInfo.pos,
+    top: blockInfo.top,
   };
 }
 
@@ -122,7 +226,7 @@ export function getBlockDropTargetFromPointer(
   editorRoot: HTMLElement,
   container: HTMLElement,
   clientY: number,
-  draggedPos: number,
+  draggedPos: number | null,
 ): Pick<BlockDragState, "dropPos" | "indicatorTop"> | null {
   const blocks = Array.from(editorRoot.children).filter(
     (node): node is HTMLElement => node instanceof HTMLElement,
@@ -130,24 +234,23 @@ export function getBlockDropTargetFromPointer(
 
   const candidates = blocks
     .map((block) => {
-      try {
-        const pos = editor.view.posAtDOM(block, 0);
-        const node = editor.state.doc.nodeAt(pos);
+      const blockInfo = getTopLevelBlockInfoFromElement(editor, block, container);
 
-        if (!node || pos === draggedPos) {
-          return null;
-        }
-
-        const bounds = block.getBoundingClientRect();
-
-        return {
-          bounds,
-          node,
-          pos,
-        };
-      } catch {
+      if (!blockInfo || (draggedPos != null && blockInfo.pos === draggedPos)) {
         return null;
       }
+
+      const node = editor.state.doc.nodeAt(blockInfo.pos);
+
+      if (!node) {
+        return null;
+      }
+
+      return {
+        bounds: blockInfo.element.getBoundingClientRect(),
+        node,
+        pos: blockInfo.pos,
+      };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
@@ -212,6 +315,16 @@ export function getSlashContext(editor: Editor): SlashContext | null {
     to: selection.from,
     query,
   };
+}
+
+export function getImageSourceAtPos(editor: Editor, pos: number) {
+  const node = editor.state.doc.nodeAt(pos);
+
+  if (node?.type.name !== "image") {
+    return null;
+  }
+
+  return typeof node.attrs.src === "string" ? node.attrs.src : null;
 }
 
 export function getAccessPermission(

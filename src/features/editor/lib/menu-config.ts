@@ -1,6 +1,13 @@
 import type { Editor } from "@tiptap/react";
 import type { BlockTransformItem, SlashItem } from "@/features/editor/lib/types";
-import { setSelectionToBlock, unwrapListIfNeeded } from "@/features/editor/lib/utils";
+import {
+  normalizeParagraphTransform,
+  normalizeListTransform,
+  setSelectionToBlock,
+  unwrapListIfNeeded,
+  unwrapCodeBlockIfNeeded,
+  unwrapQuoteIfNeeded,
+} from "@/features/editor/lib/utils";
 
 export function createSlashItems(): SlashItem[] {
   return slashItemConfigs.map(createSlashItem);
@@ -80,7 +87,12 @@ function runParagraph(editor: Editor) {
 }
 
 function runParagraphWithUnwrap(editor: Editor) {
-  unwrapListIfNeeded(editor);
+  if (editor.isActive("blockquote")) {
+    editor.chain().focus().lift("blockquote").setParagraph().run();
+    return;
+  }
+
+  normalizeParagraphTransform(editor);
   runParagraph(editor);
 }
 
@@ -92,21 +104,39 @@ function createHeadingAction(level: 1 | 2 | 3 | 4): MenuEditorAction {
 
 function createHeadingTransformAction(level: 1 | 2 | 3 | 4): MenuEditorAction {
   return (editor) => {
-    unwrapListIfNeeded(editor);
+    if (editor.isActive("blockquote")) {
+      editor.chain().focus().lift("blockquote").setHeading({ level }).run();
+      return;
+    }
+
+    normalizeParagraphTransform(editor);
     createHeadingAction(level)(editor);
   };
 }
 
 function runBulletList(editor: Editor) {
+  if (editor.isActive("blockquote")) {
+    editor.chain().focus().lift("blockquote").toggleBulletList().run();
+    return;
+  }
+
+  normalizeListTransform(editor);
   editor.chain().focus().toggleBulletList().run();
 }
 
 function runOrderedList(editor: Editor) {
+  if (editor.isActive("blockquote")) {
+    editor.chain().focus().lift("blockquote").toggleOrderedList().run();
+    return;
+  }
+
+  normalizeListTransform(editor);
   editor.chain().focus().toggleOrderedList().run();
 }
 
 function runQuote(editor: Editor) {
   unwrapListIfNeeded(editor);
+  unwrapCodeBlockIfNeeded(editor);
   editor.chain().focus().toggleBlockquote().run();
 }
 
@@ -115,7 +145,13 @@ function runDivider(editor: Editor) {
 }
 
 function runCodeBlock(editor: Editor) {
+  if (editor.isActive("blockquote")) {
+    editor.chain().focus().lift("blockquote").toggleCodeBlock().run();
+    return;
+  }
+
   unwrapListIfNeeded(editor);
+  unwrapQuoteIfNeeded(editor);
   editor.chain().focus().toggleCodeBlock().run();
 }
 
