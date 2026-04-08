@@ -76,6 +76,8 @@ type EditorHeaderActionsProps = {
   ) => Promise<{ error: string; ok: false } | { ok: true }>;
 };
 
+export type { EditorHeaderActionsProps };
+
 export function EditorHeaderActions({
   accessEntries,
   actionError,

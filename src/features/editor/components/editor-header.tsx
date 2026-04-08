@@ -2,7 +2,14 @@
 
 import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
-import { EditorHeaderActions } from "@/features/editor/components/editor-header-actions";
+import {
+  EditorHeaderActions,
+  type EditorHeaderActionsProps,
+} from "@/features/editor/components/editor-header-actions";
+import {
+  EditorHeaderTitle,
+  type EditorHeaderTitleProps,
+} from "@/features/editor/components/editor-header-title";
 import { EditorToolbar } from "@/features/editor/components/editor-toolbar";
 import type { AccessEntry } from "@/features/editor/lib/types";
 
@@ -147,110 +154,80 @@ export function EditorHeader({
   titleInputRef,
   updateDocumentAccess,
 }: EditorHeaderProps) {
+  const titleProps: EditorHeaderTitleProps = {
+    canEditTitle,
+    commitTitle,
+    editor,
+    setTitleDraft,
+    statusLabel,
+    titleDraft,
+    titleInputRef,
+  };
+  const actionsProps: EditorHeaderActionsProps = {
+    accessEntries,
+    actionError,
+    actionNotice,
+    canEditBody,
+    canManageAccess,
+    canUndo,
+    currentUserId,
+    documentId,
+    documentStatus,
+    editor,
+    guestBadgeClass,
+    handleExportMarkdown,
+    importInputRef,
+    moveDocumentToTrash,
+    onSearchNext,
+    onSearchPrevious,
+    overflowButtonRef,
+    overflowMenuOpen,
+    overflowMenuRef,
+    permission,
+    permissionBoldLabel,
+    permissionBusy,
+    permissionButtonRef,
+    permissionError,
+    permissionMenuOpen,
+    permissionMenuRef,
+    permissionNotice,
+    removeDocumentAccess,
+    routerPushHome,
+    searchButtonRef,
+    searchHeaderLabel,
+    searchInputRef,
+    searchMenuOpen,
+    searchMenuRef,
+    searchNotice,
+    searchQuery,
+    setActionError,
+    setActionNotice,
+    setOverflowMenuOpen,
+    setPermissionBusy,
+    setPermissionError,
+    setPermissionMenuOpen,
+    setPermissionNotice,
+    setSearchMatchCount,
+    setSearchMatchIndex,
+    setSearchMenuOpen,
+    setSearchNotice,
+    setSearchQuery,
+    setSearchRects,
+    setShareEmail,
+    setSharePermission,
+    shareDocument,
+    shareEmail,
+    sharePermission,
+    sharedAvatars,
+    updateDocumentAccess,
+  };
+
   return (
     <div className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[rgba(255,255,255,0.94)] px-4 py-4 backdrop-blur-md">
       <div className="flex w-full flex-col">
         <div className="flex items-start justify-between gap-6">
-          <div className="inline-flex max-w-full items-center gap-2">
-            <div className="relative max-w-[min(100%,48rem)]">
-              <span
-                aria-hidden="true"
-                className="invisible block whitespace-pre border-none bg-transparent px-0 text-[1.35rem] font-semibold tracking-[-0.028em] md:text-[1.55rem]"
-              >
-                {titleDraft || "Untitled"}
-              </span>
-              <input
-                className="absolute inset-0 w-full border-none bg-transparent px-0 text-[1.35rem] font-semibold tracking-[-0.028em] outline-none placeholder:text-[var(--color-muted-foreground)] disabled:cursor-default md:text-[1.55rem]"
-                disabled={!canEditTitle}
-                onBlur={() => {
-                  void commitTitle();
-                }}
-                onChange={(event) => {
-                  setTitleDraft(event.target.value);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") {
-                    return;
-                  }
-
-                  event.preventDefault();
-                  void commitTitle();
-                  editor?.commands.focus("end");
-                }}
-                placeholder="Untitled"
-                ref={titleInputRef}
-                value={titleDraft}
-              />
-            </div>
-            {statusLabel ? (
-              <div className="shrink-0 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
-                {statusLabel}
-              </div>
-            ) : (
-              <div className="invisible shrink-0 border border-[var(--color-border)] px-2 py-1 text-xs font-medium">
-                Saved
-              </div>
-            )}
-          </div>
-
-          <EditorHeaderActions
-            accessEntries={accessEntries}
-            actionError={actionError}
-            actionNotice={actionNotice}
-            canEditBody={canEditBody}
-            canManageAccess={canManageAccess}
-            canUndo={canUndo}
-            currentUserId={currentUserId}
-            documentId={documentId}
-            documentStatus={documentStatus}
-            editor={editor}
-            guestBadgeClass={guestBadgeClass}
-            handleExportMarkdown={handleExportMarkdown}
-            importInputRef={importInputRef}
-            moveDocumentToTrash={moveDocumentToTrash}
-            onSearchNext={onSearchNext}
-            onSearchPrevious={onSearchPrevious}
-            overflowButtonRef={overflowButtonRef}
-            overflowMenuOpen={overflowMenuOpen}
-            overflowMenuRef={overflowMenuRef}
-            permission={permission}
-            permissionBoldLabel={permissionBoldLabel}
-            permissionBusy={permissionBusy}
-            permissionButtonRef={permissionButtonRef}
-            permissionError={permissionError}
-            permissionMenuOpen={permissionMenuOpen}
-            permissionMenuRef={permissionMenuRef}
-            permissionNotice={permissionNotice}
-            removeDocumentAccess={removeDocumentAccess}
-            routerPushHome={routerPushHome}
-            searchButtonRef={searchButtonRef}
-            searchHeaderLabel={searchHeaderLabel}
-            searchInputRef={searchInputRef}
-            searchMenuOpen={searchMenuOpen}
-            searchMenuRef={searchMenuRef}
-            searchNotice={searchNotice}
-            searchQuery={searchQuery}
-            setActionError={setActionError}
-            setActionNotice={setActionNotice}
-            setOverflowMenuOpen={setOverflowMenuOpen}
-            setPermissionBusy={setPermissionBusy}
-            setPermissionError={setPermissionError}
-            setPermissionMenuOpen={setPermissionMenuOpen}
-            setPermissionNotice={setPermissionNotice}
-            setSearchMatchCount={setSearchMatchCount}
-            setSearchMatchIndex={setSearchMatchIndex}
-            setSearchMenuOpen={setSearchMenuOpen}
-            setSearchNotice={setSearchNotice}
-            setSearchQuery={setSearchQuery}
-            setSearchRects={setSearchRects}
-            setShareEmail={setShareEmail}
-            setSharePermission={setSharePermission}
-            shareDocument={shareDocument}
-            shareEmail={shareEmail}
-            sharePermission={sharePermission}
-            sharedAvatars={sharedAvatars}
-            updateDocumentAccess={updateDocumentAccess}
-          />
+          <EditorHeaderTitle {...titleProps} />
+          <EditorHeaderActions {...actionsProps} />
         </div>
         {titleError ? (
           <p className="mt-2 text-sm text-[#dd5b00]">{titleError}</p>
