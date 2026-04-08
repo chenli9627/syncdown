@@ -19,7 +19,7 @@ export function EditorSurface({
   saveDocument,
 }: EditorSurfaceProps) {
   const router = useRouter();
-  const blockMenuWidth = 208;
+  const blockMenuWidth = 168;
   const model = useEditorSurfaceModel({
     document,
     permission,
@@ -106,6 +106,7 @@ export function EditorSurface({
         editorContainerRef={model.ui.editorContainerRef}
         enabledSlashItems={model.slash.enabledSlashItems}
         filteredSlashItems={model.slash.filteredSlashItems}
+        handleCloseSlashMenu={model.slash.closeSlashMenuFromUi}
         handleDeleteBlock={model.actions.handleDeleteBlock}
         handleDuplicateBlock={model.actions.handleDuplicateBlock}
         handleImportMarkdown={model.actions.handleImportMarkdown}
@@ -125,6 +126,7 @@ export function EditorSurface({
         onOpenAiMenu={model.selectionAi.actions.openAiMenu}
         selectionBubble={model.selectionAi.selectionBubble}
         selectionBubbleRef={model.selectionAi.selectionBubbleRef}
+        syncHoveredBlockFromPos={model.hovered.syncHoveredBlockFromPos}
         setBlockMenu={model.ui.setBlockMenu}
         setSlashMenu={model.slash.setSlashMenu}
         slashContextState={model.slash.slashContextState}

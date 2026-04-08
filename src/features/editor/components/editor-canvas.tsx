@@ -2,6 +2,7 @@
 
 import { EditorContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
+import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import { EditorBlockControls } from "@/features/editor/components/editor-block-controls";
@@ -9,6 +10,7 @@ import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu"
 import { EditorAiBubble } from "@/features/editor/components/editor-ai-bubble";
 import { EditorSelectionBubble } from "@/features/editor/components/editor-selection-bubble";
 import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu";
+import { useEditorBlockDrag } from "@/features/editor/hooks/use-editor-block-drag";
 import type { AiActionKind } from "@/features/editor/lib/ai";
 import type {
   AiBubbleState,
@@ -17,6 +19,7 @@ import type {
   SelectionBubbleState,
   SlashContext,
   SlashItem,
+  SlashMenuState,
 } from "@/features/editor/lib/types";
 import type { SearchRect } from "@/features/editor/lib/search";
 
@@ -25,15 +28,7 @@ type BlockMenuState = {
   open: boolean;
   pos: number | null;
   showTurnInto: boolean;
-  top: number;
-};
-
-type SlashMenuState = {
-  activeIndex: number;
-  left: number;
-  open: boolean;
-  placement: "above" | "below";
-  query: string;
+  turnIntoAlign: "bottom" | "top";
   top: number;
 };
 
@@ -49,6 +44,7 @@ type EditorCanvasProps = {
   editorContainerRef: RefObject<HTMLDivElement | null>;
   enabledSlashItems: SlashItem[];
   filteredSlashItems: SlashItem[];
+  handleCloseSlashMenu: () => void;
   handleDeleteBlock: () => void;
   handleDuplicateBlock: () => void;
   handleImportMarkdown: (file: File) => Promise<void>;
@@ -68,6 +64,7 @@ type EditorCanvasProps = {
   onOpenAiMenu: () => void;
   selectionBubble: SelectionBubbleState;
   selectionBubbleRef: RefObject<HTMLDivElement | null>;
+  syncHoveredBlockFromPos: (position: number) => void;
   setBlockMenu: (
     value:
       | BlockMenuState
@@ -94,6 +91,7 @@ export function EditorCanvas({
   editorContainerRef,
   enabledSlashItems,
   filteredSlashItems,
+  handleCloseSlashMenu,
   handleDeleteBlock,
   handleDuplicateBlock,
   handleImportMarkdown,
@@ -113,11 +111,55 @@ export function EditorCanvas({
   onOpenAiMenu,
   selectionBubble,
   selectionBubbleRef,
+  syncHoveredBlockFromPos,
   setBlockMenu,
   setSlashMenu,
   slashContextState,
   slashMenu,
 }: EditorCanvasProps) {
+  const activeBlockHighlightRef = useRef<HTMLSpanElement | null>(null);
+  const drag = useEditorBlockDrag({
+    canEditBody,
+    editor,
+    editorContainerRef,
+    setBlockMenu: (value) => {
+      setBlockMenu(value);
+    },
+    syncHoveredBlockFromPos,
+  });
+
+  useEffect(() => {
+    const highlight = activeBlockHighlightRef.current;
+
+    if (!highlight) {
+      return;
+    }
+
+    if (!editor || !blockMenu.open || blockMenu.pos == null) {
+      highlight.style.opacity = "0";
+      return;
+    }
+
+    const container = editorContainerRef.current;
+    const domNode = editor.view.nodeDOM(blockMenu.pos);
+    const blockElement =
+      (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
+        "p, h1, h2, h3, h4, blockquote, pre, li, hr",
+      ) ?? null;
+
+    if (!(container instanceof HTMLElement) || !(blockElement instanceof HTMLElement)) {
+      highlight.style.opacity = "0";
+      return;
+    }
+
+    const blockBounds = blockElement.getBoundingClientRect();
+    const containerBounds = container.getBoundingClientRect();
+
+    highlight.style.height = `${blockBounds.height}px`;
+    highlight.style.top = `${blockBounds.top - containerBounds.top}px`;
+    highlight.style.opacity = "1";
+  }, [blockMenu.open, blockMenu.pos, editor, editorContainerRef]);
+
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-10 py-8">
       <input
@@ -137,6 +179,20 @@ export function EditorCanvas({
         type="file"
       />
       <div className="relative" ref={editorContainerRef}>
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 right-0 z-0 bg-[#dbe9f8] opacity-0"
+          ref={activeBlockHighlightRef}
+        />
+        {drag.dragState.active && drag.dragState.indicatorTop != null ? (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 right-0 z-[3] h-[2px] bg-[var(--color-primary)]"
+            style={{
+              top: `${drag.dragState.indicatorTop}px`,
+            }}
+          />
+        ) : null}
         {searchRects.map((rect, index) => (
           <span
             aria-hidden="true"
@@ -154,12 +210,17 @@ export function EditorCanvas({
           blockControlsRef={blockControlsRef}
           blockMenuWidth={blockMenuWidth}
           canEditBody={canEditBody}
-          hoveredBlock={hoveredBlock}
+          hoveredBlock={slashMenu.open || drag.dragState.active ? null : hoveredBlock}
           onInsertBlockBefore={handleInsertBlockBefore}
+          onGripPointerDown={drag.handleGripPointerDown}
           onOpenBlockMenu={setBlockMenu}
+          shouldSuppressGripClick={drag.shouldSuppressGripClick}
         />
-        <EditorContent editor={editor} />
+        <div className="relative z-[2]">
+          <EditorContent editor={editor} />
+        </div>
         <EditorSelectionBubble
+          editor={editor}
           onFormat={onFormatSelection}
           onOpenAi={onOpenAiMenu}
           selectionBubble={selectionBubble}
@@ -189,6 +250,7 @@ export function EditorCanvas({
                 handleTurnInto={handleTurnInto}
                 setBlockMenu={setBlockMenu}
                 showTurnInto={blockMenu.showTurnInto}
+                turnIntoAlign={blockMenu.turnIntoAlign}
               />,
               globalThis.document.body,
             )
@@ -205,12 +267,7 @@ export function EditorCanvas({
             }));
           }}
           onClose={() => {
-            setSlashMenu((current) => ({
-              ...current,
-              activeIndex: 0,
-              open: false,
-              query: "",
-            }));
+            handleCloseSlashMenu();
           }}
           open={canEditBody && slashMenu.open}
           position={{
