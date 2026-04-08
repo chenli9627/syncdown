@@ -2,10 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
-import { EditorOverflowMenu } from "@/features/editor/components/editor-overflow-menu";
-import { EditorPermissionDropdown } from "@/features/editor/components/editor-permission-dropdown";
-import { EditorPermissionPopover } from "@/features/editor/components/editor-permission-popover";
-import { EditorSearchPopover } from "@/features/editor/components/editor-search-popover";
+import { EditorHeaderActions } from "@/features/editor/components/editor-header-actions";
 import { EditorToolbar } from "@/features/editor/components/editor-toolbar";
 import type { AccessEntry } from "@/features/editor/lib/types";
 
@@ -196,158 +193,64 @@ export function EditorHeader({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <EditorPermissionPopover
-              accessEntries={accessEntries}
-              canManageAccess={canManageAccess}
-              currentUserId={currentUserId}
-              documentStatus={documentStatus}
-              guestBadgeClass={guestBadgeClass}
-              onCloseOtherMenus={() => {
-                setActionError(null);
-                setActionNotice(null);
-                setSearchMenuOpen(false);
-                setOverflowMenuOpen(false);
-              }}
-              onPermissionMenuToggle={setPermissionMenuOpen}
-              onRemoveAccess={async (userId) => {
-                setPermissionBusy(true);
-                setPermissionError(null);
-                setPermissionNotice(null);
-                const result = await removeDocumentAccess(documentId, userId);
-                setPermissionBusy(false);
-
-                if (!result.ok) {
-                  setPermissionError(result.error);
-                  return;
-                }
-
-                setPermissionNotice("Access removed");
-              }}
-              onShareEmailChange={setShareEmail}
-              onSharePermissionChange={setSharePermission}
-              onShareSubmit={async (event) => {
-                event.preventDefault();
-                setPermissionBusy(true);
-                setPermissionError(null);
-                setPermissionNotice(null);
-
-                const result = await shareDocument(documentId, {
-                  email: shareEmail,
-                  permission: sharePermission,
-                });
-
-                setPermissionBusy(false);
-
-                if (!result.ok) {
-                  setPermissionError(result.error);
-                  return;
-                }
-
-                setShareEmail("");
-                setSharePermission("can_view");
-                setPermissionNotice("Guest added");
-              }}
-              onUpdateAccess={async (userId, nextPermission) => {
-                setPermissionBusy(true);
-                setPermissionError(null);
-                setPermissionNotice(null);
-                const result = await updateDocumentAccess(
-                  documentId,
-                  userId,
-                  nextPermission,
-                );
-                setPermissionBusy(false);
-
-                if (!result.ok) {
-                  setPermissionError(result.error);
-                  return;
-                }
-
-                setPermissionNotice("Permission updated");
-              }}
-              permissionBusy={permissionBusy}
-              permissionButtonRef={permissionButtonRef}
-              permissionError={permissionError}
-              permissionLabel={permissionBoldLabel}
-              permissionMenuOpen={permissionMenuOpen}
-              permissionMenuRef={permissionMenuRef}
-              permissionNotice={permissionNotice}
-              PermissionDropdown={EditorPermissionDropdown}
-              setPermissionError={setPermissionError}
-              setPermissionNotice={setPermissionNotice}
-              shareEmail={shareEmail}
-              sharePermission={sharePermission}
-              sharedAvatars={sharedAvatars}
-            />
-
-            <EditorSearchPopover
-              onCloseOtherMenus={() => {
-                setActionError(null);
-                setActionNotice(null);
-                setOverflowMenuOpen(false);
-                setPermissionMenuOpen(false);
-              }}
-              onNext={onSearchNext}
-              onPrevious={onSearchPrevious}
-              onSearchChange={(value) => {
-                setSearchRects([]);
-                setSearchMatchCount(0);
-                setSearchMatchIndex(-1);
-                setSearchNotice(null);
-                setSearchQuery(value);
-              }}
-              open={searchMenuOpen}
-              searchButtonRef={searchButtonRef}
-              searchHeaderLabel={searchHeaderLabel}
-              searchInputRef={searchInputRef}
-              searchMenuRef={searchMenuRef}
-              searchNotice={searchNotice}
-              searchQuery={searchQuery}
-              setOpen={setSearchMenuOpen}
-            />
-
-            <EditorOverflowMenu
-              actionError={actionError}
-              actionNotice={actionNotice}
-              canEditBody={canEditBody}
-              canUndo={canUndo}
-              onExport={() => {
-                void handleExportMarkdown();
-              }}
-              onImport={() => {
-                importInputRef.current?.click();
-              }}
-              onMoveToTrash={async () => {
-                const result = await moveDocumentToTrash(documentId);
-
-                if (!result.ok) {
-                  setActionError(result.error);
-                  setActionNotice(null);
-                  return;
-                }
-
-                setOverflowMenuOpen(false);
-                routerPushHome();
-              }}
-              onOpenChange={(next) => {
-                setOverflowMenuOpen(next);
-                setSearchMenuOpen(false);
-                setPermissionMenuOpen(false);
-              }}
-              onResetMessages={() => {
-                setActionError(null);
-                setActionNotice(null);
-              }}
-              onUndo={() => {
-                editor?.chain().focus().undo().run();
-              }}
-              overflowButtonRef={overflowButtonRef}
-              overflowMenuOpen={overflowMenuOpen}
-              overflowMenuRef={overflowMenuRef}
-              permission={permission}
-            />
-          </div>
+          <EditorHeaderActions
+            accessEntries={accessEntries}
+            actionError={actionError}
+            actionNotice={actionNotice}
+            canEditBody={canEditBody}
+            canManageAccess={canManageAccess}
+            canUndo={canUndo}
+            currentUserId={currentUserId}
+            documentId={documentId}
+            documentStatus={documentStatus}
+            editor={editor}
+            guestBadgeClass={guestBadgeClass}
+            handleExportMarkdown={handleExportMarkdown}
+            importInputRef={importInputRef}
+            moveDocumentToTrash={moveDocumentToTrash}
+            onSearchNext={onSearchNext}
+            onSearchPrevious={onSearchPrevious}
+            overflowButtonRef={overflowButtonRef}
+            overflowMenuOpen={overflowMenuOpen}
+            overflowMenuRef={overflowMenuRef}
+            permission={permission}
+            permissionBoldLabel={permissionBoldLabel}
+            permissionBusy={permissionBusy}
+            permissionButtonRef={permissionButtonRef}
+            permissionError={permissionError}
+            permissionMenuOpen={permissionMenuOpen}
+            permissionMenuRef={permissionMenuRef}
+            permissionNotice={permissionNotice}
+            removeDocumentAccess={removeDocumentAccess}
+            routerPushHome={routerPushHome}
+            searchButtonRef={searchButtonRef}
+            searchHeaderLabel={searchHeaderLabel}
+            searchInputRef={searchInputRef}
+            searchMenuOpen={searchMenuOpen}
+            searchMenuRef={searchMenuRef}
+            searchNotice={searchNotice}
+            searchQuery={searchQuery}
+            setActionError={setActionError}
+            setActionNotice={setActionNotice}
+            setOverflowMenuOpen={setOverflowMenuOpen}
+            setPermissionBusy={setPermissionBusy}
+            setPermissionError={setPermissionError}
+            setPermissionMenuOpen={setPermissionMenuOpen}
+            setPermissionNotice={setPermissionNotice}
+            setSearchMatchCount={setSearchMatchCount}
+            setSearchMatchIndex={setSearchMatchIndex}
+            setSearchMenuOpen={setSearchMenuOpen}
+            setSearchNotice={setSearchNotice}
+            setSearchQuery={setSearchQuery}
+            setSearchRects={setSearchRects}
+            setShareEmail={setShareEmail}
+            setSharePermission={setSharePermission}
+            shareDocument={shareDocument}
+            shareEmail={shareEmail}
+            sharePermission={sharePermission}
+            sharedAvatars={sharedAvatars}
+            updateDocumentAccess={updateDocumentAccess}
+          />
         </div>
         {titleError ? (
           <p className="mt-2 text-sm text-[#dd5b00]">{titleError}</p>
