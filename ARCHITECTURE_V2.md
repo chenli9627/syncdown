@@ -204,6 +204,12 @@ Settings sections:
 - `Profile`
 - `Preferences`
 
+Current implementation:
+
+- `/settings` is a real authenticated-shell route
+- `Profile` supports display-name updates
+- `Preferences` supports locale and theme switching
+
 ## 6. Sidebar Architecture
 
 ### 6.1 Workspace Popover
@@ -460,6 +466,7 @@ AI rules:
 - `can_view` users do not see AI entry points
 - front end calls the app-owned `/api/ai/action` endpoint instead of calling model providers directly
 - the back end reads `AI_API_KEY`, `AI_BASE_URL`, and `AI_MODEL` from environment variables
+- the route resolves the OpenAI-compatible `responses` endpoint from the configured base URL
 - if AI environment variables are not configured, the current build falls back to local mock results so the interaction remains usable
 
 ### 8.5 Collaboration-Ready Layer
@@ -468,6 +475,13 @@ Initial build only prepares extension points for:
 
 - presence store
 - collaborator avatar rendering
+
+Current implementation:
+
+- `/api/presence/[documentId]` now stores ephemeral presence entries
+- the editor sends periodic presence heartbeats while a document is open
+- the client polls and renders remote cursor markers inside the editor
+- presence remains separate from future Yjs content synchronization
 - block-level activity markers
 
 Do not implement live Yjs sync yet.
@@ -507,6 +521,19 @@ Storage rule:
 - the storage layer is also responsible for building the public media URL returned to the editor
 - the current build now supports `local` and `s3` storage backends behind the same adapter
 - editor-visible image sources continue to use `/api/media/...` so storage backend changes do not alter markdown export decisions
+
+## 9.1.1 State Persistence
+
+Server state persistence currently supports:
+
+- local JSON snapshots
+- PostgreSQL JSONB snapshots
+
+Rules:
+
+- if `DATABASE_URL` is not configured, state persists to `.data/app-state.json`
+- if `DATABASE_URL` is configured, state persists to a PostgreSQL table named `syncdown_state`
+- the password reset CLI follows the same backend decision
 
 ### 9.2 Image Block Actions
 

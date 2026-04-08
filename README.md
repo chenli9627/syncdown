@@ -46,6 +46,74 @@ pnpm dev
 
 The dev server will be exposed on `0.0.0.0:3000` for LAN access during review.
 
+## Settings
+
+The current build includes a real `/settings` page:
+
+- `Profile`
+  - update display name
+  - view immutable username
+  - view email
+- `Preferences`
+  - switch language
+  - switch theme (`System / Light / Dark`)
+
+The settings entry is available from the top workspace popover.
+
+## State Persistence
+
+The app now supports two state backends:
+
+- no `DATABASE_URL`
+  - state persists to `.data/app-state.json`
+- `DATABASE_URL` configured
+  - state persists to PostgreSQL through a JSONB snapshot table named `syncdown_state`
+
+This keeps the current API surface stable while allowing the project to move off local JSON storage.
+
+Example PostgreSQL environment:
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/syncdown
+```
+
+The password reset command follows the same storage backend:
+
+```bash
+pnpm reset-password --username one --password newpassword123
+```
+
+## AI
+
+AI requests are sent from the frontend to `/api/ai/action`.
+
+The server reads these environment variables:
+
+```bash
+AI_API_KEY=
+AI_BASE_URL=
+AI_MODEL=
+```
+
+For Volcengine's OpenAI-compatible endpoint, the current local setup uses:
+
+```bash
+AI_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+AI_MODEL=deepseek-v3-2-251201
+```
+
+The route automatically resolves the OpenAI-compatible `responses` endpoint from the configured base URL.
+
+## Presence
+
+The current build includes a lightweight first-pass presence layer:
+
+- `/api/presence/[documentId]`
+- remote cursor markers rendered inside the editor
+- polling-based sync, independent from document content sync
+
+This is intentionally separate from future Yjs content collaboration.
+
 ## Media Storage
 
 The current build stores uploaded editor images through the app-owned `/api/media`
