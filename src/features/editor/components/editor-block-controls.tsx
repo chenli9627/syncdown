@@ -2,12 +2,7 @@
 
 import { GripVertical, Plus } from "lucide-react";
 import type { RefObject } from "react";
-
-type HoveredBlock = {
-  height: number;
-  pos: number;
-  top: number;
-};
+import type { HoveredBlock } from "@/features/editor/lib/types";
 
 type EditorBlockControlsProps = {
   blockControlsRef: RefObject<HTMLDivElement | null>;

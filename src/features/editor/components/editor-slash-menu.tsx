@@ -1,20 +1,7 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
-
-type SlashItem = {
-  id: string;
-  label: string;
-  shortcut: string;
-  enabled: boolean;
-  run: (editor: Editor) => void;
-};
-
-type SlashContext = {
-  from: number;
-  query: string;
-  to: number;
-};
+import type { SlashContext, SlashItem } from "@/features/editor/lib/types";
 
 type EditorSlashMenuProps = {
   activeIndex: number;

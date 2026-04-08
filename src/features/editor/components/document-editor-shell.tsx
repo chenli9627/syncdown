@@ -32,6 +32,13 @@ import {
   getSearchRects,
   type SearchRect,
 } from "@/features/editor/lib/search";
+import type {
+  AccessEntry,
+  BlockTransformItem,
+  HoveredBlock,
+  SlashContext,
+  SlashItem,
+} from "@/features/editor/lib/types";
 
 type DocumentEditorShellProps = {
   documentId: string;
@@ -41,40 +48,6 @@ type EditorSurfaceProps = {
   document: DocumentRecord;
   permission: "owner" | "can_edit" | "can_view";
   saveDocument: ReturnType<typeof useAppState>["saveDocument"];
-};
-
-type SlashItem = {
-  id: string;
-  label: string;
-  shortcut: string;
-  enabled: boolean;
-  run: (editor: Editor) => void;
-};
-
-type SlashContext = {
-  from: number;
-  query: string;
-  to: number;
-};
-
-type HoveredBlock = {
-  height: number;
-  pos: number;
-  top: number;
-};
-
-type BlockTransformItem = {
-  id: string;
-  label: string;
-  run: (editor: Editor, pos: number) => void;
-};
-
-type AccessEntry = {
-  email: string;
-  id: string;
-  name: string;
-  permission: "owner" | "can_edit" | "can_view";
-  userId: string;
 };
 
 function getBlockTransformActiveId(editor: Editor, pos: number) {

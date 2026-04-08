@@ -2,14 +2,7 @@
 
 import { ChevronDown, Lock, X } from "lucide-react";
 import type { RefObject } from "react";
-
-type AccessEntry = {
-  email: string;
-  id: string;
-  name: string;
-  permission: "owner" | "can_edit" | "can_view";
-  userId: string;
-};
+import type { AccessEntry } from "@/features/editor/lib/types";
 
 type EditorPermissionPopoverProps = {
   accessEntries: AccessEntry[];

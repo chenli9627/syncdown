@@ -1,14 +1,8 @@
 "use client";
 
 import { ChevronRight, Copy, Sparkles, Trash2 } from "lucide-react";
-import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
-
-type BlockTransformItem = {
-  id: string;
-  label: string;
-  run: (editor: Editor, pos: number) => void;
-};
+import type { BlockTransformItem } from "@/features/editor/lib/types";
 
 type EditorBlockMenuProps = {
   blockMenuLeft: number;
