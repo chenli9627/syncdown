@@ -17,7 +17,10 @@ import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
 import { useDocumentShellState } from "@/features/editor/hooks/use-document-shell-state";
 import { useEditorHoveredBlock } from "@/features/editor/hooks/use-editor-hovered-block";
 import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
+import { useEditorShortcuts } from "@/features/editor/hooks/use-editor-shortcuts";
 import { useEditorSlashMenu } from "@/features/editor/hooks/use-editor-slash-menu";
+import { useEditorTitleState } from "@/features/editor/hooks/use-editor-title-state";
+import { toEditorContent } from "@/features/editor/lib/content";
 import {
   createBlockTransformItems,
 } from "@/features/editor/lib/menu-config";
@@ -41,30 +44,6 @@ type EditorSurfaceProps = {
   permission: "owner" | "can_edit" | "can_view";
   saveDocument: ReturnType<typeof useAppState>["saveDocument"];
 };
-
-function escapeHtml(input: string) {
-  return input
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-function toEditorContent(content: string) {
-  if (!content.trim()) {
-    return "<p></p>";
-  }
-
-  if (content.trimStart().startsWith("<")) {
-    return content;
-  }
-
-  return content
-    .split("\n")
-    .map((line) => `<p>${escapeHtml(line) || "<br>"}</p>`)
-    .join("");
-}
 
 function EditorSurface({
   document,
@@ -94,11 +73,8 @@ function EditorSurface({
   const permissionButtonRef = useRef<HTMLButtonElement | null>(null);
   const permissionMenuRef = useRef<HTMLDivElement | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
-  const titleInputRef = useRef<HTMLInputElement | null>(null);
   const editorRef = useRef<Editor | null>(null);
-  const [titleDraft, setTitleDraft] = useState(document.title);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [titleError, setTitleError] = useState<string | null>(null);
   const [searchMenuOpen, setSearchMenuOpen] = useState(false);
   const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -133,6 +109,19 @@ function EditorSurface({
   const canEditTitle = permission === "owner";
   const canEditBody = permission === "owner" || permission === "can_edit";
   const canManageAccess = permission === "owner";
+  const {
+    commitTitle,
+    setTitleDraft,
+    titleDraft,
+    titleError,
+    titleInputRef,
+  } = useEditorTitleState({
+    canEditTitle,
+    documentId: document.id,
+    documentTitle: document.title,
+    saveDocument,
+    setStatus,
+  });
   const currentWorkspaceUserIds = useMemo(
     () =>
       new Set(
@@ -303,42 +292,6 @@ function EditorSurface({
     };
   }, []);
 
-  useEffect(() => {
-    if (!canEditTitle || document.title.trim()) {
-      return;
-    }
-
-    const frameId = window.requestAnimationFrame(() => {
-      titleInputRef.current?.focus();
-      titleInputRef.current?.select();
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [canEditTitle, document.id, document.title]);
-
-  async function commitTitle() {
-    if (!canEditTitle) {
-      return;
-    }
-
-    const result = await saveDocument(document.id, { title: titleDraft });
-
-    if (!result.ok) {
-      setTitleError(result.error);
-      setStatus("error");
-      return;
-    }
-
-    setTitleDraft(result.document?.title ?? titleDraft);
-    setTitleError(null);
-    setStatus("saved");
-    window.setTimeout(() => {
-      setStatus("idle");
-    }, 1200);
-  }
-
   const guestBadgeClass =
     "rounded-full border border-[#f0d9a7] bg-[#fbefcf] px-2 py-0.5 text-[11px] font-semibold text-[#c98a10]";
   const searchHeaderLabel =
@@ -381,48 +334,14 @@ function EditorSurface({
     syncHoveredBlockFromPos,
   });
 
-  useEffect(() => {
-    function handleShortcut(event: KeyboardEvent) {
-      const target = event.target;
-      const isEditableTarget =
-        target instanceof HTMLElement &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable);
-
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        event.stopPropagation();
-        setSearchMenuOpen((current) => !current);
-        setOverflowMenuOpen(false);
-        setPermissionMenuOpen(false);
-        return;
-      }
-
-      if (event.key === "Escape" && searchMenuOpen) {
-        event.preventDefault();
-        event.stopPropagation();
-        setSearchMenuOpen(false);
-        return;
-      }
-
-      if (
-        (event.metaKey || event.ctrlKey) &&
-        event.key.toLowerCase() === "z" &&
-        !isEditableTarget &&
-        canUndo
-      ) {
-        event.preventDefault();
-        editor?.chain().focus().undo().run();
-      }
-    }
-
-    globalThis.document.addEventListener("keydown", handleShortcut);
-
-    return () => {
-      globalThis.document.removeEventListener("keydown", handleShortcut);
-    };
-  }, [canUndo, editor, searchMenuOpen]);
+  useEditorShortcuts({
+    canUndo,
+    editor,
+    searchMenuOpen,
+    setOverflowMenuOpen,
+    setPermissionMenuOpen,
+    setSearchMenuOpen,
+  });
 
   return (
     <div className="flex min-h-full flex-col bg-[linear-gradient(180deg,#ffffff_0%,#fdfcfb_100%)]">
@@ -486,10 +405,7 @@ function EditorSurface({
         setSearchRects={setSearchRects as (value: []) => void}
         setShareEmail={setShareEmail}
         setSharePermission={setSharePermission}
-        setTitleDraft={(value) => {
-          setTitleDraft(value);
-          setTitleError(null);
-        }}
+        setTitleDraft={setTitleDraft}
         shareDocument={shareDocument}
         shareEmail={shareEmail}
         sharePermission={sharePermission}
