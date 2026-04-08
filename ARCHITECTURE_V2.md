@@ -501,6 +501,9 @@ On failure:
 Storage rule:
 
 - uploaded images are stored in object storage
+- current development builds route image writes through `/api/media`
+- the default media backend is a local file-backed storage adapter
+- the storage layer is now behind a backend adapter so the app can later switch to MinIO locally and R2 in production without rewriting editor import/export flows
 
 ### 9.2 Image Block Actions
 

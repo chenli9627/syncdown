@@ -3,7 +3,7 @@ import {
   MAX_IMAGE_FILE_SIZE,
   isSupportedImageMimeType,
 } from "@/features/editor/lib/image-shared";
-import { writeMediaFile } from "@/lib/server/media-store";
+import { getMediaStorageAdapter } from "@/lib/server/media-storage";
 
 export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   const extension = inferExtension(file.type);
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const written = await writeMediaFile({
+  const written = await getMediaStorageAdapter().writeFile({
     bytes,
     extension,
   });

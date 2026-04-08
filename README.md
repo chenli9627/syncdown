@@ -27,7 +27,8 @@ Immediate focus for v2:
 - Tailwind CSS
 - shadcn/ui-compatible foundation
 - PostgreSQL
-- MinIO locally, S3-compatible object storage in production
+- local file-backed media storage adapter in development
+- MinIO / R2 through an S3-compatible adapter in production
 - Tiptap editor
 
 ## Phase Workflow
@@ -44,3 +45,13 @@ pnpm dev
 ```
 
 The dev server will be exposed on `0.0.0.0:3000` for LAN access during review.
+
+## Media Storage
+
+The current build stores uploaded editor images through the app-owned `/api/media`
+interface. The default development backend writes to `.data/media/`.
+
+Environment direction:
+
+- `STORAGE_BACKEND=local` for local development
+- `STORAGE_BACKEND=s3` is reserved for the future S3-compatible adapter path
