@@ -20,6 +20,7 @@ export type SlashMenuState = {
   open: boolean;
   placement: "above" | "below";
   query: string;
+  removeTriggerOnClose: boolean;
   top: number;
 };
 
@@ -27,6 +28,13 @@ export type HoveredBlock = {
   height: number;
   pos: number;
   top: number;
+};
+
+export type BlockDragState = {
+  active: boolean;
+  draggedPos: number | null;
+  dropPos: number | null;
+  indicatorTop: number | null;
 };
 
 export type SelectionBubbleState = {

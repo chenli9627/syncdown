@@ -1,6 +1,11 @@
 import type { Editor } from "@tiptap/react";
 import type { DocumentRecord, SyntextState, User } from "@/features/app-state/types";
-import type { AccessEntry, HoveredBlock, SlashContext } from "@/features/editor/lib/types";
+import type {
+  AccessEntry,
+  BlockDragState,
+  HoveredBlock,
+  SlashContext,
+} from "@/features/editor/lib/types";
 
 export function getBlockTransformActiveId(editor: Editor, pos: number) {
   const node = editor.state.doc.nodeAt(pos);
@@ -109,6 +114,69 @@ export function getHoveredBlockFromPointer(
     height: blockBounds.height,
     pos,
     top: blockBounds.top - containerBounds.top,
+  };
+}
+
+export function getBlockDropTargetFromPointer(
+  editor: Editor,
+  editorRoot: HTMLElement,
+  container: HTMLElement,
+  clientY: number,
+  draggedPos: number,
+): Pick<BlockDragState, "dropPos" | "indicatorTop"> | null {
+  const blocks = Array.from(editorRoot.children).filter(
+    (node): node is HTMLElement => node instanceof HTMLElement,
+  );
+
+  const candidates = blocks
+    .map((block) => {
+      try {
+        const pos = editor.view.posAtDOM(block, 0);
+        const node = editor.state.doc.nodeAt(pos);
+
+        if (!node || pos === draggedPos) {
+          return null;
+        }
+
+        const bounds = block.getBoundingClientRect();
+
+        return {
+          bounds,
+          node,
+          pos,
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  if (!candidates.length) {
+    return null;
+  }
+
+  const containerBounds = container.getBoundingClientRect();
+
+  for (const candidate of candidates) {
+    const midpoint = candidate.bounds.top + candidate.bounds.height / 2;
+
+    if (clientY < midpoint) {
+      return {
+        dropPos: candidate.pos,
+        indicatorTop: candidate.bounds.top - containerBounds.top,
+      };
+    }
+  }
+
+  const lastCandidate = candidates.at(-1);
+
+  if (!lastCandidate) {
+    return null;
+  }
+
+  return {
+    dropPos: lastCandidate.pos + lastCandidate.node.nodeSize,
+    indicatorTop: lastCandidate.bounds.bottom - containerBounds.top,
   };
 }
 
