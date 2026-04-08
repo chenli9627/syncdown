@@ -2,16 +2,10 @@
 
 import type { Editor } from "@tiptap/react";
 import { useMemo } from "react";
-import {
-  exportEditorMarkdown,
-  importEditorMarkdown,
-} from "@/features/editor/lib/editor-markdown-actions";
-import type {
-  EditorActionBaseArgs,
-  EditorBlockMenuState,
-} from "@/features/editor/lib/editor-action-types";
-import { runEditorSearch } from "@/features/editor/lib/editor-search-actions";
-import type { BlockTransformItem, HoveredBlock } from "@/features/editor/lib/types";
+import type { EditorActionBaseArgs } from "@/features/editor/lib/editor-action-types";
+import { useEditorBlockActions } from "@/features/editor/hooks/use-editor-block-actions";
+import { useEditorSearchMarkdownActions } from "@/features/editor/hooks/use-editor-search-markdown-actions";
+import type { HoveredBlock } from "@/features/editor/lib/types";
 import { getBlockTransformActiveId } from "@/features/editor/lib/utils";
 
 type UseEditorActionsArgs = {
@@ -74,16 +68,6 @@ type UseEditorActionsArgs = {
   syncHoveredBlockFromPos: (position: number) => void;
 };
 
-function closeBlockMenu(setBlockMenu: (value: EditorBlockMenuState) => void) {
-  setBlockMenu({
-    left: 0,
-    open: false,
-    pos: null,
-    showTurnInto: false,
-    top: 0,
-  });
-}
-
 export function useEditorActions({
   blockMenu,
   canEditBody,
@@ -99,6 +83,7 @@ export function useEditorActions({
   setActionNotice,
   setBlockMenu,
   setHoveredBlock,
+  status,
   setSearchMatchCount,
   setSearchMatchIndex,
   setSearchNotice,
@@ -122,147 +107,47 @@ export function useEditorActions({
   );
 
   const canUndo = Boolean(editor?.can().chain().focus().undo().run());
-
-  function handleInsertBlockBefore() {
-    if (!editor || !hoveredBlock) {
-      return;
-    }
-    closeBlockMenu(setBlockMenu);
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(hoveredBlock.pos, {
-        type: "paragraph",
-        content: [{ type: "text", text: "/" }],
-      })
-      .setTextSelection(hoveredBlock.pos + 2)
-      .run();
-  }
-
-  function handleDuplicateBlock() {
-    if (!editor || blockMenu.pos == null) {
-      return;
-    }
-
-    const node = editor.state.doc.nodeAt(blockMenu.pos);
-
-    if (!node) {
-      return;
-    }
-
-    const duplicatedPos = blockMenu.pos + node.nodeSize;
-
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(duplicatedPos, node.toJSON())
-      .run();
-    closeBlockMenu(setBlockMenu);
-    window.requestAnimationFrame(() => {
-      syncHoveredBlockFromPos(duplicatedPos);
-    });
-  }
-
-  function handleDeleteBlock() {
-    if (!editor || blockMenu.pos == null) {
-      return;
-    }
-
-    const node = editor.state.doc.nodeAt(blockMenu.pos);
-
-    if (!node) {
-      return;
-    }
-
-    editor
-      .chain()
-      .focus()
-      .deleteRange({ from: blockMenu.pos, to: blockMenu.pos + node.nodeSize })
-      .run();
-    closeBlockMenu(setBlockMenu);
-    setHoveredBlock(null);
-  }
-
-  function handleTurnInto(item: BlockTransformItem) {
-    if (!editor || blockMenu.pos == null) {
-      return;
-    }
-
-    item.run(editor, blockMenu.pos);
-    closeBlockMenu(setBlockMenu);
-    window.requestAnimationFrame(() => {
-      syncHoveredBlockFromPos(blockMenu.pos ?? 0);
-    });
-  }
-
-  function runSearch(direction: "forward" | "backward") {
-    runEditorSearch(
-      {
-        blockMenu,
-        canEditBody,
-        document,
-        editor,
-        editorContainerRef,
-        hoveredBlock,
-        saveDocument,
-        searchInputRef,
-        searchMatchIndex,
-        searchQuery,
-        setActionError,
-        setActionNotice,
-        setBlockMenu,
-        setHoveredBlock,
-        setSearchMatchCount,
-        setSearchMatchIndex,
-        setSearchNotice,
-        setSearchRects,
-        syncHoveredBlockFromPos,
-      },
-      direction,
-    );
-  }
-
-  async function handleExportMarkdown() {
-    exportEditorMarkdown({ document, editor, setActionError, setActionNotice });
-  }
-
-  async function handleImportMarkdown(file: File) {
-    await importEditorMarkdown(
-      {
-        blockMenu,
-        canEditBody,
-        document,
-        editor,
-        editorContainerRef,
-        hoveredBlock,
-        saveDocument,
-        searchInputRef,
-        searchMatchIndex,
-        searchQuery,
-        setActionError,
-        setActionNotice,
-        setBlockMenu,
-        setHoveredBlock,
-        setSearchMatchCount,
-        setSearchMatchIndex,
-        setSearchNotice,
-        setSearchRects,
-        syncHoveredBlockFromPos,
-      },
-      file,
-    );
-  }
+  const actionBaseArgs: EditorActionBaseArgs = {
+    blockMenu,
+    canEditBody,
+    document,
+    editor,
+    editorContainerRef,
+    hoveredBlock,
+    saveDocument,
+    searchInputRef,
+    searchMatchIndex,
+    searchQuery,
+    setActionError,
+    setActionNotice,
+    setBlockMenu,
+    setHoveredBlock,
+    setSearchMatchCount,
+    setSearchMatchIndex,
+    setSearchNotice,
+    setSearchRects,
+    syncHoveredBlockFromPos,
+  };
+  const blockActions = useEditorBlockActions({
+    blockMenu,
+    editor,
+    hoveredBlock,
+    setBlockMenu,
+    setHoveredBlock,
+    syncHoveredBlockFromPos,
+  });
+  const searchMarkdownActions = useEditorSearchMarkdownActions(actionBaseArgs);
 
   return {
     canUndo,
     currentTransformActiveId,
-    handleDeleteBlock,
-    handleDuplicateBlock,
-    handleExportMarkdown,
-    handleImportMarkdown,
-    handleInsertBlockBefore,
-    handleTurnInto,
-    runSearch,
+    handleDeleteBlock: blockActions.handleDeleteBlock,
+    handleDuplicateBlock: blockActions.handleDuplicateBlock,
+    handleExportMarkdown: searchMarkdownActions.handleExportMarkdown,
+    handleImportMarkdown: searchMarkdownActions.handleImportMarkdown,
+    handleInsertBlockBefore: blockActions.handleInsertBlockBefore,
+    handleTurnInto: blockActions.handleTurnInto,
+    runSearch: searchMarkdownActions.runSearch,
     statusLabel,
   };
 }
