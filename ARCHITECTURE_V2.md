@@ -482,6 +482,7 @@ Current implementation:
 - the editor sends periodic presence heartbeats while a document is open
 - the client polls and renders remote cursor markers inside the editor
 - the document header renders active collaborator avatars from the same presence feed
+- when `DATABASE_URL` is configured, presence uses PostgreSQL instead of the local presence snapshot file
 - presence remains separate from future Yjs content synchronization
 - block-level activity markers
 

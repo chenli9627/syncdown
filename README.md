@@ -115,6 +115,7 @@ The current build includes a lightweight first-pass presence layer:
 - remote cursor markers rendered inside the editor
 - active collaborator avatars rendered in the document header
 - polling-based sync, independent from document content sync
+- when `DATABASE_URL` is configured, presence also persists through PostgreSQL instead of `.data/presence.json`
 
 This is intentionally separate from future Yjs content collaboration.
 

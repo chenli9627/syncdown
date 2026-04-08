@@ -1,30 +1,14 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { Pool } from "pg";
 import { createSeedState } from "@/features/app-state/lib/seed";
 import type { StoredSyntextState } from "@/features/app-state/types";
+import { getPostgresPool } from "@/lib/server/postgres-client";
 
 const TABLE_NAME = "syncdown_state";
 const LOCAL_STATE_FILE = path.join(process.cwd(), ".data", "app-state.json");
 
-let pool: Pool | null = null;
-
-function getPool() {
-  const connectionString = process.env.DATABASE_URL?.trim();
-
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is not configured");
-  }
-
-  if (!pool) {
-    pool = new Pool({ connectionString });
-  }
-
-  return pool;
-}
-
 async function ensureTable() {
-  const client = await getPool().connect();
+  const client = await getPostgresPool().connect();
 
   try {
     await client.query(`
@@ -50,7 +34,7 @@ async function readLocalSnapshotFallback() {
 
 export async function readStoredStateFromPostgres() {
   await ensureTable();
-  const client = await getPool().connect();
+  const client = await getPostgresPool().connect();
 
   try {
     const result = await client.query<{ snapshot: StoredSyntextState }>(
@@ -77,7 +61,7 @@ export async function readStoredStateFromPostgres() {
 
 export async function writeStoredStateToPostgres(state: StoredSyntextState) {
   await ensureTable();
-  const client = await getPool().connect();
+  const client = await getPostgresPool().connect();
 
   try {
     await client.query(
