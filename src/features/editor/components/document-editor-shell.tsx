@@ -13,6 +13,7 @@ import { EditorCanvas } from "@/features/editor/components/editor-canvas";
 import { EditorHeader } from "@/features/editor/components/editor-header";
 import { DocumentStatusState } from "@/features/editor/components/document-status-state";
 import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
+import { useDocumentShellState } from "@/features/editor/hooks/use-document-shell-state";
 import {
   type SearchRect,
 } from "@/features/editor/lib/search";
@@ -24,7 +25,6 @@ import type {
 } from "@/features/editor/lib/types";
 import {
   getAccessEntries,
-  getAccessPermission,
   getHoveredBlockFromPointer,
   getSlashContext,
   getTopLevelBlock,
@@ -1101,80 +1101,16 @@ function EditorSurface({
 }
 
 export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
-  const router = useRouter();
-  const openedDocumentIdRef = useRef<string | null>(null);
-  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { t } = useLocale();
   const {
     currentUser,
     currentWorkspace,
-    getDocument,
-    openDocument,
+    document,
+    permission,
+    rawDocument,
     ready,
     saveDocument,
-    state,
-  } = useAppState();
-  const rawDocument =
-    state.documents.find((item) => item.id === documentId) ?? null;
-  const document = getDocument(documentId);
-  const permission = useMemo(() => {
-    if (!currentUser || !rawDocument) {
-      return null;
-    }
-
-    return getAccessPermission(state, currentUser, rawDocument);
-  }, [currentUser, rawDocument, state]);
-
-  useEffect(() => {
-    openedDocumentIdRef.current = null;
-
-    if (redirectTimeoutRef.current) {
-      clearTimeout(redirectTimeoutRef.current);
-      redirectTimeoutRef.current = null;
-    }
-  }, [documentId]);
-
-  useEffect(() => {
-    return () => {
-      if (redirectTimeoutRef.current) {
-        clearTimeout(redirectTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!ready || !currentUser) {
-      return;
-    }
-
-    if (rawDocument?.status === "trashed") {
-      return;
-    }
-
-    if (rawDocument && !permission) {
-      redirectTimeoutRef.current = setTimeout(() => {
-        router.replace("/home");
-      }, 1400);
-      return;
-    }
-
-    if (openedDocumentIdRef.current === documentId) {
-      return;
-    }
-
-    void (async () => {
-      const result = await openDocument(documentId);
-
-      if (!result.ok) {
-        redirectTimeoutRef.current = setTimeout(() => {
-          router.replace("/home");
-        }, 1400);
-        return;
-      }
-
-      openedDocumentIdRef.current = documentId;
-    })();
-  }, [currentUser, documentId, openDocument, permission, rawDocument, ready, router]);
+  } = useDocumentShellState(documentId);
 
   if (!ready || !currentUser) {
     return null;
