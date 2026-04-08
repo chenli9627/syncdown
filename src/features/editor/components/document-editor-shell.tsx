@@ -14,6 +14,7 @@ import { EditorHeader } from "@/features/editor/components/editor-header";
 import { DocumentStatusState } from "@/features/editor/components/document-status-state";
 import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
 import { useDocumentShellState } from "@/features/editor/hooks/use-document-shell-state";
+import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
 import {
   createBlockTransformItems,
   createSlashItems,
@@ -188,136 +189,24 @@ function EditorSurface({
     slashMenuRef.current = slashMenu;
   }, [slashMenu]);
 
-  useEffect(() => {
-    if (!searchMenuOpen) {
-      return;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      const target = event.target;
-
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (searchButtonRef.current?.contains(target) || searchMenuRef.current?.contains(target)) {
-        return;
-      }
-
-      setSearchMenuOpen(false);
-    }
-
-    globalThis.document.addEventListener("pointerdown", handlePointerDown);
-
-    return () => {
-      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [searchMenuOpen]);
-
-  useEffect(() => {
-    if (!permissionMenuOpen) {
-      return;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      const target = event.target;
-
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (
-        permissionButtonRef.current?.contains(target) ||
-        permissionMenuRef.current?.contains(target)
-      ) {
-        return;
-      }
-
-      setPermissionMenuOpen(false);
-    }
-
-    globalThis.document.addEventListener("pointerdown", handlePointerDown);
-
-    return () => {
-      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [permissionMenuOpen]);
-
-  useEffect(() => {
-    if (!overflowMenuOpen) {
-      return;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      const target = event.target;
-
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (
-        overflowButtonRef.current?.contains(target) ||
-        overflowMenuRef.current?.contains(target)
-      ) {
-        return;
-      }
-
-      setOverflowMenuOpen(false);
-    }
-
-    globalThis.document.addEventListener("pointerdown", handlePointerDown);
-
-    return () => {
-      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [overflowMenuOpen]);
-
-  useEffect(() => {
-    if (!searchMenuOpen) {
-      return;
-    }
-
-    const frameId = window.requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
-      searchInputRef.current?.select();
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [searchMenuOpen]);
-
-  useEffect(() => {
-    if (!blockMenu.open) {
-      return;
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      const target = event.target;
-
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (blockMenuRef.current?.contains(target)) {
-        return;
-      }
-
-      setBlockMenu({
-        left: 0,
-        open: false,
-        pos: null,
-        showTurnInto: false,
-        top: 0,
-      });
-    }
-
-    globalThis.document.addEventListener("pointerdown", handlePointerDown);
-
-    return () => {
-      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
-    };
-  }, [blockMenu.open]);
+  useEditorOverlays({
+    blockMenu,
+    blockMenuRef,
+    overflowButtonRef,
+    overflowMenuOpen,
+    overflowMenuRef,
+    permissionButtonRef,
+    permissionMenuOpen,
+    permissionMenuRef,
+    searchButtonRef,
+    searchInputRef,
+    searchMenuOpen,
+    searchMenuRef,
+    setBlockMenu,
+    setOverflowMenuOpen,
+    setPermissionMenuOpen,
+    setSearchMenuOpen,
+  });
 
   const editor = useEditor({
     immediatelyRender: false,
