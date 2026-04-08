@@ -4,6 +4,8 @@ import { useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import Image from "@tiptap/extension-image";
+import TaskItem from "@tiptap/extension-task-item";
+import TaskList from "@tiptap/extension-task-list";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect, useRef, useState } from "react";
 import { syntextLowlight } from "@/features/editor/lib/code-highlighting";
@@ -48,6 +50,10 @@ export function useSyntextEditor({
       CodeBlockLowlight.configure({
         defaultLanguage: null,
         lowlight: syntextLowlight,
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: false,
       }),
       StarterKit.configure({
         codeBlock: false,

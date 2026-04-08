@@ -26,6 +26,10 @@ export function getBlockTransformActiveId(editor: Editor, pos: number) {
     return "ordered-list";
   }
 
+  if (node.type.name === "taskList") {
+    return "todo-list";
+  }
+
   if (node.type.name === "blockquote") {
     return "quote";
   }
@@ -79,6 +83,11 @@ export function setSelectionToBlock(editor: Editor, pos: number) {
 }
 
 export function unwrapListIfNeeded(editor: Editor) {
+  if (editor.isActive("taskList")) {
+    editor.chain().focus().liftListItem("taskItem").run();
+    return;
+  }
+
   if (editor.isActive("bulletList") || editor.isActive("orderedList")) {
     editor.chain().focus().liftListItem("listItem").run();
   }
@@ -112,6 +121,10 @@ export function normalizeListTransform(editor: Editor) {
 
   if (editor.isActive("orderedList")) {
     editor.chain().focus().toggleOrderedList().run();
+  }
+
+  if (editor.isActive("taskList")) {
+    editor.chain().focus().toggleTaskList().run();
   }
 }
 

@@ -85,6 +85,25 @@ function htmlBlockToMarkdown(node: Element): string[] {
   }
 
   if (tag === "UL") {
+    if (node.getAttribute("data-type") === "taskList") {
+      return Array.from(node.children)
+        .filter(
+          (child): child is HTMLElement =>
+            child instanceof HTMLElement && child.getAttribute("data-type") === "taskItem",
+        )
+        .map((item) => {
+          const checked = item.getAttribute("data-checked") === "true";
+          const content =
+            item.querySelector("div") ??
+            item.querySelector("p") ??
+            item;
+
+          return `- [${checked ? "x" : " "}] ${Array.from(content.childNodes)
+            .map(htmlInlineToMarkdown)
+            .join("")}`.trimEnd();
+        });
+    }
+
     return Array.from(node.children)
       .filter((child): child is HTMLElement => child instanceof HTMLElement && child.tagName === "LI")
       .map((item) => `- ${Array.from(item.childNodes).map(htmlInlineToMarkdown).join("")}`);
@@ -309,6 +328,27 @@ export function markdownToEditorHtml(markdown: string) {
     }
 
     if (/^- /.test(trimmed)) {
+      const taskItems: string[] = [];
+      let taskIndex = index;
+
+      while (taskIndex < lines.length && /^- \[(?: |x|X)\]\s+/.test((lines[taskIndex] ?? "").trim())) {
+        const taskLine = (lines[taskIndex] ?? "").trim();
+        const checked = /^- \[(?:x|X)\]/.test(taskLine);
+        const content = taskLine.replace(/^- \[(?: |x|X)\]\s+/, "");
+        taskItems.push(
+          `<li data-checked="${checked ? "true" : "false"}" data-type="taskItem"><label><input ${
+            checked ? "checked" : ""
+          } type="checkbox"><span></span></label><div><p>${inlineMarkdownToHtml(content)}</p></div></li>`,
+        );
+        taskIndex += 1;
+      }
+
+      if (taskItems.length > 0) {
+        blocks.push(`<ul data-type="taskList">${taskItems.join("")}</ul>`);
+        index = taskIndex;
+        continue;
+      }
+
       const items: string[] = [];
 
       while (index < lines.length && /^- /.test((lines[index] ?? "").trim())) {

@@ -41,7 +41,7 @@ const slashItemConfigs: SlashItemConfig[] = [
   { id: "heading-4", label: "Heading 4", shortcut: "####", run: createHeadingAction(4) },
   { id: "bullet-list", label: "Bulleted list", shortcut: "-", run: runBulletList },
   { id: "ordered-list", label: "Numbered list", shortcut: "1.", run: runOrderedList },
-  { id: "todo-list", label: "Todo list", shortcut: "[]", enabled: false, run: noopEditorAction },
+  { id: "todo-list", label: "Todo list", shortcut: "[]", run: runTaskList },
   { id: "toggle-list", label: "Toggle list", shortcut: ">", enabled: false, run: noopEditorAction },
   { id: "quote", label: "Quote", shortcut: "\"", run: runQuote },
   { id: "table", label: "Table", shortcut: "", enabled: false, run: noopEditorAction },
@@ -57,6 +57,7 @@ const blockTransformConfigs: BlockTransformConfig[] = [
   { id: "heading-4", label: "Heading 4", run: createHeadingTransformAction(4) },
   { id: "bullet-list", label: "Bulleted list", run: runBulletList },
   { id: "ordered-list", label: "Numbered list", run: runOrderedList },
+  { id: "todo-list", label: "Todo list", run: runTaskList },
   { id: "quote", label: "Quote", run: runQuote },
   { id: "code", label: "Code", run: runCodeBlock },
 ];
@@ -132,6 +133,16 @@ function runOrderedList(editor: Editor) {
 
   normalizeListTransform(editor);
   editor.chain().focus().toggleOrderedList().run();
+}
+
+function runTaskList(editor: Editor) {
+  if (editor.isActive("blockquote")) {
+    editor.chain().focus().lift("blockquote").toggleTaskList().run();
+    return;
+  }
+
+  normalizeListTransform(editor);
+  editor.chain().focus().toggleTaskList().run();
 }
 
 function runQuote(editor: Editor) {

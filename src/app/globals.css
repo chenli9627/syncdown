@@ -154,6 +154,48 @@ button:disabled {
   list-style: decimal;
 }
 
+.syntext-editor ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.15rem;
+}
+
+.syntext-editor li[data-type="taskItem"] {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.55rem;
+  list-style: none;
+  margin-left: 0;
+}
+
+.syntext-editor li[data-type="taskItem"] > label {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  height: 1.75rem;
+  justify-content: center;
+  margin-top: 0.1rem;
+}
+
+.syntext-editor li[data-type="taskItem"] > label input {
+  accent-color: var(--color-primary);
+  height: 0.95rem;
+  width: 0.95rem;
+}
+
+.syntext-editor li[data-type="taskItem"] > label span {
+  display: none;
+}
+
+.syntext-editor li[data-type="taskItem"] > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.syntext-editor li[data-type="taskItem"][data-checked="true"] > div {
+  color: var(--color-muted-foreground);
+  text-decoration: line-through;
+}
+
 .syntext-editor blockquote {
   align-items: center;
   background: var(--color-muted);
