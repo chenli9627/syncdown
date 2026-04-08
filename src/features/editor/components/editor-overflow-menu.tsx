@@ -4,7 +4,6 @@ import { Download, ImagePlus, MoreHorizontal, Trash2, Undo2, Upload } from "luci
 import type { RefObject } from "react";
 
 type EditorOverflowMenuProps = {
-  actionError: string | null;
   actionNotice: string | null;
   canEditBody: boolean;
   canUndo: boolean;
@@ -22,7 +21,6 @@ type EditorOverflowMenuProps = {
 };
 
 export function EditorOverflowMenu({
-  actionError,
   actionNotice,
   canEditBody,
   canUndo,
@@ -108,9 +106,6 @@ export function EditorOverflowMenu({
                 <span>Move to Trash</span>
                 <Trash2 className="ml-auto size-4" />
               </button>
-            ) : null}
-            {actionError ? (
-              <p className="px-2 pt-1 text-sm text-[#dd5b00]">{actionError}</p>
             ) : null}
             {actionNotice ? (
               <p className="px-2 pt-1 text-sm text-[var(--color-muted-foreground)]">

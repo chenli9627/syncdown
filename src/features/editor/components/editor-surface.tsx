@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
+import { EditorActionErrorDialog } from "@/features/editor/components/editor-action-error-dialog";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { EditorCanvas } from "@/features/editor/components/editor-canvas";
 import { EditorHeader } from "@/features/editor/components/editor-header";
@@ -28,7 +29,11 @@ export function EditorSurface({
   });
 
   return (
-    <div className="flex min-h-full flex-col bg-[linear-gradient(180deg,#ffffff_0%,#fdfcfb_100%)]">
+    <div className="relative flex min-h-full flex-col bg-[linear-gradient(180deg,#ffffff_0%,#fdfcfb_100%)]">
+      <EditorActionErrorDialog
+        error={model.ui.actionError}
+        onClose={() => model.ui.setActionError(null)}
+      />
       <EditorHeader
         accessEntries={model.accessEntries}
         actionError={model.ui.actionError}

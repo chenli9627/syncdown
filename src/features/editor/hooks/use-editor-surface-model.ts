@@ -152,6 +152,7 @@ export function useEditorSurfaceModel({
     setActionNotice: ui.setActionNotice,
     setBlockMenu: ui.setBlockMenu,
     setHoveredBlock: hovered.setHoveredBlock,
+    setOverflowMenuOpen: ui.setOverflowMenuOpen,
     openSlashMenuFromEditor: slash.openSlashMenuFromEditor,
     setSearchMatchCount: ui.searchBody.setSearchMatchCount,
     setSearchMatchIndex: ui.searchBody.setSearchMatchIndex,

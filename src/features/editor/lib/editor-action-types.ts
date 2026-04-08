@@ -29,6 +29,7 @@ export type EditorActionStateSetters = {
     value: EditorBlockMenuState | ((current: EditorBlockMenuState) => EditorBlockMenuState),
   ) => void;
   setHoveredBlock: (value: HoveredBlock | null) => void;
+  setOverflowMenuOpen?: (value: boolean | ((current: boolean) => boolean)) => void;
   setSearchMatchCount: (value: number) => void;
   setSearchMatchIndex: (value: number) => void;
   setSearchNotice: (value: string | null) => void;

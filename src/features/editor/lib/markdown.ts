@@ -7,6 +7,7 @@ export type MarkdownAsset = {
 };
 
 const DATA_IMAGE_URL_PATTERN = /^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/;
+const LOCAL_MEDIA_URL_PATTERN = /^\/api\/media\/(.+)$/;
 
 function escapeHtml(input: string) {
   return input
@@ -158,6 +159,32 @@ export async function editorHtmlToMarkdownBundle(html: string) {
       });
 
       return path;
+    }
+
+    const localMediaMatch = src.match(LOCAL_MEDIA_URL_PATTERN);
+
+    if (localMediaMatch) {
+      try {
+        const response = await fetch(src);
+
+        if (!response.ok) {
+          return src;
+        }
+
+        const blob = await response.blob();
+        const mimeType = blob.type || "image/png";
+        const extension = extensionFromMimeType(mimeType);
+        const path = nextAssetPath(extension, assetCounters);
+        assets.push({
+          data: new Uint8Array(await blob.arrayBuffer()),
+          mimeType,
+          path,
+        });
+
+        return path;
+      } catch {
+        return src;
+      }
     }
 
     if (/^https?:\/\//i.test(src)) {
@@ -366,6 +393,10 @@ export function sanitizeZipFilename(title: string) {
   const base = title.trim() || "Untitled";
 
   return `${base.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/\s+/g, "-") || "Untitled"}.zip`;
+}
+
+export function isLocalMediaSource(src: string) {
+  return LOCAL_MEDIA_URL_PATTERN.test(src) || DATA_IMAGE_URL_PATTERN.test(src);
 }
 
 export function getMarkdownImportLimit(fileName: string) {

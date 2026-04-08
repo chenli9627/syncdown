@@ -40,6 +40,45 @@ export function readFileAsDataUrl(file: File) {
   });
 }
 
+export async function uploadImageBlob(blob: Blob, fileName: string) {
+  if (!isSupportedImageMimeType(blob.type)) {
+    return {
+      error: "Unsupported image format",
+      ok: false as const,
+    };
+  }
+
+  if (blob.size > MAX_IMAGE_FILE_SIZE) {
+    return {
+      error: "Image is too large",
+      ok: false as const,
+    };
+  }
+
+  const formData = new FormData();
+  formData.append("file", new File([blob], fileName, { type: blob.type }));
+
+  const response = await fetch("/api/media", {
+    body: formData,
+    method: "POST",
+  });
+  const data = (await response.json().catch(() => null)) as
+    | { error?: string; ok?: boolean; src?: string }
+    | null;
+
+  if (!response.ok || !data?.ok || !data.src) {
+    return {
+      error: data?.error ?? "Failed to upload image",
+      ok: false as const,
+    };
+  }
+
+  return {
+    ok: true as const,
+    src: data.src,
+  };
+}
+
 export async function insertImageFile(
   editor: Editor,
   file: File,
@@ -61,7 +100,12 @@ export async function insertImageFile(
     };
   }
 
-  const src = await readFileAsDataUrl(file);
+  const upload = await uploadImageBlob(file, file.name);
+
+  if (!upload.ok) {
+    return upload;
+  }
+
   const position =
     options?.position != null
       ? Math.max(0, Math.min(options.position, editor.state.doc.content.size))
@@ -72,7 +116,7 @@ export async function insertImageFile(
 
   chain.setImage({
     alt: file.name,
-    src,
+    src: upload.src,
     title: file.name,
   }).run();
 

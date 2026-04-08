@@ -3,6 +3,7 @@ import {
   editorHtmlToMarkdownBundle,
   getMarkdownImportLimit,
   inferMimeTypeFromPath,
+  isLocalMediaSource,
   markdownToEditorHtml,
   markdownToEditorHtmlWithAssets,
   normalizeZipPath,
@@ -10,7 +11,7 @@ import {
   sanitizeZipFilename,
 } from "@/features/editor/lib/markdown";
 import type { EditorActionBaseArgs } from "@/features/editor/lib/editor-action-types";
-import { isSupportedImageMimeType } from "@/features/editor/lib/image";
+import { isSupportedImageMimeType, uploadImageBlob } from "@/features/editor/lib/image";
 import JSZip from "jszip";
 
 export function exportEditorMarkdown({ document, editor, setActionError, setActionNotice }: Pick<
@@ -42,6 +43,7 @@ export function exportEditorMarkdown({ document, editor, setActionError, setActi
 
 export async function importEditorMarkdown(args: EditorActionBaseArgs, file: File) {
   if (!args.canEditBody) {
+    args.setOverflowMenuOpen?.(false);
     args.setActionError("You do not have permission to import");
     args.setActionNotice(null);
     return;
@@ -49,12 +51,14 @@ export async function importEditorMarkdown(args: EditorActionBaseArgs, file: Fil
   const lowerName = file.name.toLowerCase();
 
   if (!lowerName.endsWith(".md") && !lowerName.endsWith(".zip")) {
+    args.setOverflowMenuOpen?.(false);
     args.setActionError("Only .md and .zip files are supported");
     args.setActionNotice(null);
     return;
   }
 
   if (file.size > getMarkdownImportLimit(file.name)) {
+    args.setOverflowMenuOpen?.(false);
     args.setActionError("上传文件过大");
     args.setActionNotice(null);
     return;
@@ -103,12 +107,14 @@ async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
   const markdownEntries = getMarkdownEntries(zip);
 
   if (markdownEntries.length === 0) {
+    args.setOverflowMenuOpen?.(false);
     args.setActionError("Zip archive does not contain a Markdown file");
     args.setActionNotice(null);
     return;
   }
 
   if (markdownEntries.length > 1) {
+    args.setOverflowMenuOpen?.(false);
     args.setActionError("Zip archive must contain exactly one Markdown file");
     args.setActionNotice(null);
     return;
@@ -121,6 +127,7 @@ async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
   const assetValidation = validateZipMarkdownAssets(zip, markdown, markdownDirectory);
 
   if (!assetValidation.ok) {
+    args.setOverflowMenuOpen?.(false);
     args.setActionError(assetValidation.error);
     args.setActionNotice(null);
     return;
@@ -142,7 +149,18 @@ async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
 
     const bytes = await assetEntry.async("uint8array");
     const mimeType = inferMimeTypeFromPath(assetPath);
-    return uint8ArrayToDataUrl(bytes, mimeType);
+    const upload = await uploadImageBlob(
+      new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], {
+        type: mimeType,
+      }),
+      assetPath.split("/").pop() ?? "image",
+    );
+
+    if (!upload.ok) {
+      return null;
+    }
+
+    return upload.src;
   });
 
   await insertMarkdownIntoEditor(args, html, "Markdown zip imported");
@@ -163,11 +181,13 @@ async function insertMarkdownIntoEditor(
   const result = await args.saveDocument(args.document.id, { content: args.editor.getHTML() });
 
   if (!result.ok) {
+    args.setOverflowMenuOpen?.(false);
     args.setActionError(result.error);
     args.setActionNotice(null);
     return;
   }
 
+  args.setOverflowMenuOpen?.(false);
   args.setActionError(null);
   args.setActionNotice(notice);
 }
@@ -182,13 +202,14 @@ function containsEmbeddedImages(html: string) {
   const doc = new DOMParser().parseFromString(html, "text/html");
 
   return Array.from(doc.body.querySelectorAll("img")).some((image) =>
-    (image.getAttribute("src") ?? "").startsWith("data:"),
+    isLocalMediaSource(image.getAttribute("src") ?? ""),
   );
 }
 
 function validateZipMarkdownAssets(zip: JSZip, markdown: string, markdownDirectory: string) {
   const missingAssets = new Set<string>();
   const invalidAssets = new Set<string>();
+  const invalidFiles = new Set<string>();
   const referencedAssets = new Set<string>();
   const extraFiles = new Set<string>();
 
@@ -234,20 +255,32 @@ function validateZipMarkdownAssets(zip: JSZip, markdown: string, markdownDirecto
       continue;
     }
 
+    const normalizedPath = normalizeZipPath(entry.name);
+
     if (entry.name.toLowerCase().endsWith(".md")) {
       continue;
     }
 
-    const normalizedPath = normalizeZipPath(entry.name);
+    if (!isSupportedImageMimeType(inferMimeTypeFromPath(normalizedPath))) {
+      invalidFiles.add(normalizedPath);
+      continue;
+    }
 
     if (!referencedAssets.has(normalizedPath)) {
       extraFiles.add(normalizedPath);
     }
   }
 
+  if (invalidFiles.size > 0) {
+    return {
+      error: `Zip archive may only contain one Markdown file and referenced image assets: ${Array.from(invalidFiles).slice(0, 3).join(", ")}`,
+      ok: false as const,
+    };
+  }
+
   if (extraFiles.size > 0) {
     return {
-      error: `Zip archive contains extra files: ${Array.from(extraFiles).slice(0, 3).join(", ")}`,
+      error: `Zip archive contains unreferenced files: ${Array.from(extraFiles).slice(0, 3).join(", ")}`,
       ok: false as const,
     };
   }
@@ -255,31 +288,4 @@ function validateZipMarkdownAssets(zip: JSZip, markdown: string, markdownDirecto
   return {
     ok: true as const,
   };
-}
-
-async function uint8ArrayToDataUrl(bytes: Uint8Array, mimeType: string) {
-  const arrayBuffer = bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength,
-  ) as ArrayBuffer;
-  const blob = new Blob([arrayBuffer], { type: mimeType });
-
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("Failed to read asset"));
-    };
-
-    reader.onerror = () => {
-      reject(new Error("Failed to read asset"));
-    };
-
-    reader.readAsDataURL(blob);
-  });
 }

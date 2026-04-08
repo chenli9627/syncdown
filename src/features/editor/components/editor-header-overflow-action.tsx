@@ -41,7 +41,6 @@ async function moveToTrash(props: EditorHeaderOverflowActionProps) {
 export function EditorHeaderOverflowAction(props: EditorHeaderOverflowActionProps) {
   return (
     <EditorOverflowMenu
-      actionError={props.actionError}
       actionNotice={props.actionNotice}
       canEditBody={props.canEditBody}
       canUndo={props.canUndo}

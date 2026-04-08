@@ -43,6 +43,7 @@ type UseEditorActionsArgs = {
       | ((current: EditorBlockMenuState) => EditorBlockMenuState),
   ) => void;
   setHoveredBlock: (value: HoveredBlock | null) => void;
+  setOverflowMenuOpen: (value: boolean | ((current: boolean) => boolean)) => void;
   openSlashMenuFromEditor: (options?: {
     removeTriggerOnClose?: boolean;
     slashContextOverride?: import("@/features/editor/lib/types").SlashContext;
@@ -70,6 +71,7 @@ export function useEditorActions({
   setActionNotice,
   setBlockMenu,
   setHoveredBlock,
+  setOverflowMenuOpen,
   openSlashMenuFromEditor,
   status,
   setSearchMatchCount,
@@ -145,6 +147,7 @@ export function useEditorActions({
     setActionNotice,
     setBlockMenu,
     setHoveredBlock,
+    setOverflowMenuOpen,
     setSearchMatchCount,
     setSearchMatchIndex,
     setSearchNotice,
