@@ -1,23 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { EditorCanvas } from "@/features/editor/components/editor-canvas";
 import { EditorHeader } from "@/features/editor/components/editor-header";
-import { useEditorAccessEntries } from "@/features/editor/hooks/use-editor-access-entries";
-import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
-import { useEditorHoveredBlock } from "@/features/editor/hooks/use-editor-hovered-block";
-import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
-import { useEditorShortcuts } from "@/features/editor/hooks/use-editor-shortcuts";
-import { useEditorSlashMenu } from "@/features/editor/hooks/use-editor-slash-menu";
-import { useEditorSurfaceUiState } from "@/features/editor/hooks/use-editor-surface-ui";
-import { useEditorTitleState } from "@/features/editor/hooks/use-editor-title-state";
-import { useSyntextEditor } from "@/features/editor/hooks/use-syntext-editor";
-import { createBlockTransformItems } from "@/features/editor/lib/menu-config";
-import type { BlockTransformItem } from "@/features/editor/lib/types";
-import { permissionLabel } from "@/features/editor/lib/utils";
+import { useEditorSurfaceModel } from "@/features/editor/hooks/use-editor-surface-model";
 
 type EditorSurfaceProps = {
   document: DocumentRecord;
@@ -31,254 +19,105 @@ export function EditorSurface({
   saveDocument,
 }: EditorSurfaceProps) {
   const router = useRouter();
-  const {
-    currentUser,
-    currentWorkspace,
-    moveDocumentToTrash,
-    shareDocument,
-    state,
-    updateDocumentAccess,
-    removeDocumentAccess,
-  } = useAppState();
   const blockMenuWidth = 208;
-  const ui = useEditorSurfaceUiState();
-  const {
-    actionError,
-    actionNotice,
-    blockControlsRef,
-    blockMenu,
-    blockMenuRef,
-    editorContainerRef,
-    editorKeyDownRef,
-    importInputRef,
-    overflowButtonRef,
-    overflowMenuOpen,
-    overflowMenuRef,
-    permissionBody,
-    searchBody,
-    setActionError,
-    setActionNotice,
-    setBlockMenu,
-    setOverflowMenuOpen,
-    status,
-  } = ui;
-  const canEditTitle = permission === "owner";
-  const canEditBody = permission === "owner" || permission === "can_edit";
-  const canManageAccess = permission === "owner";
-  const { commitTitle, setTitleDraft, titleDraft, titleError, titleInputRef } =
-    useEditorTitleState({
-      canEditTitle,
-      documentId: document.id,
-      documentTitle: document.title,
-      saveDocument,
-      setStatus: ui.setStatus,
-    });
-  const { accessEntries, sharedAvatars } = useEditorAccessEntries(
-    state,
+  const model = useEditorSurfaceModel({
     document,
-    currentWorkspace,
-  );
-  const { editor, editorReadyVersion, editorRef } = useSyntextEditor({
-    canEditBody,
-    content: document.content,
-    documentId: document.id,
-    onEditorKeyDown: (event) => editorKeyDownRef.current(event),
+    permission,
+    routerPushHome: () => router.push("/home"),
     saveDocument,
-    setStatus: ui.setStatus,
-  });
-  const { enabledSlashItems, filteredSlashItems, handleEditorKeyDown, setSlashMenu, slashContextState, slashMenu } =
-    useEditorSlashMenu({
-      canEditBody,
-      editorReadyVersion,
-      editorRef,
-      editorContainerRef,
-    });
-
-  useEffect(() => {
-    editorKeyDownRef.current = handleEditorKeyDown;
-  }, [editorKeyDownRef, handleEditorKeyDown]);
-
-  useEditorOverlays({
-    blockMenu,
-    blockMenuRef,
-    overflowButtonRef,
-    overflowMenuOpen,
-    overflowMenuRef,
-    permissionButtonRef: permissionBody.permissionButtonRef,
-    permissionMenuOpen: permissionBody.permissionMenuOpen,
-    permissionMenuRef: permissionBody.permissionMenuRef,
-    searchButtonRef: searchBody.searchButtonRef,
-    searchInputRef: searchBody.searchInputRef,
-    searchMenuOpen: searchBody.searchMenuOpen,
-    searchMenuRef: searchBody.searchMenuRef,
-    setBlockMenu,
-    setOverflowMenuOpen,
-    setPermissionMenuOpen: permissionBody.setPermissionMenuOpen,
-    setSearchMenuOpen: searchBody.setSearchMenuOpen,
-  });
-
-  useEffect(() => {
-    if (!editor || !blockMenu.open || blockMenu.pos == null) {
-      return;
-    }
-    const domNode = editor.view.nodeDOM(blockMenu.pos);
-    if (!(domNode instanceof HTMLElement)) {
-      return;
-    }
-    domNode.classList.add("is-active-block");
-    return () => domNode.classList.remove("is-active-block");
-  }, [blockMenu.open, blockMenu.pos, editor]);
-
-  const { hoveredBlock, setHoveredBlock, syncHoveredBlockFromPos } = useEditorHoveredBlock({
-    blockControlsRef,
-    blockMenuRef,
-    canEditBody,
-    editor,
-    editorContainerRef,
-  });
-  const blockTransformItems = useMemo<BlockTransformItem[]>(() => createBlockTransformItems(), []);
-  const guestBadgeClass =
-    "rounded-full border border-[#f0d9a7] bg-[#fbefcf] px-2 py-0.5 text-[11px] font-semibold text-[#c98a10]";
-  const searchHeaderLabel =
-    searchBody.searchNotice === "No match found"
-      ? "No match found"
-      : searchBody.searchMatchIndex >= 0
-        ? `${searchBody.searchMatchIndex + 1} / ${searchBody.searchMatchCount}`
-        : "";
-  const {
-    canUndo,
-    currentTransformActiveId,
-    handleDeleteBlock,
-    handleDuplicateBlock,
-    handleExportMarkdown,
-    handleImportMarkdown,
-    handleInsertBlockBefore,
-    handleTurnInto,
-    runSearch,
-    statusLabel,
-  } = useEditorActions({
-    blockMenu,
-    canEditBody,
-    document,
-    editor,
-    editorContainerRef,
-    hoveredBlock,
-    saveDocument,
-    searchInputRef: searchBody.searchInputRef,
-    searchMatchIndex: searchBody.searchMatchIndex,
-    searchQuery: searchBody.searchQuery,
-    setActionError,
-    setActionNotice,
-    setBlockMenu,
-    setHoveredBlock,
-    setSearchMatchCount: searchBody.setSearchMatchCount,
-    setSearchMatchIndex: searchBody.setSearchMatchIndex,
-    setSearchNotice: searchBody.setSearchNotice,
-    setSearchRects: searchBody.setSearchRects,
-    status,
-    syncHoveredBlockFromPos,
-  });
-
-  useEditorShortcuts({
-    canUndo,
-    editor,
-    searchMenuOpen: searchBody.searchMenuOpen,
-    setOverflowMenuOpen,
-    setPermissionMenuOpen: permissionBody.setPermissionMenuOpen,
-    setSearchMenuOpen: searchBody.setSearchMenuOpen,
   });
 
   return (
     <div className="flex min-h-full flex-col bg-[linear-gradient(180deg,#ffffff_0%,#fdfcfb_100%)]">
       <EditorHeader
-        accessEntries={accessEntries}
-        actionError={actionError}
-        actionNotice={actionNotice}
-        canEditBody={canEditBody}
-        canEditTitle={canEditTitle}
-        canManageAccess={canManageAccess}
-        canUndo={canUndo}
-        commitTitle={commitTitle}
-        currentUserId={currentUser?.id}
-        documentId={document.id}
-        documentStatus={document.status}
-        editor={editor}
-        guestBadgeClass={guestBadgeClass}
-        handleExportMarkdown={handleExportMarkdown}
-        importInputRef={importInputRef}
-        moveDocumentToTrash={moveDocumentToTrash}
-        onSearchNext={() => runSearch("forward")}
-        onSearchPrevious={() => runSearch("backward")}
-        overflowButtonRef={overflowButtonRef}
-        overflowMenuOpen={overflowMenuOpen}
-        overflowMenuRef={overflowMenuRef}
-        permission={permission}
-        permissionBoldLabel={permissionLabel}
-        permissionBusy={permissionBody.permissionBusy}
-        permissionButtonRef={permissionBody.permissionButtonRef}
-        permissionError={permissionBody.permissionError}
-        permissionMenuOpen={permissionBody.permissionMenuOpen}
-        permissionMenuRef={permissionBody.permissionMenuRef}
-        permissionNotice={permissionBody.permissionNotice}
-        removeDocumentAccess={removeDocumentAccess}
-        routerPushHome={() => router.push("/home")}
-        searchButtonRef={searchBody.searchButtonRef}
-        searchHeaderLabel={searchHeaderLabel}
-        searchInputRef={searchBody.searchInputRef}
-        searchMenuOpen={searchBody.searchMenuOpen}
-        searchMenuRef={searchBody.searchMenuRef}
-        searchNotice={searchBody.searchNotice}
-        searchQuery={searchBody.searchQuery}
-        setActionError={setActionError}
-        setActionNotice={setActionNotice}
-        setOverflowMenuOpen={setOverflowMenuOpen}
-        setPermissionBusy={permissionBody.setPermissionBusy}
-        setPermissionError={permissionBody.setPermissionError}
-        setPermissionMenuOpen={permissionBody.setPermissionMenuOpen}
-        setPermissionNotice={permissionBody.setPermissionNotice}
-        setSearchMatchCount={searchBody.setSearchMatchCount}
-        setSearchMatchIndex={searchBody.setSearchMatchIndex}
-        setSearchMenuOpen={searchBody.setSearchMenuOpen}
-        setSearchNotice={searchBody.setSearchNotice}
-        setSearchQuery={searchBody.setSearchQuery}
-        setSearchRects={searchBody.setSearchRects as (value: []) => void}
-        setShareEmail={permissionBody.setShareEmail}
-        setSharePermission={permissionBody.setSharePermission}
-        setTitleDraft={setTitleDraft}
-        shareDocument={shareDocument}
-        shareEmail={permissionBody.shareEmail}
-        sharePermission={permissionBody.sharePermission}
-        sharedAvatars={sharedAvatars}
-        statusLabel={statusLabel}
-        titleDraft={titleDraft}
-        titleError={titleError}
-        titleInputRef={titleInputRef}
-        updateDocumentAccess={updateDocumentAccess}
+        accessEntries={model.accessEntries}
+        actionError={model.ui.actionError}
+        actionNotice={model.ui.actionNotice}
+        canEditBody={model.canEditBody}
+        canEditTitle={model.canEditTitle}
+        canManageAccess={model.canManageAccess}
+        canUndo={model.actions.canUndo}
+        commitTitle={model.commitTitle}
+        currentUserId={model.currentUserId}
+        documentId={model.documentId}
+        documentStatus={model.documentStatus}
+        editor={model.editor}
+        guestBadgeClass={model.guestBadgeClass}
+        handleExportMarkdown={model.actions.handleExportMarkdown}
+        importInputRef={model.ui.importInputRef}
+        moveDocumentToTrash={model.moveDocumentToTrash}
+        onSearchNext={() => model.actions.runSearch("forward")}
+        onSearchPrevious={() => model.actions.runSearch("backward")}
+        overflowButtonRef={model.ui.overflowButtonRef}
+        overflowMenuOpen={model.ui.overflowMenuOpen}
+        overflowMenuRef={model.ui.overflowMenuRef}
+        permission={model.permission}
+        permissionBoldLabel={model.permissionLabel}
+        permissionBusy={model.ui.permissionBody.permissionBusy}
+        permissionButtonRef={model.ui.permissionBody.permissionButtonRef}
+        permissionError={model.ui.permissionBody.permissionError}
+        permissionMenuOpen={model.ui.permissionBody.permissionMenuOpen}
+        permissionMenuRef={model.ui.permissionBody.permissionMenuRef}
+        permissionNotice={model.ui.permissionBody.permissionNotice}
+        removeDocumentAccess={model.removeDocumentAccess}
+        routerPushHome={model.routerPushHome}
+        searchButtonRef={model.ui.searchBody.searchButtonRef}
+        searchHeaderLabel={model.searchHeaderLabel}
+        searchInputRef={model.ui.searchBody.searchInputRef}
+        searchMenuOpen={model.ui.searchBody.searchMenuOpen}
+        searchMenuRef={model.ui.searchBody.searchMenuRef}
+        searchNotice={model.ui.searchBody.searchNotice}
+        searchQuery={model.ui.searchBody.searchQuery}
+        setActionError={model.ui.setActionError}
+        setActionNotice={model.ui.setActionNotice}
+        setOverflowMenuOpen={model.ui.setOverflowMenuOpen}
+        setPermissionBusy={model.ui.permissionBody.setPermissionBusy}
+        setPermissionError={model.ui.permissionBody.setPermissionError}
+        setPermissionMenuOpen={model.ui.permissionBody.setPermissionMenuOpen}
+        setPermissionNotice={model.ui.permissionBody.setPermissionNotice}
+        setSearchMatchCount={model.ui.searchBody.setSearchMatchCount}
+        setSearchMatchIndex={model.ui.searchBody.setSearchMatchIndex}
+        setSearchMenuOpen={model.ui.searchBody.setSearchMenuOpen}
+        setSearchNotice={model.ui.searchBody.setSearchNotice}
+        setSearchQuery={model.ui.searchBody.setSearchQuery}
+        setSearchRects={model.ui.searchBody.setSearchRects as (value: []) => void}
+        setShareEmail={model.ui.permissionBody.setShareEmail}
+        setSharePermission={model.ui.permissionBody.setSharePermission}
+        setTitleDraft={model.setTitleDraft}
+        shareDocument={model.shareDocument}
+        shareEmail={model.ui.permissionBody.shareEmail}
+        sharePermission={model.ui.permissionBody.sharePermission}
+        sharedAvatars={model.sharedAvatars}
+        statusLabel={model.actions.statusLabel}
+        titleDraft={model.titleDraft}
+        titleError={model.titleError}
+        titleInputRef={model.titleInputRef}
+        updateDocumentAccess={model.updateDocumentAccess}
       />
       <EditorCanvas
-        blockControlsRef={blockControlsRef}
-        blockMenu={blockMenu}
-        blockMenuRef={blockMenuRef}
+        blockControlsRef={model.ui.blockControlsRef}
+        blockMenu={model.ui.blockMenu}
+        blockMenuRef={model.ui.blockMenuRef}
         blockMenuWidth={blockMenuWidth}
-        blockTransformItems={blockTransformItems}
-        canEditBody={canEditBody}
-        currentTransformActiveId={currentTransformActiveId}
-        editor={editor}
-        editorContainerRef={editorContainerRef}
-        enabledSlashItems={enabledSlashItems}
-        filteredSlashItems={filteredSlashItems}
-        handleDeleteBlock={handleDeleteBlock}
-        handleDuplicateBlock={handleDuplicateBlock}
-        handleImportMarkdown={handleImportMarkdown}
-        handleInsertBlockBefore={handleInsertBlockBefore}
-        handleTurnInto={handleTurnInto}
-        hoveredBlock={hoveredBlock}
-        importInputRef={importInputRef}
-        searchRects={searchBody.searchRects}
-        setBlockMenu={setBlockMenu}
-        setSlashMenu={setSlashMenu}
-        slashContextState={slashContextState}
-        slashMenu={slashMenu}
+        blockTransformItems={model.blockTransformItems}
+        canEditBody={model.canEditBody}
+        currentTransformActiveId={model.actions.currentTransformActiveId}
+        editor={model.editor}
+        editorContainerRef={model.ui.editorContainerRef}
+        enabledSlashItems={model.slash.enabledSlashItems}
+        filteredSlashItems={model.slash.filteredSlashItems}
+        handleDeleteBlock={model.actions.handleDeleteBlock}
+        handleDuplicateBlock={model.actions.handleDuplicateBlock}
+        handleImportMarkdown={model.actions.handleImportMarkdown}
+        handleInsertBlockBefore={model.actions.handleInsertBlockBefore}
+        handleTurnInto={model.actions.handleTurnInto}
+        hoveredBlock={model.hovered.hoveredBlock}
+        importInputRef={model.ui.importInputRef}
+        searchRects={model.ui.searchBody.searchRects}
+        setBlockMenu={model.ui.setBlockMenu}
+        setSlashMenu={model.slash.setSlashMenu}
+        slashContextState={model.slash.slashContextState}
+        slashMenu={model.slash.slashMenu}
       />
     </div>
   );
