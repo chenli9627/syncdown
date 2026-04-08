@@ -27,6 +27,11 @@ export function getMediaStorageConfig(): MediaStorageConfig {
 
 export function buildMediaSourceUrl(fileName: string) {
   const encodedFileName = encodeURIComponent(fileName);
+  const { publicBaseUrl } = getMediaStorageConfig();
+
+  if (publicBaseUrl) {
+    return `${publicBaseUrl}/${encodedFileName}`;
+  }
 
   return `/api/media/${encodedFileName}`;
 }

@@ -127,6 +127,7 @@ Environment direction:
 
 - `STORAGE_BACKEND=local` for local development
 - `STORAGE_BACKEND=s3` enables the S3-compatible adapter for MinIO or R2
+- `STORAGE_PUBLIC_BASE_URL` can point the editor at a public media origin instead of routing reads through `/api/media`
 - `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID`,
   `STORAGE_SECRET_ACCESS_KEY`, and `STORAGE_FORCE_PATH_STYLE` configure the S3-compatible backend
 - editor-facing image URLs remain on `/api/media/...`, so switching storage backends does not affect editor or markdown export logic

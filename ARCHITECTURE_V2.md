@@ -521,7 +521,8 @@ Storage rule:
 - the storage layer is now behind a backend adapter so the app can later switch to MinIO locally and R2 in production without rewriting editor import/export flows
 - the storage layer is also responsible for building the public media URL returned to the editor
 - the current build now supports `local` and `s3` storage backends behind the same adapter
-- editor-visible image sources continue to use `/api/media/...` so storage backend changes do not alter markdown export decisions
+- editor-visible image sources default to `/api/media/...`
+- when `STORAGE_PUBLIC_BASE_URL` is configured, generated image sources switch to that public origin instead
 
 ## 9.1.1 State Persistence
 
