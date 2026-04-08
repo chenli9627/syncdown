@@ -1,19 +1,16 @@
 "use client";
 
-import { EditorContent, useEditor } from "@tiptap/react";
+import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useLocale } from "@/components/providers/locale-provider";
 import type {
   DocumentRecord,
 } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
-import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu";
-import { EditorBlockControls } from "@/features/editor/components/editor-block-controls";
+import { EditorCanvas } from "@/features/editor/components/editor-canvas";
 import { EditorHeader } from "@/features/editor/components/editor-header";
-import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu";
 import { DocumentStatusState } from "@/features/editor/components/document-status-state";
 import {
   editorHtmlToMarkdown,
@@ -1272,93 +1269,31 @@ function EditorSurface({
         updateDocumentAccess={updateDocumentAccess}
       />
 
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-10 py-8">
-        <input
-          accept=".md,text/markdown"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-
-            if (!file) {
-              return;
-            }
-
-            void handleImportMarkdown(file);
-            event.currentTarget.value = "";
-          }}
-          ref={importInputRef}
-          type="file"
-        />
-        <div className="relative" ref={editorContainerRef}>
-          {searchRects.map((rect, index) => (
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute z-[1] bg-[color-mix(in_srgb,var(--color-primary)_22%,transparent)]"
-              key={`${rect.left}-${rect.top}-${index}`}
-              style={{
-                height: `${rect.height}px`,
-                left: `${rect.left}px`,
-                top: `${rect.top}px`,
-                width: `${rect.width}px`,
-              }}
-            />
-          ))}
-          <EditorBlockControls
-            blockControlsRef={blockControlsRef}
-            blockMenuWidth={blockMenuWidth}
-            canEditBody={canEditBody}
-            hoveredBlock={hoveredBlock}
-            onInsertBlockBefore={handleInsertBlockBefore}
-            onOpenBlockMenu={setBlockMenu}
-          />
-          <EditorContent editor={editor} />
-          {canEditBody && blockMenu.open && globalThis.document?.body
-            ? createPortal(
-                <EditorBlockMenu
-                  blockMenuLeft={blockMenu.left}
-                  blockMenuOpen={blockMenu.open}
-                  blockMenuRef={blockMenuRef}
-                  blockMenuTop={blockMenu.top}
-                  blockTransformItems={blockTransformItems}
-                  canEditBody={canEditBody}
-                  currentTransformActiveId={currentTransformActiveId}
-                  handleDeleteBlock={handleDeleteBlock}
-                  handleDuplicateBlock={handleDuplicateBlock}
-                  handleTurnInto={handleTurnInto}
-                  setBlockMenu={setBlockMenu}
-                  showTurnInto={blockMenu.showTurnInto}
-                />,
-                globalThis.document.body,
-              )
-            : null}
-          <EditorSlashMenu
-            activeIndex={slashMenu.activeIndex}
-            editor={editor}
-            enabledItems={enabledSlashItems}
-            filteredItems={filteredSlashItems}
-            onActivateItem={(nextIndex) => {
-              setSlashMenu((current) => ({
-                ...current,
-                activeIndex: nextIndex,
-              }));
-            }}
-            onClose={() => {
-              setSlashMenu((current) => ({
-                ...current,
-                activeIndex: 0,
-                open: false,
-                query: "",
-              }));
-            }}
-            open={canEditBody && slashMenu.open}
-            position={{
-              left: slashMenu.left,
-              top: slashMenu.top,
-            }}
-            slashContext={slashContextState}
-          />
-        </div>
-      </div>
+      <EditorCanvas
+        blockControlsRef={blockControlsRef}
+        blockMenu={blockMenu}
+        blockMenuRef={blockMenuRef}
+        blockMenuWidth={blockMenuWidth}
+        blockTransformItems={blockTransformItems}
+        canEditBody={canEditBody}
+        currentTransformActiveId={currentTransformActiveId}
+        editor={editor}
+        editorContainerRef={editorContainerRef}
+        enabledSlashItems={enabledSlashItems}
+        filteredSlashItems={filteredSlashItems}
+        handleDeleteBlock={handleDeleteBlock}
+        handleDuplicateBlock={handleDuplicateBlock}
+        handleImportMarkdown={handleImportMarkdown}
+        handleInsertBlockBefore={handleInsertBlockBefore}
+        handleTurnInto={handleTurnInto}
+        hoveredBlock={hoveredBlock}
+        importInputRef={importInputRef}
+        searchRects={searchRects}
+        setBlockMenu={setBlockMenu}
+        setSlashMenu={setSlashMenu}
+        slashContextState={slashContextState}
+        slashMenu={slashMenu}
+      />
     </div>
   );
 }
