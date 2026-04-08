@@ -54,5 +54,7 @@ interface. The default development backend writes to `.data/media/`.
 Environment direction:
 
 - `STORAGE_BACKEND=local` for local development
-- `STORAGE_BACKEND=s3` is reserved for the future S3-compatible adapter path
-- `STORAGE_PUBLIC_BASE_URL` can override returned media URLs without changing editor storage logic
+- `STORAGE_BACKEND=s3` enables the S3-compatible adapter for MinIO or R2
+- `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID`,
+  `STORAGE_SECRET_ACCESS_KEY`, and `STORAGE_FORCE_PATH_STYLE` configure the S3-compatible backend
+- editor-facing image URLs remain on `/api/media/...`, so switching storage backends does not affect editor or markdown export logic

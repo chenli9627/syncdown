@@ -505,6 +505,8 @@ Storage rule:
 - the default media backend is a local file-backed storage adapter
 - the storage layer is now behind a backend adapter so the app can later switch to MinIO locally and R2 in production without rewriting editor import/export flows
 - the storage layer is also responsible for building the public media URL returned to the editor
+- the current build now supports `local` and `s3` storage backends behind the same adapter
+- editor-visible image sources continue to use `/api/media/...` so storage backend changes do not alter markdown export decisions
 
 ### 9.2 Image Block Actions
 

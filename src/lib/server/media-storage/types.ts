@@ -16,6 +16,7 @@ export type WriteMediaFileInput = {
   bytes: Uint8Array;
   extension: string;
   id?: string;
+  mimeType?: string;
 };
 
 export interface MediaStorageAdapter {

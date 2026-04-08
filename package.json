@@ -11,6 +11,7 @@
     "reset-password": "node ./scripts/reset-password.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1026.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@tiptap/extension-code-block-lowlight": "^3.22.3",
     "@tiptap/extension-image": "^3.22.3",

@@ -5,6 +5,15 @@ export type MediaStorageConfig = {
   publicBaseUrl: string | null;
 };
 
+export type S3MediaStorageConfig = {
+  accessKeyId: string;
+  bucket: string;
+  endpoint?: string;
+  forcePathStyle: boolean;
+  region: string;
+  secretAccessKey: string;
+};
+
 export function getMediaStorageConfig(): MediaStorageConfig {
   const configuredBackend = process.env.STORAGE_BACKEND?.trim().toLowerCase();
   const backend: MediaStorageBackend = configuredBackend === "s3" ? "s3" : "local";
@@ -17,14 +26,31 @@ export function getMediaStorageConfig(): MediaStorageConfig {
 }
 
 export function buildMediaSourceUrl(fileName: string) {
-  const { publicBaseUrl } = getMediaStorageConfig();
   const encodedFileName = encodeURIComponent(fileName);
 
-  if (publicBaseUrl) {
-    return `${publicBaseUrl}/${encodedFileName}`;
+  return `/api/media/${encodedFileName}`;
+}
+
+export function getS3MediaStorageConfig(): S3MediaStorageConfig {
+  const bucket = process.env.STORAGE_BUCKET?.trim();
+  const region = process.env.STORAGE_REGION?.trim();
+  const accessKeyId = process.env.STORAGE_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = process.env.STORAGE_SECRET_ACCESS_KEY?.trim();
+
+  if (!bucket || !region || !accessKeyId || !secretAccessKey) {
+    throw new Error(
+      "S3-compatible storage is missing one or more required environment variables.",
+    );
   }
 
-  return `/api/media/${encodedFileName}`;
+  return {
+    accessKeyId,
+    bucket,
+    endpoint: process.env.STORAGE_ENDPOINT?.trim() || undefined,
+    forcePathStyle: normalizeForcePathStyle(process.env.STORAGE_FORCE_PATH_STYLE),
+    region,
+    secretAccessKey,
+  };
 }
 
 function normalizePublicBaseUrl(value: string | undefined) {
@@ -35,4 +61,14 @@ function normalizePublicBaseUrl(value: string | undefined) {
   }
 
   return trimmed.replace(/\/+$/, "");
+}
+
+function normalizeForcePathStyle(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return true;
+  }
+
+  return !["0", "false", "no"].includes(normalized);
 }

@@ -38,6 +38,7 @@ export async function POST(request: Request) {
   const written = await getMediaStorageAdapter().writeFile({
     bytes,
     extension,
+    mimeType: file.type,
   });
 
   return NextResponse.json({

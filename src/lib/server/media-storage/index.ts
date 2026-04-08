@@ -1,5 +1,9 @@
 import { LocalMediaStorageAdapter } from "@/lib/server/media-storage/local-media-storage";
-import { getMediaStorageConfig } from "@/lib/server/media-storage/config";
+import {
+  getMediaStorageConfig,
+  getS3MediaStorageConfig,
+} from "@/lib/server/media-storage/config";
+import { S3MediaStorageAdapter } from "@/lib/server/media-storage/s3-media-storage";
 import type {
   MediaStorageAdapter,
 } from "@/lib/server/media-storage/types";
@@ -14,6 +18,7 @@ export type {
 export { buildMediaSourceUrl, getMediaStorageConfig } from "@/lib/server/media-storage/config";
 
 const localAdapter = new LocalMediaStorageAdapter();
+let s3Adapter: S3MediaStorageAdapter | null = null;
 
 export function getMediaStorageAdapter(): MediaStorageAdapter {
   const { backend } = getMediaStorageConfig();
@@ -22,9 +27,11 @@ export function getMediaStorageAdapter(): MediaStorageAdapter {
     return localAdapter;
   }
 
-  throw new Error(
-    "The configured S3-compatible storage backend is not available in the current build yet.",
-  );
+  if (!s3Adapter) {
+    s3Adapter = new S3MediaStorageAdapter(getS3MediaStorageConfig());
+  }
+
+  return s3Adapter;
 }
 
 export function inferMimeTypeFromExtension(extension: string) {
