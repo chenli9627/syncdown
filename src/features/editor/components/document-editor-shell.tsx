@@ -1,0 +1,2437 @@
+"use client";
+
+import { EditorContent, useEditor } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import {
+  Bold,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  GripVertical,
+  Heading1,
+  Heading2,
+  Italic,
+  List,
+  ListOrdered,
+  Lock,
+  MoreHorizontal,
+  Plus,
+  Quote,
+  Search,
+  Sparkles,
+  Trash2,
+  Undo2,
+  Upload,
+  Download,
+  X,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
+import type {
+  DocumentRecord,
+  SyntextState,
+  User,
+} from "@/features/app-state/types";
+import { useAppState } from "@/features/app-state/providers/app-state-provider";
+import {
+  editorHtmlToMarkdown,
+  markdownToEditorHtml,
+  sanitizeMarkdownFilename,
+} from "@/features/editor/lib/markdown";
+
+type DocumentEditorShellProps = {
+  documentId: string;
+};
+
+type EditorSurfaceProps = {
+  document: DocumentRecord;
+  permission: "owner" | "can_edit" | "can_view";
+  saveDocument: ReturnType<typeof useAppState>["saveDocument"];
+};
+
+type ToolbarButtonProps = {
+  active?: boolean;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+};
+
+type SlashItem = {
+  id: string;
+  label: string;
+  shortcut: string;
+  enabled: boolean;
+  run: (editor: Editor) => void;
+};
+
+type SlashContext = {
+  from: number;
+  query: string;
+  to: number;
+};
+
+type HoveredBlock = {
+  height: number;
+  pos: number;
+  top: number;
+};
+
+type BlockTransformItem = {
+  id: string;
+  label: string;
+  run: (editor: Editor, pos: number) => void;
+};
+
+type AccessEntry = {
+  email: string;
+  id: string;
+  name: string;
+  permission: "owner" | "can_edit" | "can_view";
+  userId: string;
+};
+
+type PermissionDropdownProps = {
+  align?: "left" | "right";
+  disabled?: boolean;
+  onSelect: (value: "can_edit" | "can_view") => void;
+  value: "can_edit" | "can_view";
+  widthClassName?: string;
+};
+
+type SearchMatch = {
+  range: Range;
+};
+
+type SearchRect = {
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+};
+
+function getBlockTransformActiveId(editor: Editor, pos: number) {
+  const node = editor.state.doc.nodeAt(pos);
+
+  if (!node) {
+    return "paragraph";
+  }
+
+  if (node.type.name === "heading") {
+    return `heading-${node.attrs.level}`;
+  }
+
+  if (node.type.name === "bulletList") {
+    return "bullet-list";
+  }
+
+  if (node.type.name === "orderedList") {
+    return "ordered-list";
+  }
+
+  if (node.type.name === "blockquote") {
+    return "quote";
+  }
+
+  if (node.type.name === "codeBlock") {
+    return "code";
+  }
+
+  if (node.type.name === "horizontalRule") {
+    return "divider";
+  }
+
+  return "paragraph";
+}
+
+function setSelectionToBlock(editor: Editor, pos: number) {
+  editor.chain().focus().setTextSelection(pos + 1).run();
+}
+
+function unwrapListIfNeeded(editor: Editor) {
+  if (editor.isActive("bulletList") || editor.isActive("orderedList")) {
+    editor.chain().focus().liftListItem("listItem").run();
+  }
+}
+
+function getTopLevelBlock(target: EventTarget | null, editorRoot: HTMLElement) {
+  if (!(target instanceof Node)) {
+    return null;
+  }
+
+  let current = target instanceof HTMLElement ? target : target.parentElement;
+
+  while (current && current.parentElement !== editorRoot) {
+    current = current.parentElement;
+  }
+
+  if (!current || current.parentElement !== editorRoot) {
+    return null;
+  }
+
+  return current;
+}
+
+function getHoveredBlockFromPointer(
+  editor: Editor,
+  editorRoot: HTMLElement,
+  container: HTMLElement,
+  clientY: number,
+) {
+  const blocks = Array.from(editorRoot.children).filter(
+    (node): node is HTMLElement => node instanceof HTMLElement,
+  );
+
+  const matchedBlock =
+    blocks.find((block) => {
+      const bounds = block.getBoundingClientRect();
+      return clientY >= bounds.top && clientY <= bounds.bottom;
+    }) ??
+    blocks.find((block, index) => {
+      const bounds = block.getBoundingClientRect();
+      const nextTop =
+        blocks[index + 1]?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+      return clientY >= bounds.bottom && clientY <= nextTop;
+    });
+
+  if (!matchedBlock) {
+    return null;
+  }
+
+  let pos: number | null = null;
+
+  try {
+    pos = editor.view.posAtDOM(matchedBlock, 0);
+  } catch {
+    pos = null;
+  }
+
+  if (pos == null) {
+    return null;
+  }
+
+  const blockBounds = matchedBlock.getBoundingClientRect();
+  const containerBounds = container.getBoundingClientRect();
+
+  return {
+    height: blockBounds.height,
+    pos,
+    top: blockBounds.top - containerBounds.top,
+  };
+}
+
+function getSlashContext(editor: Editor): SlashContext | null {
+  const { selection } = editor.state;
+
+  if (!selection.empty) {
+    return null;
+  }
+
+  const { $from } = selection;
+
+  if (!$from.parent.isTextblock) {
+    return null;
+  }
+
+  const textBefore = $from.parent.textBetween(0, $from.parentOffset, undefined, "\ufffc");
+  const match = textBefore.match(/(?:^|\s)\/([^\s/]*)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const query = match[1] ?? "";
+  const slashOffset = textBefore.lastIndexOf(`/${query}`);
+
+  if (slashOffset < 0) {
+    return null;
+  }
+
+  return {
+    from: $from.start() + slashOffset,
+    to: selection.from,
+    query,
+  };
+}
+
+function getAccessPermission(
+  state: SyntextState,
+  user: User,
+  document: DocumentRecord,
+) {
+  if (document.ownerUserId === user.id) {
+    return "owner" as const;
+  }
+
+  return (
+    state.accesses.find(
+      (access) => access.documentId === document.id && access.userId === user.id,
+    )?.permission ?? null
+  );
+}
+
+function getAccessEntries(
+  state: SyntextState,
+  document: DocumentRecord,
+  currentWorkspaceUserIds: Set<string>,
+) {
+  const owner = state.users.find((user) => user.id === document.ownerUserId);
+
+  const guestEntries = state.accesses
+    .filter(
+      (access) =>
+        access.documentId === document.id && currentWorkspaceUserIds.has(access.userId),
+    )
+    .map<AccessEntry | null>((access) => {
+      const user = state.users.find((item) => item.id === access.userId);
+
+      if (!user) {
+        return null;
+      }
+
+      return {
+        email: user.email,
+        id: user.id,
+        name: user.name,
+        permission: access.permission,
+        userId: user.id,
+      } satisfies AccessEntry;
+    })
+    .filter((entry): entry is AccessEntry => Boolean(entry))
+    .sort((left, right) => left.name.localeCompare(right.name, "en"));
+
+  return [
+    ...(owner
+      ? [
+          {
+            id: owner.id,
+            email: owner.email,
+            name: owner.name,
+            permission: "owner" as const,
+            userId: owner.id,
+          },
+        ]
+      : []),
+    ...guestEntries,
+  ];
+}
+
+function permissionLabel(permission: "owner" | "can_edit" | "can_view") {
+  if (permission === "owner") {
+    return "Owner";
+  }
+
+  if (permission === "can_edit") {
+    return "Can edit";
+  }
+
+  return "Can view";
+}
+
+function collectSearchMatches(root: HTMLElement, query: string) {
+  if (!query) {
+    return [];
+  }
+
+  const matches: SearchMatch[] = [];
+  const walker = globalThis.document.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+    null,
+  );
+  const normalizedQuery = query.toLowerCase();
+  let currentNode = walker.nextNode();
+
+  while (currentNode) {
+    if (currentNode instanceof Text) {
+      const content = currentNode.textContent ?? "";
+      const normalizedContent = content.toLowerCase();
+      let searchIndex = 0;
+
+      while (searchIndex < normalizedContent.length) {
+        const matchIndex = normalizedContent.indexOf(normalizedQuery, searchIndex);
+
+        if (matchIndex < 0) {
+          break;
+        }
+
+        const range = globalThis.document.createRange();
+        range.setStart(currentNode, matchIndex);
+        range.setEnd(currentNode, matchIndex + normalizedQuery.length);
+        matches.push({ range });
+        searchIndex = matchIndex + normalizedQuery.length;
+      }
+    }
+
+    currentNode = walker.nextNode();
+  }
+
+  return matches;
+}
+
+function getSearchRects(range: Range, container: HTMLElement) {
+  const containerBounds = container.getBoundingClientRect();
+
+  return Array.from(range.getClientRects()).map((rect) => ({
+    height: rect.height,
+    left: rect.left - containerBounds.left,
+    top: rect.top - containerBounds.top,
+    width: rect.width,
+  }));
+}
+
+function PermissionDropdown({
+  align = "left",
+  disabled = false,
+  onSelect,
+  value,
+  widthClassName = "w-[96px]",
+}: PermissionDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (rootRef.current?.contains(target)) {
+        return;
+      }
+
+      setOpen(false);
+    }
+
+    globalThis.document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [open]);
+
+  return (
+    <div className={`relative shrink-0 ${widthClassName}`} ref={rootRef}>
+      <button
+        className="flex h-8 w-full items-center justify-between border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2 text-xs text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)] disabled:opacity-50"
+        disabled={disabled}
+        onClick={() => {
+          setOpen((current) => !current);
+        }}
+        type="button"
+      >
+        <span className="truncate">
+          {value === "can_edit" ? "Can edit" : "Can view"}
+        </span>
+        <ChevronDown
+          className={`ml-2 size-3.5 shrink-0 text-[var(--color-muted-foreground)] transition ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open ? (
+        <div
+          className={`absolute top-[calc(100%+6px)] z-30 min-w-full border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] ${
+            align === "right" ? "right-0" : "left-0"
+          }`}
+        >
+          {(["can_view", "can_edit"] as const).map((option) => (
+            <button
+              className={`flex w-full items-center px-2 py-2 text-left text-xs transition hover:bg-[var(--color-hover)] ${
+                option === value
+                  ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
+                  : "text-[var(--color-foreground)]"
+              }`}
+              key={option}
+              onClick={() => {
+                onSelect(option);
+                setOpen(false);
+              }}
+              type="button"
+            >
+              {option === "can_edit" ? "Can edit" : "Can view"}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ToolbarButton({
+  active = false,
+  children,
+  disabled = false,
+  label,
+  onClick,
+}: ToolbarButtonProps) {
+  return (
+    <button
+      aria-label={label}
+      className={`flex h-9 items-center justify-center gap-1.5 rounded-[4px] border px-2.5 text-[13px] text-[var(--color-muted-foreground)] transition ${
+        active
+          ? "border-[var(--color-border)] bg-[var(--color-hover)] text-[var(--color-foreground)]"
+          : "border-transparent hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+      } disabled:opacity-40`}
+      disabled={disabled}
+      onMouseDown={(event) => {
+        event.preventDefault();
+      }}
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function escapeHtml(input: string) {
+  return input
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function toEditorContent(content: string) {
+  if (!content.trim()) {
+    return "<p></p>";
+  }
+
+  if (content.trimStart().startsWith("<")) {
+    return content;
+  }
+
+  return content
+    .split("\n")
+    .map((line) => `<p>${escapeHtml(line) || "<br>"}</p>`)
+    .join("");
+}
+
+function EditorSurface({
+  document,
+  permission,
+  saveDocument,
+}: EditorSurfaceProps) {
+  const {
+    currentUser,
+    currentWorkspace,
+    shareDocument,
+    state,
+    updateDocumentAccess,
+    removeDocumentAccess,
+  } = useAppState();
+  const blockMenuWidth = 208;
+  const blockControlsRef = useRef<HTMLDivElement | null>(null);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const blockMenuRef = useRef<HTMLDivElement | null>(null);
+  const searchButtonRef = useRef<HTMLButtonElement | null>(null);
+  const searchMenuRef = useRef<HTMLDivElement | null>(null);
+  const overflowButtonRef = useRef<HTMLButtonElement | null>(null);
+  const overflowMenuRef = useRef<HTMLDivElement | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const permissionButtonRef = useRef<HTMLButtonElement | null>(null);
+  const permissionMenuRef = useRef<HTMLDivElement | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const slashContextRef = useRef<SlashContext | null>(null);
+  const filteredSlashItemsRef = useRef<SlashItem[]>([]);
+  const [titleDraft, setTitleDraft] = useState(document.title);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [hoveredBlock, setHoveredBlock] = useState<HoveredBlock | null>(null);
+  const [searchMenuOpen, setSearchMenuOpen] = useState(false);
+  const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchMatchCount, setSearchMatchCount] = useState(0);
+  const [searchMatchIndex, setSearchMatchIndex] = useState(-1);
+  const [searchNotice, setSearchNotice] = useState<string | null>(null);
+  const [searchRects, setSearchRects] = useState<SearchRect[]>([]);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [permissionMenuOpen, setPermissionMenuOpen] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [sharePermission, setSharePermission] = useState<"can_edit" | "can_view">(
+    "can_view",
+  );
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
+  const [permissionBusy, setPermissionBusy] = useState(false);
+  const [blockMenu, setBlockMenu] = useState<{
+    left: number;
+    open: boolean;
+    pos: number | null;
+    showTurnInto: boolean;
+    top: number;
+  }>({
+    left: 0,
+    open: false,
+    pos: null,
+    showTurnInto: false,
+    top: 0,
+  });
+  const [slashMenu, setSlashMenu] = useState<{
+    activeIndex: number;
+    left: number;
+    open: boolean;
+    query: string;
+    top: number;
+    placement: "above" | "below";
+  }>({
+    activeIndex: 0,
+    left: 0,
+    open: false,
+    query: "",
+    top: 0,
+    placement: "below",
+  });
+  const slashMenuRef = useRef(slashMenu);
+  const canEditTitle = permission === "owner";
+  const canEditBody = permission === "owner" || permission === "can_edit";
+  const canManageAccess = permission === "owner";
+  const currentWorkspaceUserIds = useMemo(
+    () =>
+      new Set(
+        state.users
+          .filter(
+            (user) =>
+              currentWorkspace &&
+              (currentWorkspace.ownerUserId === user.id ||
+                state.accesses.some((access) => {
+                  const accessDocument = state.documents.find(
+                    (item) => item.id === access.documentId,
+                  );
+
+                  return (
+                    access.userId === user.id &&
+                    accessDocument?.workspaceId === currentWorkspace.id &&
+                    accessDocument.status !== "trashed"
+                  );
+                })),
+          )
+          .map((user) => user.id),
+      ),
+    [currentWorkspace, state.accesses, state.documents, state.users],
+  );
+  const accessEntries = useMemo(
+    () => getAccessEntries(state, document, currentWorkspaceUserIds),
+    [currentWorkspaceUserIds, document, state],
+  );
+  const sharedAvatars = accessEntries.slice(0, 4);
+
+  useEffect(() => {
+    slashMenuRef.current = slashMenu;
+  }, [slashMenu]);
+
+  useEffect(() => {
+    if (!searchMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (searchButtonRef.current?.contains(target) || searchMenuRef.current?.contains(target)) {
+        return;
+      }
+
+      setSearchMenuOpen(false);
+    }
+
+    globalThis.document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [searchMenuOpen]);
+
+  useEffect(() => {
+    if (!permissionMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (
+        permissionButtonRef.current?.contains(target) ||
+        permissionMenuRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      setPermissionMenuOpen(false);
+    }
+
+    globalThis.document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [permissionMenuOpen]);
+
+  useEffect(() => {
+    if (!overflowMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (
+        overflowButtonRef.current?.contains(target) ||
+        overflowMenuRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      setOverflowMenuOpen(false);
+    }
+
+    globalThis.document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [overflowMenuOpen]);
+
+  useEffect(() => {
+    if (!searchMenuOpen) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [searchMenuOpen]);
+
+  useEffect(() => {
+    if (!blockMenu.open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (blockMenuRef.current?.contains(target)) {
+        return;
+      }
+
+      setBlockMenu({
+        left: 0,
+        open: false,
+        pos: null,
+        showTurnInto: false,
+        top: 0,
+      });
+    }
+
+    globalThis.document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [blockMenu.open]);
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4],
+        },
+      }),
+    ],
+    content: toEditorContent(document.content),
+    editable: canEditBody,
+    editorProps: {
+      attributes: {
+        class:
+          "syntext-editor min-h-[60vh] max-w-none pl-6 outline-none text-base leading-8 text-[var(--color-foreground)]",
+      },
+      handleKeyDown: (_view, event) => {
+        if (!slashMenuRef.current.open) {
+          return false;
+        }
+
+        const enabledItems = filteredSlashItemsRef.current.filter((item) => item.enabled);
+
+        if (!enabledItems.length) {
+          return false;
+        }
+
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          setSlashMenu((current) => ({
+            ...current,
+            activeIndex: (current.activeIndex + 1) % enabledItems.length,
+          }));
+          return true;
+        }
+
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          setSlashMenu((current) => ({
+            ...current,
+            activeIndex:
+              (current.activeIndex - 1 + enabledItems.length) % enabledItems.length,
+          }));
+          return true;
+        }
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          const item = enabledItems[slashMenu.activeIndex] ?? enabledItems[0];
+          const slashContext = slashContextRef.current;
+          const currentEditor = editor;
+
+          if (!item || !slashContext || !currentEditor) {
+            return true;
+          }
+
+          currentEditor
+            ?.chain()
+            .focus()
+            .deleteRange({ from: slashContext.from, to: slashContext.to })
+            .run();
+          item.run(currentEditor);
+          setSlashMenu((current) => ({
+            ...current,
+            activeIndex: 0,
+            open: false,
+            placement: "below",
+            query: "",
+          }));
+          return true;
+        }
+
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setSlashMenu((current) => ({
+            ...current,
+            activeIndex: 0,
+            open: false,
+            placement: "below",
+            query: "",
+          }));
+          return true;
+        }
+
+        return false;
+      },
+    },
+    onUpdate: ({ editor: currentEditor }) => {
+      if (!canEditBody) {
+        return;
+      }
+
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+      }
+
+      setStatus("saving");
+      saveTimeoutRef.current = window.setTimeout(async () => {
+        const result = await saveDocument(document.id, {
+          content: currentEditor.getHTML(),
+        });
+
+        if (!result.ok) {
+          setStatus("error");
+          return;
+        }
+
+        setStatus("saved");
+        window.setTimeout(() => {
+          setStatus("idle");
+        }, 1200);
+      }, 500);
+    },
+  });
+
+  useEffect(() => {
+    if (!editor || !blockMenu.open || blockMenu.pos == null) {
+      return;
+    }
+
+    const domNode = editor.view.nodeDOM(blockMenu.pos);
+
+    if (!(domNode instanceof HTMLElement)) {
+      return;
+    }
+
+    domNode.classList.add("is-active-block");
+
+    return () => {
+      domNode.classList.remove("is-active-block");
+    };
+  }, [blockMenu.open, blockMenu.pos, editor]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    editor.setEditable(canEditBody);
+  }, [canEditBody, editor]);
+
+  const slashItems = useMemo<SlashItem[]>(
+    () => [
+      {
+        id: "text",
+        label: "Text",
+        shortcut: "",
+        enabled: true,
+        run: (currentEditor) => {
+          currentEditor.chain().focus().setParagraph().run();
+        },
+      },
+      {
+        id: "heading-1",
+        label: "Heading 1",
+        shortcut: "#",
+        enabled: true,
+        run: (currentEditor) => {
+          currentEditor.chain().focus().setHeading({ level: 1 }).run();
+        },
+      },
+      {
+        id: "heading-2",
+        label: "Heading 2",
+        shortcut: "##",
+        enabled: true,
+        run: (currentEditor) => {
+          currentEditor.chain().focus().setHeading({ level: 2 }).run();
+        },
+      },
+      {
+        id: "heading-3",
+        label: "Heading 3",
+        shortcut: "###",
+        enabled: true,
+        run: (currentEditor) => {
+          currentEditor.chain().focus().setHeading({ level: 3 }).run();
+        },
+      },
+      {
+        id: "heading-4",
+        label: "Heading 4",
+        shortcut: "####",
+        enabled: true,
+        run: (currentEditor) => {
+          currentEditor.chain().focus().setHeading({ level: 4 }).run();
+        },
+      },
+      {
+        id: "bullet-list",
+        label: "Bulleted list",
+        shortcut: "-",
+        enabled: true,
+        run: (currentEditor) => {
+          currentEditor.chain().focus().toggleBulletList().run();
+        },
+      },
+      {
+        id: "ordered-list",
+        label: "Numbered list",
+        shortcut: "1.",
+        enabled: true,
+        run: (currentEditor) => {
+          currentEditor.chain().focus().toggleOrderedList().run();
+        },
+      },
+      {
+        id: "todo-list",
+        label: "Todo list",
+        shortcut: "[]",
+        enabled: false,
+        run: () => {},
+      },
+      {
+        id: "toggle-list",
+        label: "Toggle list",
+        shortcut: ">",
+        enabled: false,
+        run: () => {},
+      },
+      {
+        id: "quote",
+        label: "Quote",
+        shortcut: "\"",
+        enabled: true,
+        run: (currentEditor) => {
+          unwrapListIfNeeded(currentEditor);
+          currentEditor.chain().focus().toggleBlockquote().run();
+        },
+      },
+      {
+        id: "table",
+        label: "Table",
+        shortcut: "",
+        enabled: false,
+        run: () => {},
+      },
+      {
+        id: "divider",
+        label: "Divider",
+        shortcut: "--",
+        enabled: true,
+        run: (currentEditor) => {
+          currentEditor.chain().focus().setHorizontalRule().run();
+        },
+      },
+      {
+        id: "code",
+        label: "Code",
+        shortcut: "```",
+        enabled: true,
+        run: (currentEditor) => {
+          currentEditor.chain().focus().toggleCodeBlock().run();
+        },
+      },
+    ],
+    [],
+  );
+
+  const filteredSlashItems = useMemo(() => {
+    const normalizedQuery = slashMenu.query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return slashItems;
+    }
+
+    return slashItems.filter(
+      (item) =>
+        item.label.toLowerCase().includes(normalizedQuery) ||
+        item.shortcut.toLowerCase().includes(normalizedQuery),
+    );
+  }, [slashItems, slashMenu.query]);
+
+  const enabledSlashItems = useMemo(
+    () => filteredSlashItems.filter((item) => item.enabled),
+    [filteredSlashItems],
+  );
+
+  const blockTransformItems = useMemo<BlockTransformItem[]>(
+    () => [
+      {
+        id: "paragraph",
+        label: "Text",
+        run: (currentEditor, pos) => {
+          setSelectionToBlock(currentEditor, pos);
+          unwrapListIfNeeded(currentEditor);
+          currentEditor.chain().focus().setParagraph().run();
+        },
+      },
+      {
+        id: "heading-1",
+        label: "Heading 1",
+        run: (currentEditor, pos) => {
+          setSelectionToBlock(currentEditor, pos);
+          unwrapListIfNeeded(currentEditor);
+          currentEditor.chain().focus().setHeading({ level: 1 }).run();
+        },
+      },
+      {
+        id: "heading-2",
+        label: "Heading 2",
+        run: (currentEditor, pos) => {
+          setSelectionToBlock(currentEditor, pos);
+          unwrapListIfNeeded(currentEditor);
+          currentEditor.chain().focus().setHeading({ level: 2 }).run();
+        },
+      },
+      {
+        id: "heading-3",
+        label: "Heading 3",
+        run: (currentEditor, pos) => {
+          setSelectionToBlock(currentEditor, pos);
+          unwrapListIfNeeded(currentEditor);
+          currentEditor.chain().focus().setHeading({ level: 3 }).run();
+        },
+      },
+      {
+        id: "heading-4",
+        label: "Heading 4",
+        run: (currentEditor, pos) => {
+          setSelectionToBlock(currentEditor, pos);
+          unwrapListIfNeeded(currentEditor);
+          currentEditor.chain().focus().setHeading({ level: 4 }).run();
+        },
+      },
+      {
+        id: "bullet-list",
+        label: "Bulleted list",
+        run: (currentEditor, pos) => {
+          setSelectionToBlock(currentEditor, pos);
+          currentEditor.chain().focus().toggleBulletList().run();
+        },
+      },
+      {
+        id: "ordered-list",
+        label: "Numbered list",
+        run: (currentEditor, pos) => {
+          setSelectionToBlock(currentEditor, pos);
+          currentEditor.chain().focus().toggleOrderedList().run();
+        },
+      },
+      {
+        id: "quote",
+        label: "Quote",
+        run: (currentEditor, pos) => {
+          setSelectionToBlock(currentEditor, pos);
+          unwrapListIfNeeded(currentEditor);
+          currentEditor.chain().focus().toggleBlockquote().run();
+        },
+      },
+      {
+        id: "code",
+        label: "Code",
+        run: (currentEditor, pos) => {
+          setSelectionToBlock(currentEditor, pos);
+          unwrapListIfNeeded(currentEditor);
+          currentEditor.chain().focus().toggleCodeBlock().run();
+        },
+      },
+    ],
+    [],
+  );
+
+  useEffect(() => {
+    filteredSlashItemsRef.current = filteredSlashItems;
+  }, [filteredSlashItems]);
+
+  useEffect(() => {
+    if (!editor || !canEditBody) {
+      return;
+    }
+
+    const syncSlashMenu = () => {
+      if (!editor.isFocused) {
+        slashContextRef.current = null;
+        setSlashMenu((current) => ({
+          ...current,
+          activeIndex: 0,
+          open: false,
+          placement: "below",
+          query: "",
+        }));
+        return;
+      }
+
+      const slashContext = getSlashContext(editor);
+
+      if (!slashContext) {
+        slashContextRef.current = null;
+        setSlashMenu((current) => ({
+          ...current,
+          activeIndex: 0,
+          open: false,
+          placement: "below",
+          query: "",
+        }));
+        return;
+      }
+
+      const container = editorContainerRef.current;
+
+      if (!container) {
+        return;
+      }
+
+      const coords = editor.view.coordsAtPos(editor.state.selection.from);
+      const bounds = container.getBoundingClientRect();
+      const estimatedMenuHeight = Math.min(filteredSlashItemsRef.current.length * 38 + 10, 260);
+      const spaceBelow = window.innerHeight - coords.bottom;
+      const placeAbove = spaceBelow < estimatedMenuHeight + 16 && coords.top > estimatedMenuHeight;
+      const nextTop = placeAbove
+        ? coords.top - bounds.top - estimatedMenuHeight - 10
+        : coords.bottom - bounds.top + 10;
+      const nextLeft = Math.max(
+        12,
+        Math.min(coords.left - bounds.left, bounds.width - 228),
+      );
+
+      slashContextRef.current = slashContext;
+      setSlashMenu((current) => ({
+        activeIndex:
+          current.query !== slashContext.query || !current.open ? 0 : current.activeIndex,
+        left: nextLeft,
+        open: true,
+        placement: placeAbove ? "above" : "below",
+        query: slashContext.query,
+        top: Math.max(12, nextTop),
+      }));
+    };
+
+    syncSlashMenu();
+    editor.on("selectionUpdate", syncSlashMenu);
+    editor.on("transaction", syncSlashMenu);
+    editor.on("blur", syncSlashMenu);
+    editor.on("focus", syncSlashMenu);
+
+    return () => {
+      editor.off("selectionUpdate", syncSlashMenu);
+      editor.off("transaction", syncSlashMenu);
+      editor.off("blur", syncSlashMenu);
+      editor.off("focus", syncSlashMenu);
+    };
+  }, [canEditBody, editor]);
+
+  useEffect(() => {
+    if (!editor || !canEditBody) {
+      return;
+    }
+
+    const container = editorContainerRef.current;
+    const editorRoot = container?.querySelector(".ProseMirror");
+
+    if (!(editorRoot instanceof HTMLElement) || !container) {
+      return;
+    }
+
+    const syncHoveredBlock = (target: EventTarget | null, clientY?: number) => {
+      if (target instanceof Node) {
+        if (blockControlsRef.current?.contains(target) || blockMenuRef.current?.contains(target)) {
+          return;
+        }
+      }
+
+      if (typeof clientY === "number") {
+        const hoveredBlockFromPointer = getHoveredBlockFromPointer(
+          editor,
+          editorRoot,
+          container,
+          clientY,
+        );
+
+        if (hoveredBlockFromPointer) {
+          setHoveredBlock(hoveredBlockFromPointer);
+          return;
+        }
+      }
+
+      const blockElement = getTopLevelBlock(target, editorRoot);
+
+      if (!blockElement) {
+        setHoveredBlock(null);
+        return;
+      }
+
+      let pos: number | null = null;
+
+      try {
+        pos = editor.view.posAtDOM(blockElement, 0);
+      } catch {
+        pos = null;
+      }
+
+      if (pos == null) {
+        setHoveredBlock(null);
+        return;
+      }
+
+      const blockBounds = blockElement.getBoundingClientRect();
+      const containerBounds = container.getBoundingClientRect();
+
+      setHoveredBlock({
+        height: blockBounds.height,
+        pos,
+        top: blockBounds.top - containerBounds.top,
+      });
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      syncHoveredBlock(event.target, event.clientY);
+    };
+
+    const handlePointerLeave = () => {
+      setHoveredBlock(null);
+    };
+
+    container.addEventListener("pointermove", handlePointerMove);
+    container.addEventListener("pointerleave", handlePointerLeave);
+
+    return () => {
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("pointerleave", handlePointerLeave);
+    };
+  }, [canEditBody, editor]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!canEditTitle || document.title.trim()) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [canEditTitle, document.id, document.title]);
+
+  function syncHoveredBlockFromPos(position: number) {
+    if (!editor) {
+      return;
+    }
+
+    const container = editorContainerRef.current;
+    const domNode = editor.view.nodeDOM(position);
+
+    if (!(container instanceof HTMLElement) || !(domNode instanceof HTMLElement)) {
+      return;
+    }
+
+    const blockBounds = domNode.getBoundingClientRect();
+    const containerBounds = container.getBoundingClientRect();
+
+    setHoveredBlock({
+      height: blockBounds.height,
+      pos: position,
+      top: blockBounds.top - containerBounds.top,
+    });
+  }
+
+  async function commitTitle() {
+    if (!canEditTitle) {
+      return;
+    }
+
+    const result = await saveDocument(document.id, { title: titleDraft });
+
+    if (!result.ok) {
+      setTitleError(result.error);
+      setStatus("error");
+      return;
+    }
+
+    setTitleDraft(result.document?.title ?? titleDraft);
+    setTitleError(null);
+    setStatus("saved");
+    window.setTimeout(() => {
+      setStatus("idle");
+    }, 1200);
+  }
+
+  function handleInsertBlockBefore() {
+    if (!editor || !hoveredBlock) {
+      return;
+    }
+
+    setBlockMenu({
+      left: 0,
+      open: false,
+      pos: null,
+      showTurnInto: false,
+      top: 0,
+    });
+
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(hoveredBlock.pos, {
+        type: "paragraph",
+        content: [{ type: "text", text: "/" }],
+      })
+      .setTextSelection(hoveredBlock.pos + 2)
+      .run();
+  }
+
+  function handleDuplicateBlock() {
+    if (!editor || blockMenu.pos == null) {
+      return;
+    }
+
+    const node = editor.state.doc.nodeAt(blockMenu.pos);
+
+    if (!node) {
+      return;
+    }
+
+    const duplicatedPos = blockMenu.pos + node.nodeSize;
+
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(duplicatedPos, node.toJSON())
+      .run();
+
+    setBlockMenu({
+      left: 0,
+      open: false,
+      pos: null,
+      showTurnInto: false,
+      top: 0,
+    });
+
+    window.requestAnimationFrame(() => {
+      syncHoveredBlockFromPos(duplicatedPos);
+    });
+  }
+
+  function handleDeleteBlock() {
+    if (!editor || blockMenu.pos == null) {
+      return;
+    }
+
+    const node = editor.state.doc.nodeAt(blockMenu.pos);
+
+    if (!node) {
+      return;
+    }
+
+    editor
+      .chain()
+      .focus()
+      .deleteRange({ from: blockMenu.pos, to: blockMenu.pos + node.nodeSize })
+      .run();
+
+    setBlockMenu({
+      left: 0,
+      open: false,
+      pos: null,
+      showTurnInto: false,
+      top: 0,
+    });
+    setHoveredBlock(null);
+  }
+
+  function handleTurnInto(item: BlockTransformItem) {
+    if (!editor || blockMenu.pos == null) {
+      return;
+    }
+
+    item.run(editor, blockMenu.pos);
+    setBlockMenu({
+      left: 0,
+      open: false,
+      pos: null,
+      showTurnInto: false,
+      top: 0,
+    });
+    window.requestAnimationFrame(() => {
+      syncHoveredBlockFromPos(blockMenu.pos ?? 0);
+    });
+  }
+
+  const statusLabel =
+    status === "saving"
+      ? "Saving..."
+      : status === "saved"
+        ? "Saved"
+        : status === "error"
+          ? "Save failed"
+          : null;
+  const currentTransformActiveId =
+    editor && blockMenu.pos != null ? getBlockTransformActiveId(editor, blockMenu.pos) : null;
+  const canUndo = Boolean(editor?.can().chain().focus().undo().run());
+  const guestBadgeClass =
+    "rounded-full border border-[#f0d9a7] bg-[#fbefcf] px-2 py-0.5 text-[11px] font-semibold text-[#c98a10]";
+  const searchHeaderLabel =
+    searchNotice === "No match found"
+      ? "No match found"
+      : searchMatchIndex >= 0
+        ? `${searchMatchIndex + 1} / ${searchMatchCount}`
+        : "";
+  function runSearch(direction: "forward" | "backward") {
+    const query = searchQuery.trim();
+
+    if (!query) {
+      setSearchRects([]);
+      setSearchMatchCount(0);
+      setSearchMatchIndex(-1);
+      setSearchNotice("Enter text to search");
+      return;
+    }
+
+    const container = editorContainerRef.current;
+    const editorRoot = container?.querySelector(".ProseMirror");
+
+    if (!(editorRoot instanceof HTMLElement) || !(container instanceof HTMLElement)) {
+      setSearchRects([]);
+      setSearchMatchCount(0);
+      setSearchNotice("No match found");
+      return;
+    }
+
+    const matches = collectSearchMatches(editorRoot, query);
+
+    if (!matches.length) {
+      setSearchRects([]);
+      setSearchMatchCount(0);
+      setSearchMatchIndex(-1);
+      setSearchNotice("No match found");
+      return;
+    }
+
+    const nextIndex =
+      searchMatchIndex < 0
+        ? direction === "forward"
+          ? 0
+          : matches.length - 1
+        : direction === "forward"
+          ? (searchMatchIndex + 1) % matches.length
+          : (searchMatchIndex - 1 + matches.length) % matches.length;
+    const nextMatch = matches[nextIndex];
+    const nextRects = getSearchRects(nextMatch.range, container);
+
+    setSearchRects(nextRects);
+    setSearchMatchCount(matches.length);
+    setSearchMatchIndex(nextIndex);
+    setSearchNotice(null);
+    nextMatch.range.startContainer.parentElement?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      const length = searchInputRef.current?.value.length ?? 0;
+      searchInputRef.current?.setSelectionRange(length, length);
+    });
+  }
+
+  async function handleExportMarkdown() {
+    const html = editor?.getHTML() ?? document.content;
+    const markdown = editorHtmlToMarkdown(html);
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const downloadUrl = URL.createObjectURL(blob);
+    const anchor = globalThis.document.createElement("a");
+    anchor.href = downloadUrl;
+    anchor.download = sanitizeMarkdownFilename(document.title);
+    anchor.click();
+    URL.revokeObjectURL(downloadUrl);
+    setActionError(null);
+    setActionNotice("Markdown exported");
+  }
+
+  async function handleImportMarkdown(file: File) {
+    if (!canEditBody) {
+      setActionError("You do not have permission to import");
+      setActionNotice(null);
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".md")) {
+      setActionError("Only .md files are supported right now");
+      setActionNotice(null);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setActionError("上传文件过大");
+      setActionNotice(null);
+      return;
+    }
+
+    const markdown = await file.text();
+    const html = markdownToEditorHtml(markdown);
+
+    if (!editor) {
+      setActionError("Editor is not ready");
+      setActionNotice(null);
+      return;
+    }
+
+    editor.chain().focus().insertContent(html).run();
+    const result = await saveDocument(document.id, { content: editor.getHTML() });
+
+    if (!result.ok) {
+      setActionError(result.error);
+      setActionNotice(null);
+      return;
+    }
+
+    setActionError(null);
+    setActionNotice("Markdown imported");
+  }
+
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      const target = event.target;
+      const isEditableTarget =
+        target instanceof HTMLElement &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        event.stopPropagation();
+        setSearchMenuOpen((current) => !current);
+        setOverflowMenuOpen(false);
+        setPermissionMenuOpen(false);
+        return;
+      }
+
+      if (event.key === "Escape" && searchMenuOpen) {
+        event.preventDefault();
+        event.stopPropagation();
+        setSearchMenuOpen(false);
+        return;
+      }
+
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "z" &&
+        !isEditableTarget &&
+        canUndo
+      ) {
+        event.preventDefault();
+        editor?.chain().focus().undo().run();
+      }
+    }
+
+    globalThis.document.addEventListener("keydown", handleShortcut);
+
+    return () => {
+      globalThis.document.removeEventListener("keydown", handleShortcut);
+    };
+  }, [canUndo, editor, searchMenuOpen]);
+
+  return (
+    <div className="flex min-h-full flex-col bg-[linear-gradient(180deg,#ffffff_0%,#fdfcfb_100%)]">
+      <div className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[rgba(255,255,255,0.94)] px-4 py-4 backdrop-blur-md">
+        <div className="flex w-full flex-col">
+          <div className="flex items-start justify-between gap-6">
+            <div className="inline-flex max-w-full items-center gap-2">
+              <div className="relative max-w-[min(100%,48rem)]">
+                <span
+                  aria-hidden="true"
+                  className="invisible block whitespace-pre border-none bg-transparent px-0 text-[1.35rem] font-semibold tracking-[-0.028em] md:text-[1.55rem]"
+                >
+                  {titleDraft || "Untitled"}
+                </span>
+                <input
+                  className="absolute inset-0 w-full border-none bg-transparent px-0 text-[1.35rem] font-semibold tracking-[-0.028em] outline-none placeholder:text-[var(--color-muted-foreground)] disabled:cursor-default md:text-[1.55rem]"
+                  disabled={!canEditTitle}
+                  onBlur={() => {
+                    void commitTitle();
+                  }}
+                  onChange={(event) => {
+                    setTitleDraft(event.target.value);
+                    setTitleError(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") {
+                      return;
+                    }
+
+                    event.preventDefault();
+                    void commitTitle();
+                    editor?.commands.focus("end");
+                  }}
+                  placeholder="Untitled"
+                  ref={titleInputRef}
+                  value={titleDraft}
+                />
+              </div>
+              {statusLabel ? (
+                <div className="shrink-0 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2 py-1 text-xs font-medium text-[var(--color-muted-foreground)]">
+                  {statusLabel}
+                </div>
+              ) : (
+                <div className="invisible shrink-0 border border-[var(--color-border)] px-2 py-1 text-xs font-medium">
+                  Saved
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <button
+                  className="flex min-h-10 items-center gap-2 border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 text-sm shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
+                  onClick={() => {
+                    setPermissionMenuOpen((current) => !current);
+                    setPermissionError(null);
+                    setPermissionNotice(null);
+                    setActionError(null);
+                    setActionNotice(null);
+                    setSearchMenuOpen(false);
+                    setOverflowMenuOpen(false);
+                  }}
+                  ref={permissionButtonRef}
+                  type="button"
+                >
+                  {document.status === "private" ? (
+                    <>
+                      <Lock className="size-4 text-[var(--color-muted-foreground)]" />
+                      <span>Private</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Shared</span>
+                      <div className="flex items-center -space-x-1">
+                        {sharedAvatars.map((entry) => (
+                          <span
+                            className="flex size-6 items-center justify-center rounded-full border border-white bg-[var(--color-sidebar-panel)] text-[11px] font-semibold text-[var(--color-muted-foreground)]"
+                            key={entry.id}
+                            title={entry.name}
+                          >
+                            {entry.name.slice(0, 1).toUpperCase()}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <ChevronDown
+                    className={`size-4 text-[var(--color-muted-foreground)] transition ${
+                      permissionMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {permissionMenuOpen ? (
+                  <div
+                    className="absolute right-0 top-[calc(100%+10px)] z-20 w-[468px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
+                    ref={permissionMenuRef}
+                  >
+                  <div className="border-b border-[var(--color-border)] px-4 py-3">
+                    <p className="text-[15px] font-semibold text-[var(--color-foreground)]">
+                      Share
+                    </p>
+                  </div>
+
+                  <div className="px-4 py-4">
+                    {canManageAccess ? (
+                      <form
+                        className="space-y-3 border-b border-[var(--color-border)] pb-4"
+                        onSubmit={async (event) => {
+                          event.preventDefault();
+                          setPermissionBusy(true);
+                          setPermissionError(null);
+                          setPermissionNotice(null);
+
+                          const result = await shareDocument(document.id, {
+                            email: shareEmail,
+                            permission: sharePermission,
+                          });
+
+                          setPermissionBusy(false);
+
+                          if (!result.ok) {
+                            setPermissionError(result.error);
+                            return;
+                          }
+
+                          setShareEmail("");
+                          setSharePermission("can_view");
+                          setPermissionNotice("Guest added");
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            className="h-10 min-w-0 flex-1 border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm text-[var(--color-foreground)] outline-none transition focus:border-[var(--color-ring)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-ring)_15%,transparent)]"
+                            onChange={(event) => {
+                              setShareEmail(event.target.value);
+                            }}
+                            placeholder="Email"
+                            spellCheck={false}
+                            type="email"
+                            value={shareEmail}
+                          />
+                          <PermissionDropdown
+                            onSelect={(nextPermission) => {
+                              setSharePermission(nextPermission);
+                            }}
+                            value={sharePermission}
+                            widthClassName="w-[108px]"
+                          />
+                          <button
+                            className="h-9 shrink-0 bg-[var(--color-primary)] px-3 text-xs font-semibold text-[var(--color-primary-foreground)] transition hover:brightness-95 disabled:opacity-50"
+                            disabled={permissionBusy}
+                            type="submit"
+                          >
+                            Share
+                          </button>
+                        </div>
+                      </form>
+                    ) : null}
+
+                    <div className={`${canManageAccess ? "mt-4" : ""} space-y-1`}>
+                      {accessEntries.map((entry) => {
+                        const isOwnerEntry = entry.permission === "owner";
+                        const isCurrentUser = currentUser?.id === entry.userId;
+                        const editablePermission =
+                          entry.permission === "can_edit" ? "can_edit" : "can_view";
+
+                        return (
+                          <div
+                            className="flex items-center gap-3 px-1.5 py-2"
+                            key={entry.id}
+                          >
+                            <span className="flex size-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] text-sm font-medium text-[var(--color-muted-foreground)]">
+                              {entry.name.slice(0, 1).toUpperCase()}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-sm font-medium">{entry.name}</p>
+                                {!isOwnerEntry ? (
+                                  <span className={guestBadgeClass}>
+                                    Guest
+                                  </span>
+                                ) : null}
+                                {isCurrentUser ? (
+                                  <span className="text-sm text-[var(--color-muted-foreground)]">
+                                    (You)
+                                  </span>
+                                ) : null}
+                              </div>
+                              <p className="truncate text-sm text-[var(--color-muted-foreground)]">
+                                {entry.email}
+                              </p>
+                            </div>
+                            {canManageAccess && !isOwnerEntry ? (
+                              <div className="flex items-center gap-2">
+                                <PermissionDropdown
+                                  align="right"
+                                  disabled={permissionBusy}
+                                  onSelect={async (nextPermission) => {
+                                    setPermissionBusy(true);
+                                    setPermissionError(null);
+                                    setPermissionNotice(null);
+                                    const result = await updateDocumentAccess(
+                                      document.id,
+                                      entry.userId,
+                                      nextPermission,
+                                    );
+                                    setPermissionBusy(false);
+
+                                    if (!result.ok) {
+                                      setPermissionError(result.error);
+                                      return;
+                                    }
+
+                                    setPermissionNotice("Permission updated");
+                                  }}
+                                  value={editablePermission}
+                                  widthClassName="w-[108px]"
+                                />
+                                <button
+                                  className="flex size-8 items-center justify-center text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[#b44c07]"
+                                  onClick={async () => {
+                                    setPermissionBusy(true);
+                                    setPermissionError(null);
+                                    setPermissionNotice(null);
+                                    const result = await removeDocumentAccess(
+                                      document.id,
+                                      entry.userId,
+                                    );
+                                    setPermissionBusy(false);
+
+                                    if (!result.ok) {
+                                      setPermissionError(result.error);
+                                      return;
+                                    }
+
+                                    setPermissionNotice("Access removed");
+                                  }}
+                                  type="button"
+                                >
+                                  <X className="size-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-[var(--color-muted-foreground)]">
+                                {isOwnerEntry ? "Owner" : permissionLabel(entry.permission)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {permissionError ? (
+                      <p className="pt-1 text-sm text-[#dd5b00]">{permissionError}</p>
+                    ) : null}
+                    {permissionNotice ? (
+                      <p className="pt-1 text-sm text-[var(--color-muted-foreground)]">
+                        {permissionNotice}
+                      </p>
+                    ) : null}
+                  </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="relative">
+                <button
+                  className="flex size-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
+                  onClick={() => {
+                    setSearchMenuOpen((current) => !current);
+                    setActionError(null);
+                    setActionNotice(null);
+                    setOverflowMenuOpen(false);
+                    setPermissionMenuOpen(false);
+                  }}
+                  ref={searchButtonRef}
+                  type="button"
+                >
+                  <Search className="size-4 text-[var(--color-muted-foreground)]" />
+                </button>
+
+                {searchMenuOpen ? (
+                  <div
+                    className="absolute right-0 top-[calc(100%+10px)] z-20 w-[320px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
+                    ref={searchMenuRef}
+                  >
+                    <div className="border-b border-[var(--color-border)] px-4 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="text-[15px] font-semibold text-[var(--color-foreground)]">
+                          Search
+                        </label>
+                        <span className="w-28 text-right text-xs tabular-nums text-[var(--color-muted-foreground)]">
+                          {searchHeaderLabel}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-3 px-4 py-4">
+                      <div className="flex items-center gap-2 border border-[var(--color-border)] bg-[var(--color-card)] px-3">
+                        <Search className="size-4 shrink-0 text-[var(--color-muted-foreground)]" />
+                        <input
+                          className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none"
+                          onChange={(event) => {
+                            setSearchRects([]);
+                            setSearchMatchCount(0);
+                            setSearchMatchIndex(-1);
+                            setSearchNotice(null);
+                            setSearchQuery(event.target.value);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              runSearch("forward");
+                            }
+                          }}
+                          placeholder="Find in document"
+                          ref={searchInputRef}
+                          value={searchQuery}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="h-8 flex-1 border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm transition hover:bg-[var(--color-hover)]"
+                          onClick={() => {
+                            runSearch("backward");
+                          }}
+                          type="button"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          className="h-8 flex-1 border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm transition hover:bg-[var(--color-hover)]"
+                          onClick={() => {
+                            runSearch("forward");
+                          }}
+                          type="button"
+                        >
+                          Next
+                        </button>
+                      </div>
+                      {searchNotice && searchNotice !== "No match found" ? (
+                        <p className="text-sm text-[var(--color-muted-foreground)]">
+                          {searchNotice}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="relative">
+                <button
+                  className="flex size-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
+                  onClick={() => {
+                    setOverflowMenuOpen((current) => !current);
+                    setActionError(null);
+                    setActionNotice(null);
+                    setSearchMenuOpen(false);
+                    setPermissionMenuOpen(false);
+                  }}
+                  ref={overflowButtonRef}
+                  type="button"
+                >
+                  <MoreHorizontal className="size-4 text-[var(--color-muted-foreground)]" />
+                </button>
+
+                {overflowMenuOpen ? (
+                  <div
+                    className="absolute right-0 top-[calc(100%+10px)] z-20 w-[280px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
+                    ref={overflowMenuRef}
+                  >
+                    <div className="border-b border-[var(--color-border)] px-4 py-3">
+                      <p className="text-[15px] font-semibold text-[var(--color-foreground)]">
+                        Actions
+                      </p>
+                    </div>
+                    <div className="space-y-2 px-4 py-4">
+                        <button
+                          className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm transition hover:bg-[var(--color-hover)] disabled:opacity-40"
+                          disabled={!canEditBody || !canUndo}
+                          onClick={() => {
+                            editor?.chain().focus().undo().run();
+                          }}
+                          type="button"
+                        >
+                          <span>Undo</span>
+                          <Undo2 className="ml-auto size-4 text-[var(--color-muted-foreground)]" />
+                        </button>
+                        <button
+                          className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] disabled:opacity-40"
+                          disabled={!canEditBody}
+                          onClick={() => {
+                            importInputRef.current?.click();
+                          }}
+                          type="button"
+                        >
+                          <span>Import</span>
+                          <Upload className="ml-auto size-4" />
+                        </button>
+                        <button
+                          className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
+                          onClick={() => {
+                            void handleExportMarkdown();
+                          }}
+                          type="button"
+                        >
+                          <span>Export</span>
+                          <Download className="ml-auto size-4" />
+                        </button>
+                        {actionError ? (
+                          <p className="px-2 pt-1 text-sm text-[#dd5b00]">{actionError}</p>
+                        ) : null}
+                        {actionNotice ? (
+                          <p className="px-2 pt-1 text-sm text-[var(--color-muted-foreground)]">
+                            {actionNotice}
+                          </p>
+                        ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+          {titleError ? (
+            <p className="mt-2 text-sm text-[#dd5b00]">{titleError}</p>
+          ) : null}
+
+          {canEditBody ? (
+            <div className="mt-5 flex flex-wrap items-center gap-1 border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-whisper)]">
+              <ToolbarButton
+                active={Boolean(editor?.isActive("bold"))}
+                disabled={!canEditBody}
+                label="Bold"
+                onClick={() => {
+                  editor?.chain().focus().toggleBold().run();
+                }}
+              >
+                <Bold className="size-4" />
+              </ToolbarButton>
+              <ToolbarButton
+                active={Boolean(editor?.isActive("italic"))}
+                disabled={!canEditBody}
+                label="Italic"
+                onClick={() => {
+                  editor?.chain().focus().toggleItalic().run();
+                }}
+              >
+                <Italic className="size-4" />
+              </ToolbarButton>
+              <ToolbarButton
+                active={Boolean(editor?.isActive("heading", { level: 1 }))}
+                disabled={!canEditBody}
+                label="Heading 1"
+                onClick={() => {
+                  editor?.chain().focus().toggleHeading({ level: 1 }).run();
+                }}
+              >
+                <Heading1 className="size-4" />
+              </ToolbarButton>
+              <ToolbarButton
+                active={Boolean(editor?.isActive("heading", { level: 2 }))}
+                disabled={!canEditBody}
+                label="Heading 2"
+                onClick={() => {
+                  editor?.chain().focus().toggleHeading({ level: 2 }).run();
+                }}
+              >
+                <Heading2 className="size-4" />
+              </ToolbarButton>
+              <ToolbarButton
+                active={Boolean(editor?.isActive("bulletList"))}
+                disabled={!canEditBody}
+                label="Bullet list"
+                onClick={() => {
+                  editor?.chain().focus().toggleBulletList().run();
+                }}
+              >
+                <List className="size-4" />
+              </ToolbarButton>
+              <ToolbarButton
+                active={Boolean(editor?.isActive("orderedList"))}
+                disabled={!canEditBody}
+                label="Ordered list"
+                onClick={() => {
+                  editor?.chain().focus().toggleOrderedList().run();
+                }}
+              >
+                <ListOrdered className="size-4" />
+              </ToolbarButton>
+              <ToolbarButton
+                active={Boolean(editor?.isActive("blockquote"))}
+                disabled={!canEditBody}
+                label="Quote"
+                onClick={() => {
+                  if (editor?.isActive("bulletList") || editor?.isActive("orderedList")) {
+                    editor?.chain().focus().liftListItem("listItem").run();
+                  }
+                  editor?.chain().focus().toggleBlockquote().run();
+                }}
+              >
+                <Quote className="size-4" />
+              </ToolbarButton>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-10 py-8">
+        <input
+          accept=".md,text/markdown"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+
+            if (!file) {
+              return;
+            }
+
+            void handleImportMarkdown(file);
+            event.currentTarget.value = "";
+          }}
+          ref={importInputRef}
+          type="file"
+        />
+        <div className="relative" ref={editorContainerRef}>
+          {searchRects.map((rect, index) => (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute z-[1] bg-[color-mix(in_srgb,var(--color-primary)_22%,transparent)]"
+              key={`${rect.left}-${rect.top}-${index}`}
+              style={{
+                height: `${rect.height}px`,
+                left: `${rect.left}px`,
+                top: `${rect.top}px`,
+                width: `${rect.width}px`,
+              }}
+            />
+          ))}
+          {canEditBody && hoveredBlock ? (
+            <div
+              className="absolute left-[-50px] z-10 flex items-center gap-1"
+              ref={blockControlsRef}
+              style={{
+                top: `${Math.max(0, hoveredBlock.top + hoveredBlock.height / 2 - 14)}px`,
+              }}
+            >
+              <button
+                aria-label="Insert block"
+                className="flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+                onClick={handleInsertBlockBefore}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                }}
+                type="button"
+              >
+                <Plus className="size-4" />
+              </button>
+              <button
+                aria-label="Block menu"
+                className="flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+                onClick={(event) => {
+                  const triggerBounds = event.currentTarget.getBoundingClientRect();
+                  const nextLeft = Math.max(12, triggerBounds.left - blockMenuWidth - 8);
+                  const nextTop = Math.max(
+                    12,
+                    Math.min(triggerBounds.top - 8, window.innerHeight - 220),
+                  );
+
+                  setBlockMenu({
+                    left: nextLeft,
+                    open: true,
+                    pos: hoveredBlock.pos,
+                    showTurnInto: false,
+                    top: nextTop,
+                  });
+                }}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                }}
+                type="button"
+              >
+                <GripVertical className="size-4" />
+              </button>
+            </div>
+          ) : null}
+          <EditorContent editor={editor} />
+          {canEditBody && blockMenu.open && globalThis.document?.body
+            ? createPortal(
+                <div
+                  className="fixed z-[90] w-[208px] border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-soft-card)]"
+                  ref={blockMenuRef}
+                  style={{
+                    left: `${blockMenu.left}px`,
+                    top: `${blockMenu.top}px`,
+                  }}
+                >
+                  <div
+                    className="relative"
+                    onMouseEnter={() => {
+                      setBlockMenu((current) => ({
+                        ...current,
+                        showTurnInto: true,
+                      }));
+                    }}
+                    onMouseLeave={() => {
+                      setBlockMenu((current) => ({
+                        ...current,
+                        showTurnInto: false,
+                      }));
+                    }}
+                  >
+                    <button
+                      className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
+                      type="button"
+                    >
+                      <span>Turn into</span>
+                      <ChevronRight
+                        className={`size-4 text-[var(--color-muted-foreground)] transition ${
+                          blockMenu.showTurnInto ? "translate-x-0.5" : ""
+                        }`}
+                      />
+                    </button>
+                    {blockMenu.showTurnInto ? (
+                      <div className="absolute left-full top-0 z-[91] w-[208px] border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-soft-card)]">
+                        {blockTransformItems.map((item) => {
+                          const isCurrent = currentTransformActiveId === item.id;
+
+                          return (
+                            <button
+                              className={`flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] transition ${
+                                isCurrent
+                                  ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
+                                  : "text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                              }`}
+                              key={item.id}
+                              onClick={() => {
+                                handleTurnInto(item);
+                              }}
+                              type="button"
+                            >
+                              <span>{item.label}</span>
+                              <span className="text-xs text-[var(--color-muted-foreground)]">
+                                {isCurrent ? "Current" : ""}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
+                    onClick={handleDuplicateBlock}
+                    type="button"
+                  >
+                    <span>Duplicate</span>
+                    <Copy className="size-4 text-[var(--color-muted-foreground)]" />
+                  </button>
+                  <button
+                    className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
+                    disabled
+                    type="button"
+                  >
+                    <span>AI actions</span>
+                    <Sparkles className="size-4 text-[var(--color-muted-foreground)]" />
+                  </button>
+                  <button
+                    className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] text-[#b44c07] transition hover:bg-[var(--color-hover)]"
+                    onClick={handleDeleteBlock}
+                    type="button"
+                  >
+                    <span>Delete</span>
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>,
+                globalThis.document.body,
+              )
+            : null}
+          {canEditBody && slashMenu.open && filteredSlashItems.length ? (
+            <div
+              className="absolute z-20 max-h-[260px] w-[216px] overflow-y-auto border border-[var(--color-border)] bg-[var(--color-card)] p-1 shadow-[var(--shadow-soft-card)]"
+              style={{
+                left: `${slashMenu.left}px`,
+                top: `${slashMenu.top}px`,
+              }}
+            >
+              {filteredSlashItems.map((item) => {
+                const enabledIndex = enabledSlashItems.findIndex((candidate) => candidate.id === item.id);
+                const isActive = item.enabled && enabledIndex === slashMenu.activeIndex;
+
+                return (
+                  <button
+                    className={`flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[13px] transition ${
+                      item.enabled
+                        ? isActive
+                          ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
+                          : "text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                        : "cursor-not-allowed text-[var(--color-muted-foreground)] opacity-55"
+                    }`}
+                    disabled={!item.enabled}
+                    key={item.id}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                    }}
+                    onMouseEnter={() => {
+                      if (!item.enabled) {
+                        return;
+                      }
+
+                      setSlashMenu((current) => ({
+                        ...current,
+                        activeIndex: enabledIndex >= 0 ? enabledIndex : current.activeIndex,
+                      }));
+                    }}
+                    onClick={() => {
+                      const slashContext = slashContextRef.current;
+                      const currentEditor = editor;
+
+                      if (!currentEditor || !item.enabled || !slashContext) {
+                        return;
+                      }
+
+                      currentEditor
+                        .chain()
+                        .focus()
+                        .deleteRange({ from: slashContext.from, to: slashContext.to })
+                        .run();
+                      item.run(currentEditor);
+                      setSlashMenu((current) => ({
+                        ...current,
+                        activeIndex: 0,
+                        open: false,
+                        query: "",
+                      }));
+                    }}
+                    type="button"
+                  >
+                    <span>{item.label}</span>
+                    <span className="text-xs text-[var(--color-muted-foreground)]">
+                      {item.enabled ? item.shortcut || " " : "Soon"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
+  const router = useRouter();
+  const openedDocumentIdRef = useRef<string | null>(null);
+  const {
+    currentUser,
+    currentWorkspace,
+    getDocument,
+    openDocument,
+    ready,
+    saveDocument,
+    state,
+  } = useAppState();
+  const document = getDocument(documentId);
+  const permission = useMemo(() => {
+    if (!currentUser || !document) {
+      return null;
+    }
+
+    return getAccessPermission(state, currentUser, document);
+  }, [currentUser, document, state]);
+
+  useEffect(() => {
+    if (!ready || !currentUser || openedDocumentIdRef.current === documentId) {
+      return;
+    }
+
+    void (async () => {
+      const result = await openDocument(documentId);
+
+      if (!result.ok) {
+        router.replace("/home");
+        return;
+      }
+
+      openedDocumentIdRef.current = documentId;
+    })();
+  }, [currentUser, documentId, openDocument, ready, router]);
+
+  if (!ready || !currentUser || !document || !currentWorkspace || !permission) {
+    return null;
+  }
+
+  return (
+    <EditorSurface
+      document={document}
+      key={document.id}
+      permission={permission}
+      saveDocument={saveDocument}
+    />
+  );
+}

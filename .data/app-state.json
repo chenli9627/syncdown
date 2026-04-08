@@ -1,0 +1,126 @@
+{
+  "users": [
+    {
+      "id": "user_owner",
+      "email": "owner@syntext.dev",
+      "username": "owner",
+      "name": "Syntext Owner",
+      "password": "ownerpass123",
+      "avatarUrl": null,
+      "createdAt": "2026-04-08T01:21:44.367Z"
+    },
+    {
+      "id": "user_guest",
+      "email": "guest@syntext.dev",
+      "username": "guest",
+      "name": "Guest Reader",
+      "password": "guestpass123",
+      "avatarUrl": null,
+      "createdAt": "2026-04-08T01:21:44.367Z"
+    }
+  ],
+  "workspaces": [
+    {
+      "id": "workspace_default",
+      "ownerUserId": "user_owner",
+      "name": "Default",
+      "lastAccessedAt": "2026-04-08T04:11:35.064Z",
+      "createdAt": "2026-04-08T01:21:44.367Z"
+    },
+    {
+      "id": "workspace_notes",
+      "ownerUserId": "user_owner",
+      "name": "Client Notes",
+      "lastAccessedAt": "2026-04-08T04:33:58.424Z",
+      "createdAt": "2026-04-08T01:21:44.367Z"
+    },
+    {
+      "id": "workspace_guest_lab",
+      "ownerUserId": "user_guest",
+      "name": "Research Lab",
+      "lastAccessedAt": "2026-04-08T04:24:30.358Z",
+      "createdAt": "2026-04-08T01:21:44.367Z"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc_pitch",
+      "workspaceId": "workspace_default",
+      "ownerUserId": "user_owner",
+      "title": "Draft pitch",
+      "content": "<h2>dfafs</h2><p>dd</p><h1>testtt</h1><p>wocao</p><p>卧槽</p>",
+      "status": "private",
+      "lastEditedAt": "2026-04-08T04:12:36.619Z",
+      "createdAt": "2026-04-08T01:21:44.367Z"
+    },
+    {
+      "id": "doc_review",
+      "workspaceId": "workspace_default",
+      "ownerUserId": "user_owner",
+      "title": "Weekly review",
+      "content": "",
+      "status": "private",
+      "lastEditedAt": "2026-04-08T01:21:44.367Z",
+      "createdAt": "2026-04-08T01:21:44.367Z"
+    },
+    {
+      "id": "doc_shared_brief",
+      "workspaceId": "workspace_notes",
+      "ownerUserId": "user_owner",
+      "title": "Team brief",
+      "content": "<h1>heading 1</h1><p></p><p>dskfskd kdskjds</p><p>dsfkakd</p><p>dsfdsf</p><p>fds</p><p>f</p><p>ds</p><p>fds</p><p>f</p><p>ds</p><p>f</p><p></p><p>ds</p><h3>fds</h3><p>f</p><p></p><p>ds</p><p>f</p><p>ds</p><p>f</p><p>ds</p><p>d</p><p>ds</p><p></p>",
+      "status": "shared",
+      "lastEditedAt": "2026-04-08T04:31:33.626Z",
+      "createdAt": "2026-04-08T01:21:44.367Z"
+    },
+    {
+      "id": "doc_guest_playbook",
+      "workspaceId": "workspace_guest_lab",
+      "ownerUserId": "user_guest",
+      "title": "Interview notes",
+      "content": "<p></p>",
+      "status": "shared",
+      "lastEditedAt": "2026-04-08T04:24:30.915Z",
+      "createdAt": "2026-04-08T01:21:44.367Z"
+    }
+  ],
+  "accesses": [
+    {
+      "documentId": "doc_shared_brief",
+      "userId": "user_guest",
+      "permission": "can_view"
+    },
+    {
+      "documentId": "doc_guest_playbook",
+      "userId": "user_owner",
+      "permission": "can_edit"
+    }
+  ],
+  "recentVisits": [
+    {
+      "userId": "user_owner",
+      "documentId": "doc_guest_playbook",
+      "visitedAt": "2026-04-08T01:21:44.367Z"
+    },
+    {
+      "userId": "user_owner",
+      "documentId": "doc_pitch",
+      "visitedAt": "2026-04-08T04:12:36.619Z"
+    },
+    {
+      "userId": "user_guest",
+      "documentId": "doc_guest_playbook",
+      "visitedAt": "2026-04-08T04:24:30.915Z"
+    },
+    {
+      "userId": "user_owner",
+      "documentId": "doc_shared_brief",
+      "visitedAt": "2026-04-08T04:31:33.626Z"
+    },
+    {
+      "userId": "user_guest",
+      "documentId": "doc_shared_brief",
+      "visitedAt": "2026-04-08T04:33:58.424Z"
+    }
+  ]
+}
