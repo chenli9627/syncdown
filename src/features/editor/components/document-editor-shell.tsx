@@ -1,26 +1,23 @@
 "use client";
 
-import { useEditor } from "@tiptap/react";
-import type { Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocale } from "@/components/providers/locale-provider";
 import type {
   DocumentRecord,
 } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import { EditorCanvas } from "@/features/editor/components/editor-canvas";
 import { EditorHeader } from "@/features/editor/components/editor-header";
-import { DocumentStatusState } from "@/features/editor/components/document-status-state";
+import { DocumentShellGate } from "@/features/editor/components/document-shell-gate";
 import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
+import { useEditorAccessEntries } from "@/features/editor/hooks/use-editor-access-entries";
 import { useDocumentShellState } from "@/features/editor/hooks/use-document-shell-state";
 import { useEditorHoveredBlock } from "@/features/editor/hooks/use-editor-hovered-block";
 import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
 import { useEditorShortcuts } from "@/features/editor/hooks/use-editor-shortcuts";
 import { useEditorSlashMenu } from "@/features/editor/hooks/use-editor-slash-menu";
 import { useEditorTitleState } from "@/features/editor/hooks/use-editor-title-state";
-import { toEditorContent } from "@/features/editor/lib/content";
+import { useSyntextEditor } from "@/features/editor/hooks/use-syntext-editor";
 import {
   createBlockTransformItems,
 } from "@/features/editor/lib/menu-config";
@@ -31,7 +28,6 @@ import type {
   BlockTransformItem,
 } from "@/features/editor/lib/types";
 import {
-  getAccessEntries,
   permissionLabel,
 } from "@/features/editor/lib/utils";
 
@@ -72,8 +68,7 @@ function EditorSurface({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const permissionButtonRef = useRef<HTMLButtonElement | null>(null);
   const permissionMenuRef = useRef<HTMLDivElement | null>(null);
-  const saveTimeoutRef = useRef<number | null>(null);
-  const editorRef = useRef<Editor | null>(null);
+  const editorKeyDownRef = useRef<(event: KeyboardEvent) => boolean>(() => false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [searchMenuOpen, setSearchMenuOpen] = useState(false);
   const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
@@ -92,7 +87,6 @@ function EditorSurface({
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
   const [permissionBusy, setPermissionBusy] = useState(false);
-  const [editorReadyVersion, setEditorReadyVersion] = useState(0);
   const [blockMenu, setBlockMenu] = useState<{
     left: number;
     open: boolean;
@@ -122,35 +116,19 @@ function EditorSurface({
     saveDocument,
     setStatus,
   });
-  const currentWorkspaceUserIds = useMemo(
-    () =>
-      new Set(
-        state.users
-          .filter(
-            (user) =>
-              currentWorkspace &&
-              (currentWorkspace.ownerUserId === user.id ||
-                state.accesses.some((access) => {
-                  const accessDocument = state.documents.find(
-                    (item) => item.id === access.documentId,
-                  );
-
-                  return (
-                    access.userId === user.id &&
-                    accessDocument?.workspaceId === currentWorkspace.id &&
-                    accessDocument.status !== "trashed"
-                  );
-                })),
-          )
-          .map((user) => user.id),
-      ),
-    [currentWorkspace, state.accesses, state.documents, state.users],
+  const { accessEntries, sharedAvatars } = useEditorAccessEntries(
+    state,
+    document,
+    currentWorkspace,
   );
-  const accessEntries = useMemo(
-    () => getAccessEntries(state, document, currentWorkspaceUserIds),
-    [currentWorkspaceUserIds, document, state],
-  );
-  const sharedAvatars = accessEntries.slice(0, 4);
+  const { editor, editorReadyVersion, editorRef } = useSyntextEditor({
+    canEditBody,
+    content: document.content,
+    documentId: document.id,
+    onEditorKeyDown: (event) => editorKeyDownRef.current(event),
+    saveDocument,
+    setStatus,
+  });
 
   const {
     enabledSlashItems,
@@ -165,6 +143,10 @@ function EditorSurface({
     editorRef,
     editorContainerRef,
   });
+
+  useEffect(() => {
+    editorKeyDownRef.current = handleEditorKeyDown;
+  }, [handleEditorKeyDown]);
 
   useEditorOverlays({
     blockMenu,
@@ -185,62 +167,6 @@ function EditorSurface({
     setSearchMenuOpen,
   });
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3, 4],
-        },
-      }),
-    ],
-    content: toEditorContent(document.content),
-    editable: canEditBody,
-    editorProps: {
-      attributes: {
-        class:
-          "syntext-editor min-h-[60vh] max-w-none pl-6 outline-none text-base leading-8 text-[var(--color-foreground)]",
-      },
-      handleKeyDown: (_view, event) => {
-        return handleEditorKeyDown(event);
-      },
-    },
-    onCreate: ({ editor: currentEditor }) => {
-      editorRef.current = currentEditor;
-      setEditorReadyVersion((current) => current + 1);
-    },
-    onDestroy: () => {
-      editorRef.current = null;
-      setEditorReadyVersion((current) => current + 1);
-    },
-    onUpdate: ({ editor: currentEditor }) => {
-      if (!canEditBody) {
-        return;
-      }
-
-      if (saveTimeoutRef.current) {
-        window.clearTimeout(saveTimeoutRef.current);
-      }
-
-      setStatus("saving");
-      saveTimeoutRef.current = window.setTimeout(async () => {
-        const result = await saveDocument(document.id, {
-          content: currentEditor.getHTML(),
-        });
-
-        if (!result.ok) {
-          setStatus("error");
-          return;
-        }
-
-        setStatus("saved");
-        window.setTimeout(() => {
-          setStatus("idle");
-        }, 1200);
-      }, 500);
-    },
-  });
-
   useEffect(() => {
     if (!editor || !blockMenu.open || blockMenu.pos == null) {
       return;
@@ -259,14 +185,6 @@ function EditorSurface({
     };
   }, [blockMenu.open, blockMenu.pos, editor]);
 
-  useEffect(() => {
-    if (!editor) {
-      return;
-    }
-
-    editor.setEditable(canEditBody);
-  }, [canEditBody, editor]);
-
   const {
     hoveredBlock,
     setHoveredBlock,
@@ -283,14 +201,6 @@ function EditorSurface({
     () => createBlockTransformItems(),
     [],
   );
-
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        window.clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const guestBadgeClass =
     "rounded-full border border-[#f0d9a7] bg-[#fbefcf] px-2 py-0.5 text-[11px] font-semibold text-[#c98a10]";
@@ -447,7 +357,6 @@ function EditorSurface({
 }
 
 export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
-  const { t } = useLocale();
   const {
     currentUser,
     currentWorkspace,
@@ -463,21 +372,11 @@ export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
   }
 
   if (rawDocument?.status === "trashed") {
-    return (
-      <DocumentStatusState
-        description={t("deletedDescription")}
-        title={t("deletedTitle")}
-      />
-    );
+    return <DocumentShellGate mode="deleted" />;
   }
 
   if (rawDocument && !permission) {
-    return (
-      <DocumentStatusState
-        description={t("noAccessNotice")}
-        title={t("noAccessTitle")}
-      />
-    );
+    return <DocumentShellGate mode="no_access" />;
   }
 
   if (!document || !currentWorkspace || !permission) {
