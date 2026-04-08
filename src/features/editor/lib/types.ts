@@ -98,3 +98,9 @@ export type RemoteCursorMarker = {
   top: number;
   userId: string;
 };
+
+export type PresenceParticipant = {
+  color: string;
+  name: string;
+  userId: string;
+};

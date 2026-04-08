@@ -113,6 +113,7 @@ The current build includes a lightweight first-pass presence layer:
 
 - `/api/presence/[documentId]`
 - remote cursor markers rendered inside the editor
+- active collaborator avatars rendered in the document header
 - polling-based sync, independent from document content sync
 
 This is intentionally separate from future Yjs content collaboration.

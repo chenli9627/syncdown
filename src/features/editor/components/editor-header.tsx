@@ -10,7 +10,7 @@ import {
   EditorHeaderTitle,
   type EditorHeaderTitleProps,
 } from "@/features/editor/components/editor-header-title";
-import type { AccessEntry } from "@/features/editor/lib/types";
+import type { AccessEntry, PresenceParticipant } from "@/features/editor/lib/types";
 
 type EditorHeaderProps = {
   accessEntries: AccessEntry[];
@@ -43,6 +43,7 @@ type EditorHeaderProps = {
   permissionMenuOpen: boolean;
   permissionMenuRef: RefObject<HTMLDivElement | null>;
   permissionNotice: string | null;
+  remoteParticipants: PresenceParticipant[];
   removeDocumentAccess: (
     documentId: string,
     userId: string,
@@ -120,6 +121,7 @@ export function EditorHeader({
   permissionMenuOpen,
   permissionMenuRef,
   permissionNotice,
+  remoteParticipants,
   removeDocumentAccess,
   routerPushHome,
   searchButtonRef,
@@ -193,6 +195,7 @@ export function EditorHeader({
     permissionMenuOpen,
     permissionMenuRef,
     permissionNotice,
+    remoteParticipants,
     removeDocumentAccess,
     routerPushHome,
     searchButtonRef,

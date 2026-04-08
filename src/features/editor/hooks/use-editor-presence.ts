@@ -3,7 +3,11 @@
 import type { Editor } from "@tiptap/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@/features/app-state/types";
-import type { RemoteCursorMarker, PresenceEntry } from "@/features/editor/lib/types";
+import type {
+  PresenceEntry,
+  PresenceParticipant,
+  RemoteCursorMarker,
+} from "@/features/editor/lib/types";
 
 const PRESENCE_COLORS = [
   "#2383e2",
@@ -176,6 +180,15 @@ export function useEditorPresence({
       entries.map((entry) => `${entry.userId}:${entry.head}:${entry.updatedAt}`).join("|"),
     [entries],
   );
+  const participants = useMemo<PresenceParticipant[]>(
+    () =>
+      entries.map((entry) => ({
+        color: colorForUser(entry.userId),
+        name: entry.name,
+        userId: entry.userId,
+      })),
+    [entries],
+  );
 
   useEffect(() => {
     if (!editor) {
@@ -231,6 +244,7 @@ export function useEditorPresence({
   }, [editor, editorContainerRef, markerDependencies, entries]);
 
   return {
+    remoteParticipants: participants,
     remoteCursorMarkers: markers,
   };
 }

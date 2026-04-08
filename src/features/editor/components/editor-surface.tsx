@@ -65,6 +65,7 @@ export function EditorSurface({
         permissionMenuOpen={model.ui.permissionBody.permissionMenuOpen}
         permissionMenuRef={model.ui.permissionBody.permissionMenuRef}
         permissionNotice={model.ui.permissionBody.permissionNotice}
+        remoteParticipants={model.presence.remoteParticipants}
         removeDocumentAccess={model.removeDocumentAccess}
         routerPushHome={model.routerPushHome}
         searchButtonRef={model.ui.searchBody.searchButtonRef}
