@@ -12,7 +12,6 @@ type EditorHeaderOverflowActionProps = {
   documentId: string;
   editor: Editor | null;
   handleExportMarkdown: () => Promise<void>;
-  handleExportMarkdownZip: () => Promise<void>;
   imageInputRef: RefObject<HTMLInputElement | null>;
   importInputRef: RefObject<HTMLInputElement | null>;
   moveDocumentToTrash: (documentId: string) => Promise<{ error: string; ok: false } | { ok: true }>;
@@ -46,8 +45,7 @@ export function EditorHeaderOverflowAction(props: EditorHeaderOverflowActionProp
       actionNotice={props.actionNotice}
       canEditBody={props.canEditBody}
       canUndo={props.canUndo}
-      onExportMarkdown={() => void props.handleExportMarkdown()}
-      onExportZip={() => void props.handleExportMarkdownZip()}
+      onExport={() => void props.handleExportMarkdown()}
       onInsertImage={() => {
         props.setOverflowMenuOpen(false);
         props.imageInputRef.current?.click();

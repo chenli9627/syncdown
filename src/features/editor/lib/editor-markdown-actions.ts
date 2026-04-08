@@ -20,9 +20,12 @@ export function exportEditorMarkdown({ document, editor, setActionError, setActi
   const html = editor?.getHTML() ?? document.content;
 
   if (containsEmbeddedImages(html)) {
-    setActionError("This document contains images. Export .zip instead");
-    setActionNotice(null);
-    return;
+    return exportEditorMarkdownZipInternal({
+      document,
+      editor,
+      setActionError,
+      setActionNotice,
+    });
   }
 
   const markdown = editorHtmlToMarkdown(html);
@@ -35,18 +38,6 @@ export function exportEditorMarkdown({ document, editor, setActionError, setActi
   URL.revokeObjectURL(downloadUrl);
   setActionError(null);
   setActionNotice("Markdown exported");
-}
-
-export async function exportEditorMarkdownZip({ document, editor, setActionError, setActionNotice }: Pick<
-  EditorActionBaseArgs,
-  "document" | "editor" | "setActionError" | "setActionNotice"
->) {
-  return exportEditorMarkdownZipInternal({
-    document,
-    editor,
-    setActionError,
-    setActionNotice,
-  });
 }
 
 export async function importEditorMarkdown(args: EditorActionBaseArgs, file: File) {
@@ -109,13 +100,21 @@ async function exportEditorMarkdownZipInternal({
 
 async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
   const zip = await JSZip.loadAsync(file);
-  const markdownEntry = pickMarkdownEntry(zip);
+  const markdownEntries = getMarkdownEntries(zip);
 
-  if (!markdownEntry) {
+  if (markdownEntries.length === 0) {
     args.setActionError("Zip archive does not contain a Markdown file");
     args.setActionNotice(null);
     return;
   }
+
+  if (markdownEntries.length > 1) {
+    args.setActionError("Zip archive must contain exactly one Markdown file");
+    args.setActionNotice(null);
+    return;
+  }
+
+  const markdownEntry = markdownEntries[0];
 
   const markdown = await markdownEntry.async("text");
   const markdownDirectory = normalizeZipPath(markdownEntry.name.split("/").slice(0, -1).join("/"));
@@ -173,11 +172,10 @@ async function insertMarkdownIntoEditor(
   args.setActionNotice(notice);
 }
 
-function pickMarkdownEntry(zip: JSZip) {
-  const entries = Object.values(zip.files).filter((entry) => !entry.dir && entry.name.toLowerCase().endsWith(".md"));
-  const pageEntry = entries.find((entry) => normalizeZipPath(entry.name) === "page.md");
-
-  return pageEntry ?? entries[0] ?? null;
+function getMarkdownEntries(zip: JSZip) {
+  return Object.values(zip.files).filter(
+    (entry) => !entry.dir && entry.name.toLowerCase().endsWith(".md"),
+  );
 }
 
 function containsEmbeddedImages(html: string) {
@@ -191,6 +189,8 @@ function containsEmbeddedImages(html: string) {
 function validateZipMarkdownAssets(zip: JSZip, markdown: string, markdownDirectory: string) {
   const missingAssets = new Set<string>();
   const invalidAssets = new Set<string>();
+  const referencedAssets = new Set<string>();
+  const extraFiles = new Set<string>();
 
   for (const match of markdown.matchAll(/!\[(.*?)\]\((.+?)\)/g)) {
     const source = match[2] ?? "";
@@ -202,6 +202,7 @@ function validateZipMarkdownAssets(zip: JSZip, markdown: string, markdownDirecto
     const assetPath = normalizeZipPath(
       markdownDirectory ? `${markdownDirectory}/${source}` : source,
     );
+    referencedAssets.add(assetPath);
     const assetEntry = zip.file(assetPath);
 
     if (!assetEntry) {
@@ -224,6 +225,29 @@ function validateZipMarkdownAssets(zip: JSZip, markdown: string, markdownDirecto
   if (invalidAssets.size > 0) {
     return {
       error: `Zip archive contains unsupported image assets: ${Array.from(invalidAssets).slice(0, 3).join(", ")}`,
+      ok: false as const,
+    };
+  }
+
+  for (const entry of Object.values(zip.files)) {
+    if (entry.dir) {
+      continue;
+    }
+
+    if (entry.name.toLowerCase().endsWith(".md")) {
+      continue;
+    }
+
+    const normalizedPath = normalizeZipPath(entry.name);
+
+    if (!referencedAssets.has(normalizedPath)) {
+      extraFiles.add(normalizedPath);
+    }
+  }
+
+  if (extraFiles.size > 0) {
+    return {
+      error: `Zip archive contains extra files: ${Array.from(extraFiles).slice(0, 3).join(", ")}`,
       ok: false as const,
     };
   }

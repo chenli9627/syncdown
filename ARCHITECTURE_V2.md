@@ -545,9 +545,10 @@ Zip support:
 - Markdown plus assets structure
 - relative image references resolved from the zip contents
 - zip is validated against the Markdown reference graph
+- zip must contain exactly one Markdown file
 - missing referenced image assets cause import rejection
 - unsupported referenced image assets cause import rejection
-- extra unreferenced files are ignored
+- extra unreferenced files cause import rejection
 
 File size limits:
 
@@ -560,15 +561,14 @@ Oversize behavior:
 
 ### 10.2 Export
 
-Export options:
+Export behavior:
 
-- `Markdown (.md)`
-- `Markdown (.zip)`
+- single `Export` entry
 
 Current implementation milestone:
 
-- `.md` export is implemented for documents without embedded local images
-- `.zip` export with assets is implemented for image-bearing documents and general bundle export
+- documents without embedded local images export as `.md`
+- documents with embedded local images export as `.zip`
 
 Zip output should include:
 
@@ -577,7 +577,7 @@ Zip output should include:
 
 Markdown export should use relative image paths inside the zip package.
 
-`.md` export should be blocked when the document contains embedded local images, and the user should be asked to export `.zip` instead.
+`.md` vs `.zip` should be chosen automatically by the product based on whether the document contains embedded local images.
 
 ## 11. Localization and Themes
 

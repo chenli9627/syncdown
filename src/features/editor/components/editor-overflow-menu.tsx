@@ -8,8 +8,7 @@ type EditorOverflowMenuProps = {
   actionNotice: string | null;
   canEditBody: boolean;
   canUndo: boolean;
-  onExportMarkdown: () => void;
-  onExportZip: () => void;
+  onExport: () => void;
   onInsertImage: () => void;
   onImport: () => void;
   onMoveToTrash: () => void;
@@ -27,8 +26,7 @@ export function EditorOverflowMenu({
   actionNotice,
   canEditBody,
   canUndo,
-  onExportMarkdown,
-  onExportZip,
+  onExport,
   onInsertImage,
   onImport,
   onMoveToTrash,
@@ -95,18 +93,10 @@ export function EditorOverflowMenu({
             </button>
             <button
               className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
-              onClick={onExportMarkdown}
+              onClick={onExport}
               type="button"
             >
-              <span>Export .md</span>
-              <Download className="ml-auto size-4" />
-            </button>
-            <button
-              className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
-              onClick={onExportZip}
-              type="button"
-            >
-              <span>Export .zip</span>
+              <span>Export</span>
               <Download className="ml-auto size-4" />
             </button>
             {permission === "owner" ? (

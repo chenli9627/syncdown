@@ -27,7 +27,6 @@ type EditorHeaderProps = {
   editor: Editor | null;
   guestBadgeClass: string;
   handleExportMarkdown: () => Promise<void>;
-  handleExportMarkdownZip: () => Promise<void>;
   imageInputRef: RefObject<HTMLInputElement | null>;
   importInputRef: RefObject<HTMLInputElement | null>;
   moveDocumentToTrash: (documentId: string) => Promise<{ error: string; ok: false } | { ok: true }>;
@@ -105,7 +104,6 @@ export function EditorHeader({
   editor,
   guestBadgeClass,
   handleExportMarkdown,
-  handleExportMarkdownZip,
   imageInputRef,
   importInputRef,
   moveDocumentToTrash,
@@ -179,7 +177,6 @@ export function EditorHeader({
     editor,
     guestBadgeClass,
     handleExportMarkdown,
-    handleExportMarkdownZip,
     imageInputRef,
     importInputRef,
     moveDocumentToTrash,
