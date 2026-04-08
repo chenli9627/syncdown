@@ -14,6 +14,15 @@ export type SlashContext = {
   to: number;
 };
 
+export type SlashMenuState = {
+  activeIndex: number;
+  left: number;
+  open: boolean;
+  placement: "above" | "below";
+  query: string;
+  top: number;
+};
+
 export type HoveredBlock = {
   height: number;
   pos: number;

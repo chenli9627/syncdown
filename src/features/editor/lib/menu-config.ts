@@ -3,202 +3,120 @@ import type { BlockTransformItem, SlashItem } from "@/features/editor/lib/types"
 import { setSelectionToBlock, unwrapListIfNeeded } from "@/features/editor/lib/utils";
 
 export function createSlashItems(): SlashItem[] {
-  return [
-    {
-      id: "text",
-      label: "Text",
-      shortcut: "",
-      enabled: true,
-      run: (currentEditor) => {
-        currentEditor.chain().focus().setParagraph().run();
-      },
-    },
-    {
-      id: "heading-1",
-      label: "Heading 1",
-      shortcut: "#",
-      enabled: true,
-      run: (currentEditor) => {
-        currentEditor.chain().focus().setHeading({ level: 1 }).run();
-      },
-    },
-    {
-      id: "heading-2",
-      label: "Heading 2",
-      shortcut: "##",
-      enabled: true,
-      run: (currentEditor) => {
-        currentEditor.chain().focus().setHeading({ level: 2 }).run();
-      },
-    },
-    {
-      id: "heading-3",
-      label: "Heading 3",
-      shortcut: "###",
-      enabled: true,
-      run: (currentEditor) => {
-        currentEditor.chain().focus().setHeading({ level: 3 }).run();
-      },
-    },
-    {
-      id: "heading-4",
-      label: "Heading 4",
-      shortcut: "####",
-      enabled: true,
-      run: (currentEditor) => {
-        currentEditor.chain().focus().setHeading({ level: 4 }).run();
-      },
-    },
-    {
-      id: "bullet-list",
-      label: "Bulleted list",
-      shortcut: "-",
-      enabled: true,
-      run: (currentEditor) => {
-        currentEditor.chain().focus().toggleBulletList().run();
-      },
-    },
-    {
-      id: "ordered-list",
-      label: "Numbered list",
-      shortcut: "1.",
-      enabled: true,
-      run: (currentEditor) => {
-        currentEditor.chain().focus().toggleOrderedList().run();
-      },
-    },
-    {
-      id: "todo-list",
-      label: "Todo list",
-      shortcut: "[]",
-      enabled: false,
-      run: () => {},
-    },
-    {
-      id: "toggle-list",
-      label: "Toggle list",
-      shortcut: ">",
-      enabled: false,
-      run: () => {},
-    },
-    {
-      id: "quote",
-      label: "Quote",
-      shortcut: "\"",
-      enabled: true,
-      run: (currentEditor) => {
-        unwrapListIfNeeded(currentEditor);
-        currentEditor.chain().focus().toggleBlockquote().run();
-      },
-    },
-    {
-      id: "table",
-      label: "Table",
-      shortcut: "",
-      enabled: false,
-      run: () => {},
-    },
-    {
-      id: "divider",
-      label: "Divider",
-      shortcut: "--",
-      enabled: true,
-      run: (currentEditor) => {
-        currentEditor.chain().focus().setHorizontalRule().run();
-      },
-    },
-    {
-      id: "code",
-      label: "Code",
-      shortcut: "```",
-      enabled: true,
-      run: (currentEditor) => {
-        currentEditor.chain().focus().toggleCodeBlock().run();
-      },
-    },
-  ];
+  return slashItemConfigs.map(createSlashItem);
 }
 
 export function createBlockTransformItems(): BlockTransformItem[] {
-  return [
-    {
-      id: "paragraph",
-      label: "Text",
-      run: (currentEditor: Editor, pos: number) => {
-        setSelectionToBlock(currentEditor, pos);
-        unwrapListIfNeeded(currentEditor);
-        currentEditor.chain().focus().setParagraph().run();
-      },
-    },
-    {
-      id: "heading-1",
-      label: "Heading 1",
-      run: (currentEditor: Editor, pos: number) => {
-        setSelectionToBlock(currentEditor, pos);
-        unwrapListIfNeeded(currentEditor);
-        currentEditor.chain().focus().setHeading({ level: 1 }).run();
-      },
-    },
-    {
-      id: "heading-2",
-      label: "Heading 2",
-      run: (currentEditor: Editor, pos: number) => {
-        setSelectionToBlock(currentEditor, pos);
-        unwrapListIfNeeded(currentEditor);
-        currentEditor.chain().focus().setHeading({ level: 2 }).run();
-      },
-    },
-    {
-      id: "heading-3",
-      label: "Heading 3",
-      run: (currentEditor: Editor, pos: number) => {
-        setSelectionToBlock(currentEditor, pos);
-        unwrapListIfNeeded(currentEditor);
-        currentEditor.chain().focus().setHeading({ level: 3 }).run();
-      },
-    },
-    {
-      id: "heading-4",
-      label: "Heading 4",
-      run: (currentEditor: Editor, pos: number) => {
-        setSelectionToBlock(currentEditor, pos);
-        unwrapListIfNeeded(currentEditor);
-        currentEditor.chain().focus().setHeading({ level: 4 }).run();
-      },
-    },
-    {
-      id: "bullet-list",
-      label: "Bulleted list",
-      run: (currentEditor: Editor, pos: number) => {
-        setSelectionToBlock(currentEditor, pos);
-        currentEditor.chain().focus().toggleBulletList().run();
-      },
-    },
-    {
-      id: "ordered-list",
-      label: "Numbered list",
-      run: (currentEditor: Editor, pos: number) => {
-        setSelectionToBlock(currentEditor, pos);
-        currentEditor.chain().focus().toggleOrderedList().run();
-      },
-    },
-    {
-      id: "quote",
-      label: "Quote",
-      run: (currentEditor: Editor, pos: number) => {
-        setSelectionToBlock(currentEditor, pos);
-        unwrapListIfNeeded(currentEditor);
-        currentEditor.chain().focus().toggleBlockquote().run();
-      },
-    },
-    {
-      id: "code",
-      label: "Code",
-      run: (currentEditor: Editor, pos: number) => {
-        setSelectionToBlock(currentEditor, pos);
-        unwrapListIfNeeded(currentEditor);
-        currentEditor.chain().focus().toggleCodeBlock().run();
-      },
-    },
-  ];
+  return blockTransformConfigs.map(createBlockTransformItem);
 }
+
+type MenuEditorAction = (editor: Editor) => void;
+
+type SlashItemConfig = {
+  enabled?: boolean;
+  id: string;
+  label: string;
+  run: MenuEditorAction;
+  shortcut: string;
+};
+
+type BlockTransformConfig = {
+  id: string;
+  label: string;
+  run: MenuEditorAction;
+};
+
+const slashItemConfigs: SlashItemConfig[] = [
+  { id: "text", label: "Text", shortcut: "", run: runParagraph },
+  { id: "heading-1", label: "Heading 1", shortcut: "#", run: createHeadingAction(1) },
+  { id: "heading-2", label: "Heading 2", shortcut: "##", run: createHeadingAction(2) },
+  { id: "heading-3", label: "Heading 3", shortcut: "###", run: createHeadingAction(3) },
+  { id: "heading-4", label: "Heading 4", shortcut: "####", run: createHeadingAction(4) },
+  { id: "bullet-list", label: "Bulleted list", shortcut: "-", run: runBulletList },
+  { id: "ordered-list", label: "Numbered list", shortcut: "1.", run: runOrderedList },
+  { id: "todo-list", label: "Todo list", shortcut: "[]", enabled: false, run: noopEditorAction },
+  { id: "toggle-list", label: "Toggle list", shortcut: ">", enabled: false, run: noopEditorAction },
+  { id: "quote", label: "Quote", shortcut: "\"", run: runQuote },
+  { id: "table", label: "Table", shortcut: "", enabled: false, run: noopEditorAction },
+  { id: "divider", label: "Divider", shortcut: "--", run: runDivider },
+  { id: "code", label: "Code", shortcut: "```", run: runCodeBlock },
+];
+
+const blockTransformConfigs: BlockTransformConfig[] = [
+  { id: "paragraph", label: "Text", run: runParagraphWithUnwrap },
+  { id: "heading-1", label: "Heading 1", run: createHeadingTransformAction(1) },
+  { id: "heading-2", label: "Heading 2", run: createHeadingTransformAction(2) },
+  { id: "heading-3", label: "Heading 3", run: createHeadingTransformAction(3) },
+  { id: "heading-4", label: "Heading 4", run: createHeadingTransformAction(4) },
+  { id: "bullet-list", label: "Bulleted list", run: runBulletList },
+  { id: "ordered-list", label: "Numbered list", run: runOrderedList },
+  { id: "quote", label: "Quote", run: runQuote },
+  { id: "code", label: "Code", run: runCodeBlock },
+];
+
+function createSlashItem(config: SlashItemConfig): SlashItem {
+  return {
+    enabled: config.enabled ?? true,
+    id: config.id,
+    label: config.label,
+    run: config.run,
+    shortcut: config.shortcut,
+  };
+}
+
+function createBlockTransformItem(config: BlockTransformConfig): BlockTransformItem {
+  return {
+    id: config.id,
+    label: config.label,
+    run: (editor, pos) => {
+      setSelectionToBlock(editor, pos);
+      config.run(editor);
+    },
+  };
+}
+
+function runParagraph(editor: Editor) {
+  editor.chain().focus().setParagraph().run();
+}
+
+function runParagraphWithUnwrap(editor: Editor) {
+  unwrapListIfNeeded(editor);
+  runParagraph(editor);
+}
+
+function createHeadingAction(level: 1 | 2 | 3 | 4): MenuEditorAction {
+  return (editor) => {
+    editor.chain().focus().setHeading({ level }).run();
+  };
+}
+
+function createHeadingTransformAction(level: 1 | 2 | 3 | 4): MenuEditorAction {
+  return (editor) => {
+    unwrapListIfNeeded(editor);
+    createHeadingAction(level)(editor);
+  };
+}
+
+function runBulletList(editor: Editor) {
+  editor.chain().focus().toggleBulletList().run();
+}
+
+function runOrderedList(editor: Editor) {
+  editor.chain().focus().toggleOrderedList().run();
+}
+
+function runQuote(editor: Editor) {
+  unwrapListIfNeeded(editor);
+  editor.chain().focus().toggleBlockquote().run();
+}
+
+function runDivider(editor: Editor) {
+  editor.chain().focus().setHorizontalRule().run();
+}
+
+function runCodeBlock(editor: Editor) {
+  unwrapListIfNeeded(editor);
+  editor.chain().focus().toggleCodeBlock().run();
+}
+
+function noopEditorAction() {}
