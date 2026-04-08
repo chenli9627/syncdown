@@ -1,7 +1,7 @@
 import { LocalMediaStorageAdapter } from "@/lib/server/media-storage/local-media-storage";
+import { getMediaStorageConfig } from "@/lib/server/media-storage/config";
 import type {
   MediaStorageAdapter,
-  MediaStorageBackend,
 } from "@/lib/server/media-storage/types";
 
 export type {
@@ -11,21 +11,12 @@ export type {
   StoredMediaFile,
   WriteMediaFileInput,
 } from "@/lib/server/media-storage/types";
+export { buildMediaSourceUrl, getMediaStorageConfig } from "@/lib/server/media-storage/config";
 
 const localAdapter = new LocalMediaStorageAdapter();
 
-export function getMediaStorageBackend(): MediaStorageBackend {
-  const configured = process.env.STORAGE_BACKEND?.trim().toLowerCase();
-
-  if (configured === "s3") {
-    return "s3";
-  }
-
-  return "local";
-}
-
 export function getMediaStorageAdapter(): MediaStorageAdapter {
-  const backend = getMediaStorageBackend();
+  const { backend } = getMediaStorageConfig();
 
   if (backend === "local") {
     return localAdapter;

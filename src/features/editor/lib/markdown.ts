@@ -7,7 +7,7 @@ export type MarkdownAsset = {
 };
 
 const DATA_IMAGE_URL_PATTERN = /^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/;
-const LOCAL_MEDIA_URL_PATTERN = /^\/api\/media\/(.+)$/;
+const LOCAL_MEDIA_URL_PATTERN = /\/api\/media\/([^/?#]+)$/;
 
 function escapeHtml(input: string) {
   return input

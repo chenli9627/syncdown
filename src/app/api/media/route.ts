@@ -3,7 +3,10 @@ import {
   MAX_IMAGE_FILE_SIZE,
   isSupportedImageMimeType,
 } from "@/features/editor/lib/image-shared";
-import { getMediaStorageAdapter } from "@/lib/server/media-storage";
+import {
+  buildMediaSourceUrl,
+  getMediaStorageAdapter,
+} from "@/lib/server/media-storage";
 
 export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    src: `/api/media/${written.fileName}`,
+    src: buildMediaSourceUrl(written.fileName),
   });
 }
 

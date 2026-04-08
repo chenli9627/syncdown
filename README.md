@@ -55,3 +55,4 @@ Environment direction:
 
 - `STORAGE_BACKEND=local` for local development
 - `STORAGE_BACKEND=s3` is reserved for the future S3-compatible adapter path
+- `STORAGE_PUBLIC_BASE_URL` can override returned media URLs without changing editor storage logic
