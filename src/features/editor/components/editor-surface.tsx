@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { EditorCanvas } from "@/features/editor/components/editor-canvas";
@@ -12,10 +12,10 @@ import { useEditorHoveredBlock } from "@/features/editor/hooks/use-editor-hovere
 import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
 import { useEditorShortcuts } from "@/features/editor/hooks/use-editor-shortcuts";
 import { useEditorSlashMenu } from "@/features/editor/hooks/use-editor-slash-menu";
+import { useEditorSurfaceUiState } from "@/features/editor/hooks/use-editor-surface-ui";
 import { useEditorTitleState } from "@/features/editor/hooks/use-editor-title-state";
 import { useSyntextEditor } from "@/features/editor/hooks/use-syntext-editor";
 import { createBlockTransformItems } from "@/features/editor/lib/menu-config";
-import type { SearchRect } from "@/features/editor/lib/search";
 import type { BlockTransformItem } from "@/features/editor/lib/types";
 import { permissionLabel } from "@/features/editor/lib/utils";
 
@@ -41,41 +41,27 @@ export function EditorSurface({
     removeDocumentAccess,
   } = useAppState();
   const blockMenuWidth = 208;
-  const blockControlsRef = useRef<HTMLDivElement | null>(null);
-  const editorContainerRef = useRef<HTMLDivElement | null>(null);
-  const blockMenuRef = useRef<HTMLDivElement | null>(null);
-  const searchButtonRef = useRef<HTMLButtonElement | null>(null);
-  const searchMenuRef = useRef<HTMLDivElement | null>(null);
-  const overflowButtonRef = useRef<HTMLButtonElement | null>(null);
-  const overflowMenuRef = useRef<HTMLDivElement | null>(null);
-  const importInputRef = useRef<HTMLInputElement | null>(null);
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const permissionButtonRef = useRef<HTMLButtonElement | null>(null);
-  const permissionMenuRef = useRef<HTMLDivElement | null>(null);
-  const editorKeyDownRef = useRef<(event: KeyboardEvent) => boolean>(() => false);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [searchMenuOpen, setSearchMenuOpen] = useState(false);
-  const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchMatchCount, setSearchMatchCount] = useState(0);
-  const [searchMatchIndex, setSearchMatchIndex] = useState(-1);
-  const [searchNotice, setSearchNotice] = useState<string | null>(null);
-  const [searchRects, setSearchRects] = useState<SearchRect[]>([]);
-  const [actionNotice, setActionNotice] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [permissionMenuOpen, setPermissionMenuOpen] = useState(false);
-  const [shareEmail, setShareEmail] = useState("");
-  const [sharePermission, setSharePermission] = useState<"can_edit" | "can_view">("can_view");
-  const [permissionError, setPermissionError] = useState<string | null>(null);
-  const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
-  const [permissionBusy, setPermissionBusy] = useState(false);
-  const [blockMenu, setBlockMenu] = useState({
-    left: 0,
-    open: false,
-    pos: null as number | null,
-    showTurnInto: false,
-    top: 0,
-  });
+  const ui = useEditorSurfaceUiState();
+  const {
+    actionError,
+    actionNotice,
+    blockControlsRef,
+    blockMenu,
+    blockMenuRef,
+    editorContainerRef,
+    editorKeyDownRef,
+    importInputRef,
+    overflowButtonRef,
+    overflowMenuOpen,
+    overflowMenuRef,
+    permissionBody,
+    searchBody,
+    setActionError,
+    setActionNotice,
+    setBlockMenu,
+    setOverflowMenuOpen,
+    status,
+  } = ui;
   const canEditTitle = permission === "owner";
   const canEditBody = permission === "owner" || permission === "can_edit";
   const canManageAccess = permission === "owner";
@@ -85,7 +71,7 @@ export function EditorSurface({
       documentId: document.id,
       documentTitle: document.title,
       saveDocument,
-      setStatus,
+      setStatus: ui.setStatus,
     });
   const { accessEntries, sharedAvatars } = useEditorAccessEntries(
     state,
@@ -98,7 +84,7 @@ export function EditorSurface({
     documentId: document.id,
     onEditorKeyDown: (event) => editorKeyDownRef.current(event),
     saveDocument,
-    setStatus,
+    setStatus: ui.setStatus,
   });
   const { enabledSlashItems, filteredSlashItems, handleEditorKeyDown, setSlashMenu, slashContextState, slashMenu } =
     useEditorSlashMenu({
@@ -110,7 +96,7 @@ export function EditorSurface({
 
   useEffect(() => {
     editorKeyDownRef.current = handleEditorKeyDown;
-  }, [handleEditorKeyDown]);
+  }, [editorKeyDownRef, handleEditorKeyDown]);
 
   useEditorOverlays({
     blockMenu,
@@ -118,17 +104,17 @@ export function EditorSurface({
     overflowButtonRef,
     overflowMenuOpen,
     overflowMenuRef,
-    permissionButtonRef,
-    permissionMenuOpen,
-    permissionMenuRef,
-    searchButtonRef,
-    searchInputRef,
-    searchMenuOpen,
-    searchMenuRef,
+    permissionButtonRef: permissionBody.permissionButtonRef,
+    permissionMenuOpen: permissionBody.permissionMenuOpen,
+    permissionMenuRef: permissionBody.permissionMenuRef,
+    searchButtonRef: searchBody.searchButtonRef,
+    searchInputRef: searchBody.searchInputRef,
+    searchMenuOpen: searchBody.searchMenuOpen,
+    searchMenuRef: searchBody.searchMenuRef,
     setBlockMenu,
     setOverflowMenuOpen,
-    setPermissionMenuOpen,
-    setSearchMenuOpen,
+    setPermissionMenuOpen: permissionBody.setPermissionMenuOpen,
+    setSearchMenuOpen: searchBody.setSearchMenuOpen,
   });
 
   useEffect(() => {
@@ -154,10 +140,10 @@ export function EditorSurface({
   const guestBadgeClass =
     "rounded-full border border-[#f0d9a7] bg-[#fbefcf] px-2 py-0.5 text-[11px] font-semibold text-[#c98a10]";
   const searchHeaderLabel =
-    searchNotice === "No match found"
+    searchBody.searchNotice === "No match found"
       ? "No match found"
-      : searchMatchIndex >= 0
-        ? `${searchMatchIndex + 1} / ${searchMatchCount}`
+      : searchBody.searchMatchIndex >= 0
+        ? `${searchBody.searchMatchIndex + 1} / ${searchBody.searchMatchCount}`
         : "";
   const {
     canUndo,
@@ -178,17 +164,17 @@ export function EditorSurface({
     editorContainerRef,
     hoveredBlock,
     saveDocument,
-    searchInputRef,
-    searchMatchIndex,
-    searchQuery,
+    searchInputRef: searchBody.searchInputRef,
+    searchMatchIndex: searchBody.searchMatchIndex,
+    searchQuery: searchBody.searchQuery,
     setActionError,
     setActionNotice,
     setBlockMenu,
     setHoveredBlock,
-    setSearchMatchCount,
-    setSearchMatchIndex,
-    setSearchNotice,
-    setSearchRects,
+    setSearchMatchCount: searchBody.setSearchMatchCount,
+    setSearchMatchIndex: searchBody.setSearchMatchIndex,
+    setSearchNotice: searchBody.setSearchNotice,
+    setSearchRects: searchBody.setSearchRects,
     status,
     syncHoveredBlockFromPos,
   });
@@ -196,10 +182,10 @@ export function EditorSurface({
   useEditorShortcuts({
     canUndo,
     editor,
-    searchMenuOpen,
+    searchMenuOpen: searchBody.searchMenuOpen,
     setOverflowMenuOpen,
-    setPermissionMenuOpen,
-    setSearchMenuOpen,
+    setPermissionMenuOpen: permissionBody.setPermissionMenuOpen,
+    setSearchMenuOpen: searchBody.setSearchMenuOpen,
   });
 
   return (
@@ -228,40 +214,40 @@ export function EditorSurface({
         overflowMenuRef={overflowMenuRef}
         permission={permission}
         permissionBoldLabel={permissionLabel}
-        permissionBusy={permissionBusy}
-        permissionButtonRef={permissionButtonRef}
-        permissionError={permissionError}
-        permissionMenuOpen={permissionMenuOpen}
-        permissionMenuRef={permissionMenuRef}
-        permissionNotice={permissionNotice}
+        permissionBusy={permissionBody.permissionBusy}
+        permissionButtonRef={permissionBody.permissionButtonRef}
+        permissionError={permissionBody.permissionError}
+        permissionMenuOpen={permissionBody.permissionMenuOpen}
+        permissionMenuRef={permissionBody.permissionMenuRef}
+        permissionNotice={permissionBody.permissionNotice}
         removeDocumentAccess={removeDocumentAccess}
         routerPushHome={() => router.push("/home")}
-        searchButtonRef={searchButtonRef}
+        searchButtonRef={searchBody.searchButtonRef}
         searchHeaderLabel={searchHeaderLabel}
-        searchInputRef={searchInputRef}
-        searchMenuOpen={searchMenuOpen}
-        searchMenuRef={searchMenuRef}
-        searchNotice={searchNotice}
-        searchQuery={searchQuery}
+        searchInputRef={searchBody.searchInputRef}
+        searchMenuOpen={searchBody.searchMenuOpen}
+        searchMenuRef={searchBody.searchMenuRef}
+        searchNotice={searchBody.searchNotice}
+        searchQuery={searchBody.searchQuery}
         setActionError={setActionError}
         setActionNotice={setActionNotice}
         setOverflowMenuOpen={setOverflowMenuOpen}
-        setPermissionBusy={setPermissionBusy}
-        setPermissionError={setPermissionError}
-        setPermissionMenuOpen={setPermissionMenuOpen}
-        setPermissionNotice={setPermissionNotice}
-        setSearchMatchCount={setSearchMatchCount}
-        setSearchMatchIndex={setSearchMatchIndex}
-        setSearchMenuOpen={setSearchMenuOpen}
-        setSearchNotice={setSearchNotice}
-        setSearchQuery={setSearchQuery}
-        setSearchRects={setSearchRects as (value: []) => void}
-        setShareEmail={setShareEmail}
-        setSharePermission={setSharePermission}
+        setPermissionBusy={permissionBody.setPermissionBusy}
+        setPermissionError={permissionBody.setPermissionError}
+        setPermissionMenuOpen={permissionBody.setPermissionMenuOpen}
+        setPermissionNotice={permissionBody.setPermissionNotice}
+        setSearchMatchCount={searchBody.setSearchMatchCount}
+        setSearchMatchIndex={searchBody.setSearchMatchIndex}
+        setSearchMenuOpen={searchBody.setSearchMenuOpen}
+        setSearchNotice={searchBody.setSearchNotice}
+        setSearchQuery={searchBody.setSearchQuery}
+        setSearchRects={searchBody.setSearchRects as (value: []) => void}
+        setShareEmail={permissionBody.setShareEmail}
+        setSharePermission={permissionBody.setSharePermission}
         setTitleDraft={setTitleDraft}
         shareDocument={shareDocument}
-        shareEmail={shareEmail}
-        sharePermission={sharePermission}
+        shareEmail={permissionBody.shareEmail}
+        sharePermission={permissionBody.sharePermission}
         sharedAvatars={sharedAvatars}
         statusLabel={statusLabel}
         titleDraft={titleDraft}
@@ -288,7 +274,7 @@ export function EditorSurface({
         handleTurnInto={handleTurnInto}
         hoveredBlock={hoveredBlock}
         importInputRef={importInputRef}
-        searchRects={searchRects}
+        searchRects={searchBody.searchRects}
         setBlockMenu={setBlockMenu}
         setSlashMenu={setSlashMenu}
         slashContextState={slashContextState}

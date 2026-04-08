@@ -211,7 +211,7 @@ export function ShellSidebar({
             onLogout={onLogout}
             onOpenSettings={onOpenSettings}
             onSelectWorkspace={onSelectWorkspace}
-          onShowCreateWorkspaceChange={onShowCreateWorkspaceChange}
+            onShowCreateWorkspaceChange={onShowCreateWorkspaceChange}
             setWorkspaceError={setWorkspaceError}
             setWorkspaceName={setWorkspaceName}
             setWorkspaceNotice={setWorkspaceNotice}
