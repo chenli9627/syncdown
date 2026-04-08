@@ -7,6 +7,7 @@ import {
   buildMediaSourceUrl,
   getMediaStorageAdapter,
 } from "@/lib/server/media-storage";
+import { toMediaStorageErrorResponse } from "@/lib/server/media-storage/errors";
 
 export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
@@ -35,16 +36,26 @@ export async function POST(request: Request) {
 
   const extension = inferExtension(file.type);
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const written = await getMediaStorageAdapter().writeFile({
-    bytes,
-    extension,
-    mimeType: file.type,
-  });
+  
+  try {
+    const written = await getMediaStorageAdapter().writeFile({
+      bytes,
+      extension,
+      mimeType: file.type,
+    });
 
-  return NextResponse.json({
-    ok: true,
-    src: buildMediaSourceUrl(written.fileName),
-  });
+    return NextResponse.json({
+      ok: true,
+      src: buildMediaSourceUrl(written.fileName),
+    });
+  } catch (error) {
+    const failure = toMediaStorageErrorResponse(error);
+
+    return NextResponse.json(
+      { error: failure.error, ok: false },
+      { status: failure.status },
+    );
+  }
 }
 
 function inferExtension(mimeType: string) {

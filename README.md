@@ -58,3 +58,15 @@ Environment direction:
 - `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID`,
   `STORAGE_SECRET_ACCESS_KEY`, and `STORAGE_FORCE_PATH_STYLE` configure the S3-compatible backend
 - editor-facing image URLs remain on `/api/media/...`, so switching storage backends does not affect editor or markdown export logic
+
+Example local MinIO environment:
+
+```bash
+STORAGE_BACKEND=s3
+STORAGE_ENDPOINT=http://127.0.0.1:9000
+STORAGE_REGION=auto
+STORAGE_BUCKET=syncdown
+STORAGE_ACCESS_KEY_ID=minioadmin
+STORAGE_SECRET_ACCESS_KEY=minioadmin
+STORAGE_FORCE_PATH_STYLE=true
+```

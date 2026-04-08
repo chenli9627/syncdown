@@ -3,6 +3,7 @@ import {
   getMediaStorageAdapter,
   inferMimeTypeFromExtension,
 } from "@/lib/server/media-storage";
+import { toMediaStorageErrorResponse } from "@/lib/server/media-storage/errors";
 
 type RouteContext = {
   params: Promise<{
@@ -23,10 +24,12 @@ export async function GET(_request: Request, context: RouteContext) {
         "Content-Type": inferMimeTypeFromExtension(extension),
       },
     });
-  } catch {
+  } catch (error) {
+    const failure = toMediaStorageErrorResponse(error);
+
     return NextResponse.json(
-      { error: "Media not found", ok: false },
-      { status: 404 },
+      { error: failure.error, ok: false },
+      { status: failure.status },
     );
   }
 }
