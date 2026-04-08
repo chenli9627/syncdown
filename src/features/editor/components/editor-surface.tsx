@@ -127,6 +127,8 @@ export function EditorSurface({
         handleInsertTableColumn={model.actions.handleInsertTableColumn}
         handleInsertTableRowAbove={model.actions.handleInsertTableRowAbove}
         handleInsertTableRow={model.actions.handleInsertTableRow}
+        handleTableColumnAction={model.actions.handleTableColumnAction}
+        handleTableRowAction={model.actions.handleTableRowAction}
         handleTurnInto={model.actions.handleTurnInto}
         hoveredBlock={model.hovered.hoveredBlock}
         imageInputRef={model.ui.imageInputRef}

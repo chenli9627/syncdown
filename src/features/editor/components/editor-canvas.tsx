@@ -2,7 +2,7 @@
 
 import { EditorContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
-import { Plus } from "lucide-react";
+import { GripHorizontal, GripVertical, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -11,6 +11,7 @@ import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu"
 import { EditorAiBubble } from "@/features/editor/components/editor-ai-bubble";
 import { EditorSelectionBubble } from "@/features/editor/components/editor-selection-bubble";
 import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu";
+import { EditorTableAxisMenu } from "@/features/editor/components/editor-table-axis-menu";
 import { useEditorBlockDrag } from "@/features/editor/hooks/use-editor-block-drag";
 import type { AiActionKind } from "@/features/editor/lib/ai";
 import {
@@ -35,6 +36,24 @@ type BlockMenuState = {
   pos: number | null;
   showTurnInto: boolean;
   turnIntoAlign: "bottom" | "top";
+  top: number;
+};
+
+type TableAxisHandleState = {
+  axis: "column" | "row";
+  index: number;
+  left: number;
+  size: { height: number; width: number };
+  tablePos: number;
+  top: number;
+};
+
+type TableAxisMenuState = {
+  axis: "column" | "row";
+  index: number;
+  left: number;
+  open: boolean;
+  tablePos: number;
   top: number;
 };
 
@@ -65,6 +84,16 @@ type EditorCanvasProps = {
   handleInsertTableColumn: () => void;
   handleInsertTableRowAbove: () => void;
   handleInsertTableRow: () => void;
+  handleTableColumnAction: (
+    tablePos: number,
+    columnIndex: number,
+    action: "delete" | "duplicate" | "insert-left" | "insert-right",
+  ) => void;
+  handleTableRowAction: (
+    tablePos: number,
+    rowIndex: number,
+    action: "delete" | "duplicate" | "insert-above" | "insert-below",
+  ) => void;
   handleTurnInto: (item: BlockTransformItem) => void;
   hoveredBlock: HoveredBlock | null;
   imageInputRef: RefObject<HTMLInputElement | null>;
@@ -123,6 +152,8 @@ export function EditorCanvas({
   handleInsertTableColumn,
   handleInsertTableRowAbove,
   handleInsertTableRow,
+  handleTableColumnAction,
+  handleTableRowAction,
   handleTurnInto,
   hoveredBlock,
   imageInputRef,
@@ -146,7 +177,11 @@ export function EditorCanvas({
   slashMenu,
 }: EditorCanvasProps) {
   const activeBlockHighlightRef = useRef<HTMLSpanElement | null>(null);
+  const tableAxisMenuRef = useRef<HTMLDivElement | null>(null);
   const [imageDropIndicatorTop, setImageDropIndicatorTop] = useState<number | null>(null);
+  const [tableAxisMenu, setTableAxisMenu] = useState<TableAxisMenuState | null>(null);
+  const [tableColumnHandle, setTableColumnHandle] = useState<TableAxisHandleState | null>(null);
+  const [tableRowHandle, setTableRowHandle] = useState<TableAxisHandleState | null>(null);
   const drag = useEditorBlockDrag({
     canEditBody,
     editor,
@@ -283,6 +318,89 @@ export function EditorCanvas({
             turnIntoAlign,
             top: nextTop,
           });
+        }}
+        onPointerMove={(event) => {
+          if (!canEditBody || !editor) {
+            setTableColumnHandle(null);
+            setTableRowHandle(null);
+            return;
+          }
+
+          const target = event.target;
+
+          if (
+            target instanceof Node &&
+            (tableAxisMenuRef.current?.contains(target) ||
+              (target instanceof HTMLElement &&
+                (target.closest("[data-table-row-handle]") || target.closest("[data-table-column-handle]"))))
+          ) {
+            return;
+          }
+
+          const cell = target instanceof HTMLElement ? target.closest("td, th") : null;
+          const table = cell?.closest("table");
+          const row = cell?.closest("tr");
+          const container = editorContainerRef.current;
+
+          if (
+            !(cell instanceof HTMLTableCellElement) ||
+            !(table instanceof HTMLTableElement) ||
+            !(row instanceof HTMLTableRowElement) ||
+            !(container instanceof HTMLElement)
+          ) {
+            if (!tableAxisMenu?.open) {
+              setTableColumnHandle(null);
+              setTableRowHandle(null);
+            }
+            return;
+          }
+
+          const tableInfo = getTopLevelBlockInfoFromElement(editor, table, container);
+
+          if (!tableInfo) {
+            return;
+          }
+
+          const containerBounds = container.getBoundingClientRect();
+          const rowBounds = row.getBoundingClientRect();
+          const cellBounds = cell.getBoundingClientRect();
+          const rowIndex = Array.from(table.rows).indexOf(row);
+          const columnIndex = Array.from(row.cells).indexOf(cell);
+
+          setTableRowHandle({
+            axis: "row",
+            index: rowIndex,
+            left: tableInfo.left - 18,
+            size: { height: rowBounds.height, width: 14 },
+            tablePos: tableInfo.pos,
+            top: rowBounds.top - containerBounds.top + rowBounds.height / 2 - 10,
+          });
+          setTableColumnHandle({
+            axis: "column",
+            index: columnIndex,
+            left: cellBounds.left - containerBounds.left + cellBounds.width / 2 - 10,
+            size: { height: 14, width: cellBounds.width },
+            tablePos: tableInfo.pos,
+            top: tableInfo.top - 18,
+          });
+        }}
+        onPointerLeave={(event) => {
+          const nextTarget = event.relatedTarget;
+
+          if (
+            nextTarget instanceof Node &&
+            (tableAxisMenuRef.current?.contains(nextTarget) ||
+              (nextTarget instanceof HTMLElement &&
+                (nextTarget.closest("[data-table-row-handle]") ||
+                  nextTarget.closest("[data-table-column-handle]"))))
+          ) {
+            return;
+          }
+
+          if (!tableAxisMenu?.open) {
+            setTableColumnHandle(null);
+            setTableRowHandle(null);
+          }
         }}
         onDragLeave={(event) => {
           const nextTarget = event.relatedTarget;
@@ -530,6 +648,84 @@ export function EditorCanvas({
             </button>
           </>
         ) : null}
+        {canEditBody && tableRowHandle ? (
+          <button
+            aria-label="Row actions"
+            className="absolute z-20 flex h-5 w-4 items-center justify-center rounded-[4px] bg-[var(--color-primary)] text-white shadow-[var(--shadow-whisper)] transition hover:opacity-90"
+            data-table-row-handle="true"
+            onClick={() => {
+              setTableAxisMenu({
+                axis: "row",
+                index: tableRowHandle.index,
+                left: Math.max(12, tableRowHandle.left + 18),
+                open: true,
+                tablePos: tableRowHandle.tablePos,
+                top: Math.max(12, tableRowHandle.top - 6),
+              });
+            }}
+            style={{
+              left: `${tableRowHandle.left}px`,
+              top: `${tableRowHandle.top}px`,
+            }}
+            title="Row actions"
+            type="button"
+          >
+            <GripHorizontal className="size-3.5" />
+          </button>
+        ) : null}
+        {canEditBody && tableColumnHandle ? (
+          <button
+            aria-label="Column actions"
+            className="absolute z-20 flex h-4 w-5 items-center justify-center rounded-[4px] bg-[var(--color-primary)] text-white shadow-[var(--shadow-whisper)] transition hover:opacity-90"
+            data-table-column-handle="true"
+            onClick={() => {
+              setTableAxisMenu({
+                axis: "column",
+                index: tableColumnHandle.index,
+                left: Math.max(12, tableColumnHandle.left + 12),
+                open: true,
+                tablePos: tableColumnHandle.tablePos,
+                top: Math.max(12, tableColumnHandle.top + 18),
+              });
+            }}
+            style={{
+              left: `${tableColumnHandle.left}px`,
+              top: `${tableColumnHandle.top}px`,
+            }}
+            title="Column actions"
+            type="button"
+          >
+            <GripVertical className="size-3.5" />
+          </button>
+        ) : null}
+        {canEditBody && tableAxisMenu?.open && globalThis.document?.body
+          ? createPortal(
+              <div ref={tableAxisMenuRef}>
+                <EditorTableAxisMenu
+                  axis={tableAxisMenu.axis}
+                  left={tableAxisMenu.left}
+                  onAction={(action) => {
+                    if (tableAxisMenu.axis === "row") {
+                      handleTableRowAction(
+                        tableAxisMenu.tablePos,
+                        tableAxisMenu.index,
+                        action as "delete" | "duplicate" | "insert-above" | "insert-below",
+                      );
+                    } else {
+                      handleTableColumnAction(
+                        tableAxisMenu.tablePos,
+                        tableAxisMenu.index,
+                        action as "delete" | "duplicate" | "insert-left" | "insert-right",
+                      );
+                    }
+                    setTableAxisMenu(null);
+                  }}
+                  top={tableAxisMenu.top}
+                />
+              </div>,
+              globalThis.document.body,
+            )
+          : null}
         <EditorSlashMenu
           activeIndex={slashMenu.activeIndex}
           editor={editor}

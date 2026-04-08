@@ -2,6 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import { useMemo } from "react";
+import { TextSelection } from "@tiptap/pm/state";
 import type {
   EditorActionBaseArgs,
   EditorBlockMenuState,
@@ -267,14 +268,53 @@ export function useEditorActions({
     }
   }
 
-  function updateTable(command: (currentEditor: Editor) => boolean) {
+  function getTableSelectionPos(
+    currentEditor: Editor,
+    tablePos: number,
+    target: "bottom-edge" | "left-edge" | "right-edge" | "top-edge",
+  ) {
+    const domNode = currentEditor.view.nodeDOM(tablePos);
+    const tableElement =
+      (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest("table") ?? null;
+
+    if (!(tableElement instanceof HTMLTableElement) || tableElement.rows.length === 0) {
+      return Math.min(tablePos + 3, currentEditor.state.doc.content.size);
+    }
+
+    const targetRowIndex = target === "bottom-edge" ? tableElement.rows.length - 1 : 0;
+    const row = tableElement.rows.item(targetRowIndex);
+
+    if (!row || row.cells.length === 0) {
+      return Math.min(tablePos + 3, currentEditor.state.doc.content.size);
+    }
+
+    const targetCellIndex = target === "right-edge" ? row.cells.length - 1 : 0;
+    const cell = row.cells.item(targetCellIndex);
+
+    if (!cell) {
+      return Math.min(tablePos + 3, currentEditor.state.doc.content.size);
+    }
+
+    try {
+      return Math.min(currentEditor.view.posAtDOM(cell, 0) + 1, currentEditor.state.doc.content.size);
+    } catch {
+      return Math.min(tablePos + 3, currentEditor.state.doc.content.size);
+    }
+  }
+
+  function updateTable(
+    command: (currentEditor: Editor) => boolean,
+    selectionTarget?: "bottom-edge" | "left-edge" | "right-edge" | "top-edge",
+  ) {
     const tablePos = blockMenu.pos ?? hoveredBlock?.pos ?? null;
 
     if (!editor || tablePos == null) {
       return;
     }
 
-    const selectionPos = Math.min(tablePos + 3, editor.state.doc.content.size);
+    const selectionPos = selectionTarget
+      ? getTableSelectionPos(editor, tablePos, selectionTarget)
+      : Math.min(tablePos + 3, editor.state.doc.content.size);
     editor.chain().focus().setTextSelection(selectionPos).run();
 
     if (!command(editor)) {
@@ -291,6 +331,138 @@ export function useEditorActions({
       pos: null,
       showTurnInto: false,
     }));
+    requestAnimationFrame(() => {
+      syncHoveredBlockFromPos(tablePos);
+      requestAnimationFrame(() => {
+        syncHoveredBlockFromPos(tablePos);
+      });
+    });
+  }
+
+  function getTableNode(tablePos: number) {
+    const tableNode = editor?.state.doc.nodeAt(tablePos);
+    return tableNode?.type.name === "table" ? tableNode : null;
+  }
+
+  function getTableCellSelectionPos(
+    currentEditor: Editor,
+    tablePos: number,
+    rowIndex: number,
+    columnIndex: number,
+  ) {
+    const tableNode = currentEditor.state.doc.nodeAt(tablePos);
+
+    if (!tableNode || tableNode.type.name !== "table") {
+      return Math.min(tablePos + 3, currentEditor.state.doc.content.size);
+    }
+
+    let rowPos = tablePos + 1;
+
+    for (let currentRowIndex = 0; currentRowIndex < tableNode.childCount; currentRowIndex += 1) {
+      const rowNode = tableNode.child(currentRowIndex);
+
+      if (currentRowIndex === rowIndex) {
+        let cellPos = rowPos + 1;
+
+        for (
+          let currentColumnIndex = 0;
+          currentColumnIndex < rowNode.childCount;
+          currentColumnIndex += 1
+        ) {
+          const cellNode = rowNode.child(currentColumnIndex);
+
+          if (currentColumnIndex === columnIndex) {
+            return Math.min(cellPos + 1, currentEditor.state.doc.content.size);
+          }
+
+          cellPos += cellNode.nodeSize;
+        }
+      }
+
+      rowPos += rowNode.nodeSize;
+    }
+
+    return Math.min(tablePos + 3, currentEditor.state.doc.content.size);
+  }
+
+  function rebuildTable(
+    tablePos: number,
+    buildNextTable: (tableNode: NonNullable<ReturnType<typeof getTableNode>>) => NonNullable<ReturnType<typeof getTableNode>> | null,
+  ) {
+    if (!editor) {
+      return;
+    }
+
+    const tableNode = getTableNode(tablePos);
+
+    if (!tableNode) {
+      setActionError("Failed to update table");
+      setActionNotice(null);
+      return;
+    }
+
+    const nextTable = buildNextTable(tableNode);
+
+    if (!nextTable) {
+      setActionError("Failed to update table");
+      setActionNotice(null);
+      return;
+    }
+
+    const tr = editor.state.tr.replaceWith(tablePos, tablePos + tableNode.nodeSize, nextTable);
+    const selectionPos = Math.min(tablePos + 3, tr.doc.content.size);
+    tr.setSelection(TextSelection.near(tr.doc.resolve(selectionPos)));
+    editor.view.dispatch(tr);
+    editor.view.focus();
+    setActionError(null);
+    setActionNotice("Table updated");
+    setBlockMenu((current) => ({
+      ...current,
+      open: false,
+      pos: null,
+      showTurnInto: false,
+    }));
+    requestAnimationFrame(() => {
+      syncHoveredBlockFromPos(tablePos);
+      requestAnimationFrame(() => {
+        syncHoveredBlockFromPos(tablePos);
+      });
+    });
+  }
+
+  function runTableCommandAtCell(
+    tablePos: number,
+    rowIndex: number,
+    columnIndex: number,
+    command: (currentEditor: Editor) => boolean,
+  ) {
+    if (!editor) {
+      return;
+    }
+
+    const selectionPos = getTableCellSelectionPos(editor, tablePos, rowIndex, columnIndex);
+    editor.chain().focus().setTextSelection(selectionPos).run();
+
+    if (!command(editor)) {
+      setActionError("Failed to update table");
+      setActionNotice(null);
+      return;
+    }
+
+    setActionError(null);
+    setActionNotice("Table updated");
+    setBlockMenu((current) => ({
+      ...current,
+      open: false,
+      pos: null,
+      showTurnInto: false,
+    }));
+    requestAnimationFrame(() => {
+      syncHoveredBlockFromPos(tablePos);
+      requestAnimationFrame(() => {
+        syncHoveredBlockFromPos(tablePos);
+      });
+    });
   }
 
   return {
@@ -314,16 +486,117 @@ export function useEditorActions({
     handleInsertImage,
     handleInsertBlockBefore: blockActions.handleInsertBlockBefore,
     handleInsertTableColumnLeft: () => {
-      updateTable((currentEditor) => currentEditor.chain().focus().addColumnBefore().run());
+      updateTable(
+        (currentEditor) => currentEditor.chain().focus().addColumnBefore().run(),
+        "left-edge",
+      );
     },
     handleInsertTableColumn: () => {
-      updateTable((currentEditor) => currentEditor.chain().focus().addColumnAfter().run());
+      updateTable(
+        (currentEditor) => currentEditor.chain().focus().addColumnAfter().run(),
+        "right-edge",
+      );
     },
     handleInsertTableRowAbove: () => {
-      updateTable((currentEditor) => currentEditor.chain().focus().addRowBefore().run());
+      updateTable(
+        (currentEditor) => currentEditor.chain().focus().addRowBefore().run(),
+        "top-edge",
+      );
     },
     handleInsertTableRow: () => {
-      updateTable((currentEditor) => currentEditor.chain().focus().addRowAfter().run());
+      updateTable(
+        (currentEditor) => currentEditor.chain().focus().addRowAfter().run(),
+        "bottom-edge",
+      );
+    },
+    handleTableColumnAction: (
+      tablePos: number,
+      columnIndex: number,
+      action: "delete" | "duplicate" | "insert-left" | "insert-right",
+    ) => {
+      if (action === "insert-left") {
+        runTableCommandAtCell(tablePos, 0, columnIndex, (currentEditor) =>
+          currentEditor.chain().focus().addColumnBefore().run(),
+        );
+        return;
+      }
+
+      if (action === "insert-right") {
+        runTableCommandAtCell(tablePos, 0, columnIndex, (currentEditor) =>
+          currentEditor.chain().focus().addColumnAfter().run(),
+        );
+        return;
+      }
+
+      if (action === "delete") {
+        runTableCommandAtCell(tablePos, 0, columnIndex, (currentEditor) =>
+          currentEditor.chain().focus().deleteColumn().run(),
+        );
+        return;
+      }
+
+      rebuildTable(tablePos, (tableNode) => {
+        const nextRows = [];
+
+        for (let rowIndex = 0; rowIndex < tableNode.childCount; rowIndex += 1) {
+          const rowNode = tableNode.child(rowIndex);
+          const nextCells = [];
+
+          for (let cellIndex = 0; cellIndex < rowNode.childCount; cellIndex += 1) {
+            const cellNode = rowNode.child(cellIndex);
+            nextCells.push(cellNode);
+
+            if (cellIndex === columnIndex) {
+              nextCells.push(cellNode.type.create(cellNode.attrs, cellNode.content));
+            }
+          }
+
+          nextRows.push(rowNode.type.create(rowNode.attrs, nextCells));
+        }
+
+        return tableNode.type.create(tableNode.attrs, nextRows);
+      });
+    },
+    handleTableRowAction: (
+      tablePos: number,
+      rowIndex: number,
+      action: "delete" | "duplicate" | "insert-above" | "insert-below",
+    ) => {
+      if (action === "insert-above") {
+        runTableCommandAtCell(tablePos, rowIndex, 0, (currentEditor) =>
+          currentEditor.chain().focus().addRowBefore().run(),
+        );
+        return;
+      }
+
+      if (action === "insert-below") {
+        runTableCommandAtCell(tablePos, rowIndex, 0, (currentEditor) =>
+          currentEditor.chain().focus().addRowAfter().run(),
+        );
+        return;
+      }
+
+      if (action === "delete") {
+        runTableCommandAtCell(tablePos, rowIndex, 0, (currentEditor) =>
+          currentEditor.chain().focus().deleteRow().run(),
+        );
+        return;
+      }
+
+      rebuildTable(tablePos, (tableNode) => {
+        const nextRows = [];
+
+        for (let currentRowIndex = 0; currentRowIndex < tableNode.childCount; currentRowIndex += 1) {
+          const rowNode = tableNode.child(currentRowIndex);
+          nextRows.push(rowNode);
+
+          if (currentRowIndex === rowIndex) {
+            nextRows.push(rowNode.type.create(rowNode.attrs, rowNode.content));
+          }
+        }
+
+        return tableNode.type.create(tableNode.attrs, nextRows);
+      });
     },
     handleTurnInto: blockActions.handleTurnInto,
     isImageBlock,

@@ -135,6 +135,22 @@ export function useEditorHoveredBlock({
     };
   }, [blockControlsRef, blockMenuRef, canEditBody, editor, editorContainerRef]);
 
+  useEffect(() => {
+    if (!editor || !canEditBody || !hoveredBlock) {
+      return;
+    }
+
+    const syncCurrentHoveredBlock = () => {
+      syncHoveredBlockFromPos(hoveredBlock.pos);
+    };
+
+    editor.on("update", syncCurrentHoveredBlock);
+
+    return () => {
+      editor.off("update", syncCurrentHoveredBlock);
+    };
+  }, [canEditBody, editor, hoveredBlock, syncHoveredBlockFromPos]);
+
   return {
     hoveredBlock,
     setHoveredBlock,
