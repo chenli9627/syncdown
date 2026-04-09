@@ -20,21 +20,20 @@ export function EditorHeaderPresence({
       className="flex items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 shadow-[var(--shadow-whisper)]"
       title={safeParticipants.map((entry) => entry.name).join(", ")}
     >
-      <div className="flex items-center -space-x-1">
-        {safeParticipants.slice(0, 4).map((entry) => (
+      <div className="flex items-center gap-1">
+        {safeParticipants.slice(0, 3).map((entry) => (
           <span
-            className="relative flex size-5 items-center justify-center border border-white text-[10px] font-semibold text-white"
+            className="border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--color-foreground)]"
             key={entry.userId}
-            style={{ backgroundColor: entry.color }}
             title={entry.name}
           >
-            {(entry.name || "?").slice(0, 1).toUpperCase()}
+            {entry.name || "Unknown"}
           </span>
         ))}
       </div>
-      {safeParticipants.length > 4 ? (
+      {safeParticipants.length > 3 ? (
         <span className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
-          +{safeParticipants.length - 4}
+          +{safeParticipants.length - 3}
         </span>
       ) : null}
     </div>
