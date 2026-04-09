@@ -3,11 +3,10 @@
 import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
-import { EditorHeaderPresence } from "@/features/editor/components/editor-header-presence";
 import { EditorHeaderOverflowAction } from "@/features/editor/components/editor-header-overflow-action";
 import { EditorHeaderPermissionAction } from "@/features/editor/components/editor-header-permission-action";
 import { EditorHeaderSearchAction } from "@/features/editor/components/editor-header-search-action";
-import type { AccessEntry, PresenceParticipant } from "@/features/editor/lib/types";
+import type { AccessEntry } from "@/features/editor/lib/types";
 
 type EditorHeaderActionsProps = {
   accessEntries: AccessEntry[];
@@ -38,7 +37,6 @@ type EditorHeaderActionsProps = {
   permissionMenuOpen: boolean;
   permissionMenuRef: RefObject<HTMLDivElement | null>;
   permissionNotice: string | null;
-  remoteParticipants: PresenceParticipant[];
   removeDocumentAccess: (
     documentId: string,
     userId: string,
@@ -110,7 +108,6 @@ export function EditorHeaderActions({
   permissionMenuOpen,
   permissionMenuRef,
   permissionNotice,
-  remoteParticipants,
   removeDocumentAccess,
   routerPushHome,
   searchButtonRef,
@@ -143,8 +140,6 @@ export function EditorHeaderActions({
   const { locale } = useLocale();
   return (
     <div className="flex items-center gap-1.5">
-      <EditorHeaderPresence participants={remoteParticipants} />
-
       <EditorHeaderPermissionAction
         accessEntries={accessEntries}
         canManageAccess={canManageAccess}

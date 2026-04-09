@@ -68,7 +68,6 @@ export function EditorSurface({
         permissionMenuOpen={model.ui.permissionBody.permissionMenuOpen}
         permissionMenuRef={model.ui.permissionBody.permissionMenuRef}
         permissionNotice={model.ui.permissionBody.permissionNotice}
-        remoteParticipants={model.presence.remoteParticipants}
         removeDocumentAccess={model.removeDocumentAccess}
         routerPushHome={model.routerPushHome}
         searchButtonRef={model.ui.searchBody.searchButtonRef}
@@ -134,6 +133,7 @@ export function EditorSurface({
         hoveredBlock={model.hovered.hoveredBlock}
         imageInputRef={model.ui.imageInputRef}
         importInputRef={model.ui.importInputRef}
+        remoteEntries={model.presence.remoteEntries}
         searchRects={model.ui.searchBody.searchRects}
         aiHighlightRects={model.selectionAi.aiBubble.highlightRects}
         aiBubble={model.selectionAi.aiBubble}

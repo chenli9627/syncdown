@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { EditorContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { GripHorizontal, GripVertical, Plus } from "lucide-react";
@@ -14,11 +15,13 @@ import { EditorSelectionBubble } from "@/features/editor/components/editor-selec
 import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu";
 import { EditorTableAxisMenu } from "@/features/editor/components/editor-table-axis-menu";
 import { useEditorBlockDrag } from "@/features/editor/hooks/use-editor-block-drag";
+import type { RemoteAwarenessEntry } from "@/features/editor/hooks/use-editor-collaboration";
 import type { AiActionKind } from "@/features/editor/lib/ai";
 import {
   BLOCK_ELEMENT_SELECTOR,
   getBlockDropTargetFromPointer,
   getTopLevelBlockInfoFromElement,
+  getTopLevelBlockStartPos,
 } from "@/features/editor/lib/utils";
 import type {
   AiBubbleState,
@@ -108,6 +111,7 @@ type EditorCanvasProps = {
   hoveredBlock: HoveredBlock | null;
   imageInputRef: RefObject<HTMLInputElement | null>;
   importInputRef: RefObject<HTMLInputElement | null>;
+  remoteEntries: RemoteAwarenessEntry[];
   searchRects: SearchRect[];
   aiHighlightRects: SearchRect[];
   aiBubble: AiBubbleState;
@@ -167,6 +171,7 @@ export function EditorCanvas({
   hoveredBlock,
   imageInputRef,
   importInputRef,
+  remoteEntries,
   searchRects,
   aiHighlightRects,
   aiBubble,
@@ -195,6 +200,14 @@ export function EditorCanvas({
   const [tableColumnHandle, setTableColumnHandle] = useState<TableAxisHandleState | null>(null);
   const [tableRowHandle, setTableRowHandle] = useState<TableAxisHandleState | null>(null);
   const [tableAxisDrag, setTableAxisDrag] = useState<TableAxisDragState | null>(null);
+  const [collaboratorBlockMarkers, setCollaboratorBlockMarkers] = useState<
+    Array<{
+      avatars: Array<{ avatarUrl: string | null; color: string; name: string; userId: string }>;
+      left: number;
+      pos: number;
+      top: number;
+    }>
+  >([]);
   const drag = useEditorBlockDrag({
     canEditBody,
     editor,
@@ -236,6 +249,101 @@ export function EditorCanvas({
     highlight.style.top = `${blockBounds.top - containerBounds.top}px`;
     highlight.style.opacity = "1";
   }, [blockMenu.open, blockMenu.pos, editor, editorContainerRef]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const computeMarkers = () => {
+      const container = editorContainerRef.current;
+      const editorRoot = container?.querySelector(".ProseMirror");
+
+      if (!(container instanceof HTMLElement) || !(editorRoot instanceof HTMLElement)) {
+        setCollaboratorBlockMarkers([]);
+        return;
+      }
+
+      const grouped = new Map<number, Array<{ avatarUrl: string | null; color: string; name: string; userId: string }>>();
+
+      for (const entry of remoteEntries) {
+        if (entry.head == null) {
+          continue;
+        }
+
+        try {
+          const topLevelPos = getTopLevelBlockStartPos(editor, entry.head);
+          const domNode = editor.view.nodeDOM(topLevelPos);
+          const blockElement =
+            (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
+              BLOCK_ELEMENT_SELECTOR,
+            ) ?? null;
+
+          if (!(blockElement instanceof HTMLElement)) {
+            continue;
+          }
+
+          const blockInfo = getTopLevelBlockInfoFromElement(editor, blockElement, container);
+
+          if (!blockInfo) {
+            continue;
+          }
+
+          const list = grouped.get(blockInfo.pos) ?? [];
+          list.push({
+            avatarUrl: entry.avatarUrl,
+            color: entry.color,
+            name: entry.name,
+            userId: entry.userId,
+          });
+          grouped.set(blockInfo.pos, list);
+        } catch {
+          continue;
+        }
+      }
+
+      const nextMarkers = Array.from(grouped.entries()).map(([pos, avatars]) => {
+        const domNode = editor.view.nodeDOM(pos);
+        const blockElement =
+          (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
+            BLOCK_ELEMENT_SELECTOR,
+          ) ?? null;
+
+        const blockInfo =
+          blockElement instanceof HTMLElement
+            ? getTopLevelBlockInfoFromElement(editor, blockElement, container)
+            : null;
+
+        if (!blockInfo) {
+          return null;
+        }
+
+        const buttonOffset = hoveredBlock?.pos === pos && !slashMenu.open ? 26 : 0;
+
+        return {
+          avatars,
+          left: blockInfo.left - 34 - buttonOffset,
+          pos,
+          top: blockInfo.top + blockInfo.height / 2 - 10,
+        };
+      }).filter((value): value is { avatars: Array<{ avatarUrl: string | null; color: string; name: string; userId: string }>; left: number; pos: number; top: number } => value !== null);
+
+      setCollaboratorBlockMarkers(nextMarkers);
+    };
+
+    const frame = window.requestAnimationFrame(computeMarkers);
+    editor.on("transaction", computeMarkers);
+    window.addEventListener("resize", computeMarkers);
+    const scrollHost = editorContainerRef.current?.closest("main");
+    scrollHost?.addEventListener("scroll", computeMarkers);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      editor.off("transaction", computeMarkers);
+      window.removeEventListener("resize", computeMarkers);
+      scrollHost?.removeEventListener("scroll", computeMarkers);
+    };
+  }, [editor, editorContainerRef, hoveredBlock?.pos, remoteEntries, slashMenu.open]);
 
   const hoveredBlockType =
     editor && hoveredBlock ? editor.state.doc.nodeAt(hoveredBlock.pos)?.type.name ?? null : null;
@@ -959,6 +1067,39 @@ export function EditorCanvas({
               width: `${rect.width}px`,
             }}
           />
+        ))}
+        {collaboratorBlockMarkers.map((marker) => (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute z-[5] flex items-center -space-x-1"
+            key={`collab-${marker.pos}`}
+            style={{
+              left: `${marker.left}px`,
+              top: `${marker.top}px`,
+            }}
+          >
+            {marker.avatars.slice(0, 3).map((avatar) =>
+              avatar.avatarUrl ? (
+                <Image
+                  alt=""
+                  className="size-5 rounded-full object-cover ring-2 ring-[var(--color-editor-surface-background)]"
+                  key={avatar.userId}
+                  src={avatar.avatarUrl}
+                  unoptimized
+                  width={20}
+                  height={20}
+                />
+              ) : (
+                <span
+                  className="flex size-5 items-center justify-center rounded-full text-[9px] font-semibold text-white ring-2 ring-[var(--color-editor-surface-background)]"
+                  key={avatar.userId}
+                  style={{ backgroundColor: avatar.color }}
+                >
+                  {avatar.name.slice(0, 1).toUpperCase()}
+                </span>
+              ),
+            )}
+          </div>
         ))}
         {tableAxisMenu?.open ? (
           <span
