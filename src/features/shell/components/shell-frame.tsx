@@ -126,7 +126,10 @@ export function ShellFrame({ children }: ShellFrameProps) {
           workspaceTriggerRef={workspaceState.workspaceTriggerRef}
         />
 
-        <main className="relative z-0 h-screen min-h-0 overflow-y-auto bg-[linear-gradient(180deg,#ffffff_0%,#fdfcfb_100%)]">
+        <main
+          className="relative z-0 h-screen min-h-0 overflow-y-auto"
+          style={{ background: "var(--color-editor-surface-gradient)" }}
+        >
           {children}
         </main>
       </div>
