@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { StoredSyntextState } from "../src/features/app-state/types";
-import { registerUser, resetPasswordForUser } from "../src/features/app-state/lib/mutations/auth";
+import {
+  registerUser,
+  resetPasswordForUser,
+  updateProfileAvatarForUser,
+} from "../src/features/app-state/lib/mutations/auth";
 import {
   nextRestoredTitle,
   nextUntitledTitle,
@@ -133,4 +137,19 @@ test("reset password rejects invalid passwords", () => {
     error: "Password must be at least 8 characters",
     ok: false,
   });
+});
+
+test("profile avatar updates for existing user", () => {
+  const result = updateProfileAvatarForUser(
+    createState(),
+    "user_one",
+    "/api/media/avatar-test.png",
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  assert.equal(result.state.users[0]?.avatarUrl, "/api/media/avatar-test.png");
 });

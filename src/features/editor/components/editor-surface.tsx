@@ -29,7 +29,10 @@ export function EditorSurface({
   });
 
   return (
-    <div className="relative flex min-h-full flex-col bg-[linear-gradient(180deg,#ffffff_0%,#fdfcfb_100%)]">
+    <div
+      className="relative flex min-h-full flex-col"
+      style={{ background: "var(--color-editor-surface-gradient)" }}
+    >
       <EditorActionErrorDialog
         error={model.ui.actionError}
         onClose={() => model.ui.setActionError(null)}

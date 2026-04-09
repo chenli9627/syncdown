@@ -208,6 +208,7 @@ Current implementation:
 
 - `/settings` is a real authenticated-shell route
 - `Profile` supports display-name updates
+- `Profile` supports avatar upload through the shared media pipeline
 - `Preferences` supports locale and theme switching
 
 ## 6. Sidebar Architecture

@@ -76,6 +76,7 @@ export type BlockTransformItem = {
 };
 
 export type AccessEntry = {
+  avatarUrl?: string | null;
   email: string;
   id: string;
   name: string;

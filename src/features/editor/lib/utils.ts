@@ -390,6 +390,7 @@ export function getAccessEntries(
       }
 
       return {
+        avatarUrl: user.avatarUrl,
         email: user.email,
         id: user.id,
         name: user.name,
@@ -404,6 +405,7 @@ export function getAccessEntries(
     ...(owner
       ? [
           {
+            avatarUrl: owner.avatarUrl,
             email: owner.email,
             id: `owner-${owner.id}`,
             name: owner.name,

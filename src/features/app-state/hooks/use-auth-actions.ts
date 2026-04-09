@@ -80,6 +80,28 @@ export function useAuthActions({ setSession, setState }: UseAuthActionsArgs) {
 
         return { ok: true };
       },
+      updateProfileAvatar: async (
+        userId: string,
+        avatarUrl: string | null,
+      ): Promise<Result> => {
+        const response = await fetch("/api/account/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, avatarUrl }),
+        });
+        const data = await readJson<{ error?: string; state?: SyntextState }>(response);
+
+        if (!response.ok || !data.state) {
+          return {
+            ok: false,
+            error: data.error ?? "Profile update failed",
+          };
+        }
+
+        setState(data.state);
+
+        return { ok: true };
+      },
     }),
     [setSession, setState],
   );

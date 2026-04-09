@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { updateProfileNameForUser } from "@/features/app-state/lib/mutations";
+import {
+  updateProfileAvatarForUser,
+  updateProfileNameForUser,
+} from "@/features/app-state/lib/mutations";
 import {
   readStoredState,
   toPublicState,
@@ -9,6 +12,7 @@ import {
 export async function PATCH(request: Request) {
   const body = (await request.json().catch(() => null)) as
     | {
+        avatarUrl?: string | null;
         name?: string;
         userId?: string;
       }
@@ -18,16 +22,35 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "You must be logged in" }, { status: 401 });
   }
 
-  const state = await readStoredState();
-  const result = updateProfileNameForUser(state, body.userId, body.name ?? "");
+  let state = await readStoredState();
 
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+  if (body.name !== undefined) {
+    const result = updateProfileNameForUser(state, body.userId, body.name ?? "");
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    state = result.state;
   }
 
-  await writeStoredState(result.state);
+  if (body.avatarUrl !== undefined) {
+    const result = updateProfileAvatarForUser(
+      state,
+      body.userId,
+      body.avatarUrl ?? null,
+    );
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    state = result.state;
+  }
+
+  await writeStoredState(state);
 
   return NextResponse.json({
-    state: toPublicState(result.state),
+    state: toPublicState(state),
   });
 }

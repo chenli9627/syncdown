@@ -228,7 +228,7 @@ export function EditorHeader({
   };
 
   return (
-    <div className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[rgba(255,255,255,0.94)] px-4 py-2 backdrop-blur-md">
+    <div className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-editor-header-background)] px-4 py-2 backdrop-blur-md">
       <div className="flex w-full flex-col">
         <div className="flex items-start justify-between gap-6">
           <EditorHeaderTitle {...titleProps} />

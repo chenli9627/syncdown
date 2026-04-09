@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { X } from "lucide-react";
 import type { AccessEntry } from "@/features/editor/lib/types";
 
@@ -76,9 +77,20 @@ function EditorPermissionAccessRow({
 
   return (
     <div className="flex items-center gap-3 px-1.5 py-2">
-      <span className="flex size-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] text-sm font-medium text-[var(--color-muted-foreground)]">
-        {entry.name.slice(0, 1).toUpperCase()}
-      </span>
+      {entry.avatarUrl ? (
+        <Image
+          alt={entry.name}
+          className="size-10 rounded-full border border-[var(--color-border)] object-cover"
+          src={entry.avatarUrl}
+          unoptimized
+          width={40}
+          height={40}
+        />
+      ) : (
+        <span className="flex size-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] text-sm font-medium text-[var(--color-muted-foreground)]">
+          {entry.name.slice(0, 1).toUpperCase()}
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium">{entry.name}</p>

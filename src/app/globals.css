@@ -30,6 +30,16 @@
 
 :root {
   color-scheme: light;
+  --color-page-gradient: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.94) 22%,
+    transparent 42%
+  );
+  --color-editor-surface-gradient: linear-gradient(180deg, #ffffff 0%, #fdfcfb 100%);
+  --color-editor-header-background: rgba(255, 255, 255, 0.94);
+  --color-active-block-background: rgba(9, 127, 232, 0.14);
+  --color-active-block-ring: rgba(9, 127, 232, 0.1);
 }
 
 .dark {
@@ -52,6 +62,16 @@
   --color-sidebar-foreground: #f6f5f4;
   --shadow-soft-card: rgba(0, 0, 0, 0.24) 0px 8px 30px;
   --shadow-whisper: rgba(0, 0, 0, 0.16) 0px 2px 10px;
+  --color-page-gradient: linear-gradient(
+    180deg,
+    rgba(25, 24, 22, 0.98) 0%,
+    rgba(25, 24, 22, 0.94) 22%,
+    transparent 42%
+  );
+  --color-editor-surface-gradient: linear-gradient(180deg, #191816 0%, #1d1b19 100%);
+  --color-editor-header-background: rgba(25, 24, 22, 0.92);
+  --color-active-block-background: rgba(98, 174, 240, 0.12);
+  --color-active-block-ring: rgba(98, 174, 240, 0.18);
 }
 
 * {
@@ -96,8 +116,8 @@ button:disabled {
 }
 
 .syntext-editor [data-active-block="true"] {
-  background: #dbe9f8;
-  box-shadow: inset 0 0 0 1px rgba(9, 127, 232, 0.1);
+  background: var(--color-active-block-background);
+  box-shadow: inset 0 0 0 1px var(--color-active-block-ring);
 }
 
 .syntext-editor p.is-editor-empty:first-child::before {

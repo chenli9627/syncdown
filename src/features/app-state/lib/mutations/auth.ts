@@ -204,3 +204,25 @@ export function updateProfileNameForUser(
     },
   };
 }
+
+export function updateProfileAvatarForUser(
+  state: StoredSyntextState,
+  userId: string,
+  rawAvatarUrl: string | null,
+) {
+  const avatarUrl = rawAvatarUrl?.trim() || null;
+
+  if (!state.users.some((user) => user.id === userId)) {
+    return { ok: false as const, error: "User does not exist" };
+  }
+
+  return {
+    ok: true as const,
+    state: {
+      ...state,
+      users: state.users.map((user) =>
+        user.id === userId ? { ...user, avatarUrl } : user,
+      ),
+    },
+  };
+}
