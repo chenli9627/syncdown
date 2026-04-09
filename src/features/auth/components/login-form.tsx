@@ -25,7 +25,7 @@ export function LoginForm() {
 
   return (
     <form
-      className="w-full space-y-6 border border-[var(--color-border)] bg-[var(--color-card)] p-8 shadow-[rgba(0,0,0,0.01)_0px_1px_3px,rgba(0,0,0,0.02)_0px_3px_7px]"
+      className="w-full max-w-md space-y-6 border border-[var(--color-border)] bg-[var(--color-card)] p-8 shadow-[rgba(0,0,0,0.01)_0px_1px_3px,rgba(0,0,0,0.02)_0px_3px_7px]"
       onSubmit={async (event) => {
         event.preventDefault();
 
@@ -45,19 +45,16 @@ export function LoginForm() {
         });
       }}
     >
-      <div className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">
-          {t("entry")}
+      <div className="space-y-3">
+        <p className="text-xs uppercase tracking-[0.22em] text-[var(--color-muted-foreground)]">
+          Syncdown
         </p>
-        <h2 className="text-3xl font-semibold">{t("logInTitle")}</h2>
-        <p className="text-sm text-[var(--color-muted-foreground)]">
-          {t("logInDescription")}
-        </p>
+        <h1 className="text-3xl font-semibold tracking-[-0.03em]">{t("logInTitle")}</h1>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="username">
+          <label className="sr-only" htmlFor="username">
             {t("username")}
           </label>
           <div className="flex h-11 items-center border border-[var(--color-border)] bg-[var(--color-card)] px-3">
@@ -73,7 +70,7 @@ export function LoginForm() {
           </div>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="password">
+          <label className="sr-only" htmlFor="password">
             {t("password")}
           </label>
           <div className="flex h-11 items-center border border-[var(--color-border)] bg-[var(--color-card)] px-3">
@@ -103,9 +100,8 @@ export function LoginForm() {
         </button>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-[var(--color-muted-foreground)]">
-        <Link href="/register">{t("newUserSignUp")}</Link>
-        <span>{t("passwordRecoveryNotice")}</span>
+      <div className="text-sm text-[var(--color-muted-foreground)]">
+        <Link href="/register">{t("register")}</Link>
       </div>
     </form>
   );
