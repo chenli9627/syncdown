@@ -149,6 +149,20 @@ export function useEditorPresence({
   }, [currentUser, editor, publishPresence, refreshPresence]);
 
   useEffect(() => {
+    if (!editor || !currentUser) {
+      return;
+    }
+
+    const heartbeatId = window.setInterval(() => {
+      void publishPresence();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(heartbeatId);
+    };
+  }, [currentUser, editor, publishPresence]);
+
+  useEffect(() => {
     if (!currentUser) {
       return;
     }
