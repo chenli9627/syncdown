@@ -80,6 +80,7 @@ function WorkspaceCard({
           className="size-10 rounded-full object-cover"
           height={40}
           src={currentUser.avatarUrl}
+          unoptimized
           width={40}
         />
       ) : (
