@@ -112,7 +112,8 @@ The current build now follows the official Tiptap + Yjs direction for collaborat
 
 - `Y.Doc`
 - `@tiptap/extension-collaboration`
-- `y-websocket`
+- `@hocuspocus/provider`
+- `@hocuspocus/server`
 - awareness-based collaborator presence
 
 Local development uses a bundled websocket server:
@@ -141,6 +142,7 @@ Current collaboration behavior:
 - active collaborator state uses awareness instead of app-owned TTL polling
 - the editor header shows active collaborators
 - remote cursor markers are rendered from awareness cursor state
+- local development uses a bundled Hocuspocus websocket server
 
 This replaces the old REST presence endpoint path.
 

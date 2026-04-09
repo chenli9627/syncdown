@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { WebsocketProvider } from "y-websocket";
+import { HocuspocusProvider } from "@hocuspocus/provider";
 import * as Y from "yjs";
 import type { User } from "@/features/app-state/types";
 import type { PresenceParticipant } from "@/features/editor/lib/types";
@@ -74,9 +74,13 @@ function getCollabServerUrl() {
 }
 
 function toRemoteEntries(
-  awareness: WebsocketProvider["awareness"],
+  awareness: HocuspocusProvider["awareness"],
   currentUserId: string | null,
 ) {
+  if (!awareness) {
+    return [];
+  }
+
   const nextEntries: RemoteAwarenessEntry[] = [];
 
   awareness.getStates().forEach((rawState) => {
@@ -105,7 +109,8 @@ export function useEditorCollaboration({
 }: UseEditorCollaborationArgs) {
   const [collaborationDocument, setCollaborationDocument] = useState<Y.Doc | null>(null);
   const [collaborationProvider, setCollaborationProvider] =
-    useState<WebsocketProvider | null>(null);
+    useState<HocuspocusProvider | null>(null);
+  const [collaborationSynced, setCollaborationSynced] = useState(false);
   const [remoteEntries, setRemoteEntries] = useState<RemoteAwarenessEntry[]>([]);
   const currentUserId = currentUser?.id ?? null;
   const currentUserName = currentUser?.name ?? null;
@@ -114,6 +119,7 @@ export function useEditorCollaboration({
   useEffect(() => {
     if (!currentUserId || !currentUserName) {
       const timer = window.setTimeout(() => {
+        setCollaborationSynced(false);
         setRemoteEntries([]);
       }, 0);
 
@@ -123,15 +129,14 @@ export function useEditorCollaboration({
     }
 
     const doc = new Y.Doc();
-    const provider = new WebsocketProvider(
-      getCollabServerUrl(),
-      `document-${documentId}`,
-      doc,
-      {
-        connect: true,
-        maxBackoffTime: 2500,
+    const provider = new HocuspocusProvider({
+      document: doc,
+      name: `document-${documentId}`,
+      onSynced: () => {
+        setCollaborationSynced(true);
       },
-    );
+      url: getCollabServerUrl(),
+    });
 
     let active = true;
     const publishHandle = window.setTimeout(() => {
@@ -143,24 +148,37 @@ export function useEditorCollaboration({
       setCollaborationDocument(doc);
     }, 0);
 
+    const awareness = provider.awareness;
+
+    if (!awareness) {
+      return () => {
+        setCollaborationSynced(false);
+        provider.destroy();
+        doc.destroy();
+        setCollaborationProvider((current) => (current === provider ? null : current));
+        setCollaborationDocument((current) => (current === doc ? null : current));
+      };
+    }
+
     const syncEntries = () => {
-      setRemoteEntries(toRemoteEntries(provider.awareness, currentUserId));
+      setRemoteEntries(toRemoteEntries(awareness, currentUserId));
     };
 
-    provider.awareness.setLocalStateField("user", {
+    provider.setAwarenessField("user", {
       avatarUrl: currentUserAvatarUrl,
       color: colorForUser(currentUserId),
       name: currentUserName,
       userId: currentUserId,
     } satisfies AwarenessUser);
-    provider.awareness.on("change", syncEntries);
+    awareness.on("change", syncEntries);
     syncEntries();
 
     return () => {
       active = false;
       window.clearTimeout(publishHandle);
-      provider.awareness.off("change", syncEntries);
-      provider.awareness.setLocalState(null);
+      setCollaborationSynced(false);
+      awareness.off("change", syncEntries);
+      awareness.setLocalState(null);
       provider.destroy();
       doc.destroy();
       setCollaborationProvider((current) => (current === provider ? null : current));
@@ -183,6 +201,7 @@ export function useEditorCollaboration({
   return {
     collaborationDocument,
     collaborationProvider,
+    collaborationSynced,
     remoteEntries,
     remoteParticipants,
   };

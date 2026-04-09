@@ -30,6 +30,7 @@ type SaveDocument = (
 type UseSyntextEditorArgs = {
   canEditBody: boolean;
   collaborationDocument: Y.Doc | null;
+  collaborationSynced: boolean;
   content: string;
   documentId: string;
   onEditorKeyDown: (event: KeyboardEvent) => boolean;
@@ -40,6 +41,7 @@ type UseSyntextEditorArgs = {
 export function useSyntextEditor({
   canEditBody,
   collaborationDocument,
+  collaborationSynced,
   content,
   documentId,
   onEditorKeyDown,
@@ -167,7 +169,7 @@ export function useSyntextEditor({
   }, [content, documentId]);
 
   useEffect(() => {
-    if (!editor || !collaborationDocument) {
+    if (!editor || !collaborationDocument || !collaborationSynced) {
       return;
     }
 
@@ -176,17 +178,19 @@ export function useSyntextEditor({
     }
 
     const fragment = collaborationDocument.getXmlFragment("default");
+    const config = collaborationDocument.getMap("config");
 
-    if (fragment.length > 0 || !content.trim()) {
+    if (config.get("initialContentLoaded") || fragment.length > 0 || !content.trim()) {
       seededInitialContentRef.current = true;
       return;
     }
 
     seededInitialContentRef.current = true;
+    config.set("initialContentLoaded", true);
     editor.commands.setContent(toEditorContent(content), {
       emitUpdate: false,
     });
-  }, [collaborationDocument, content, editor]);
+  }, [collaborationDocument, collaborationSynced, content, editor]);
 
   useEffect(() => {
     if (!editor) {

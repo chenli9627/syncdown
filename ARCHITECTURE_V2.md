@@ -475,7 +475,8 @@ The current build now follows the official Tiptap + Yjs route for collaboration:
 
 - `Y.Doc`
 - `@tiptap/extension-collaboration`
-- `y-websocket`
+- `@hocuspocus/provider`
+- `@hocuspocus/server`
 - awareness-based collaborator state
 
 Rules:
@@ -490,6 +491,7 @@ Current implementation:
 
 - local development starts a websocket collaboration server on `COLLAB_PORT`
 - the editor connects to `NEXT_PUBLIC_COLLAB_URL` or falls back to `NEXT_PUBLIC_COLLAB_PORT`
+- the client uses a `HocuspocusProvider` bound to the shared `Y.Doc`
 - collaborator names and avatars come from awareness user state
 - remote cursor markers come from awareness cursor state
 - document body sync uses the collaboration extension instead of app-owned polling

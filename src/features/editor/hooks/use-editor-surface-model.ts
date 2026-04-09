@@ -67,6 +67,7 @@ export function useEditorSurfaceModel({
   const { editor, editorReadyVersion, editorRef } = useSyntextEditor({
     canEditBody,
     collaborationDocument: collaboration.collaborationDocument,
+    collaborationSynced: collaboration.collaborationSynced,
     content: document.content,
     documentId: document.id,
     onEditorKeyDown: (event) => editorKeyDownRef.current(event),

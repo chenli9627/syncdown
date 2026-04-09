@@ -1,8 +1,8 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
+import type { HocuspocusProvider } from "@hocuspocus/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { WebsocketProvider } from "y-websocket";
 import type { RemoteAwarenessEntry } from "@/features/editor/hooks/use-editor-collaboration";
 import type { RemoteCursorMarker } from "@/features/editor/lib/types";
 
@@ -17,7 +17,7 @@ function clampPresencePos(editor: Editor, position: number) {
 }
 
 type UseEditorPresenceArgs = {
-  collaborationProvider: WebsocketProvider | null;
+  collaborationProvider: HocuspocusProvider | null;
   editor: Editor | null;
   editorContainerRef: React.RefObject<HTMLDivElement | null>;
   remoteEntries: RemoteAwarenessEntry[];
@@ -32,7 +32,7 @@ export function useEditorPresence({
   const [markers, setMarkers] = useState<RemoteCursorMarker[]>([]);
 
   const clearCursor = useCallback(() => {
-    collaborationProvider?.awareness.setLocalStateField("cursor", null);
+    collaborationProvider?.awareness?.setLocalStateField("cursor", null);
   }, [collaborationProvider]);
 
   useEffect(() => {
@@ -41,6 +41,10 @@ export function useEditorPresence({
     }
 
     const publishSelection = () => {
+      if (!collaborationProvider.awareness) {
+        return;
+      }
+
       const selection = editor.state.selection;
 
       collaborationProvider.awareness.setLocalStateField("cursor", {
