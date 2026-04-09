@@ -19,6 +19,7 @@ import { createBlockTransformItems } from "@/features/editor/lib/menu-config";
 import type { BlockTransformItem } from "@/features/editor/lib/types";
 import { BLOCK_ELEMENT_SELECTOR } from "@/features/editor/lib/utils";
 import { useEffect } from "react";
+import { closeSlashMenu } from "@/features/editor/lib/slash-menu";
 
 type UseEditorSurfaceModelArgs = {
   document: DocumentRecord;
@@ -180,6 +181,76 @@ export function useEditorSurfaceModel({
     status: ui.status,
     syncHoveredBlockFromPos: hovered.syncHoveredBlockFromPos,
   });
+  const { setSlashMenu, slashMenu } = slash;
+  const dismissAiOverlays = selectionAi.actions.dismissAll;
+  const {
+    actionError,
+    blockMenu,
+    overflowMenuOpen,
+    setBlockMenu,
+    setOverflowMenuOpen,
+  } = ui;
+  const {
+    permissionError,
+    permissionMenuOpen,
+    setPermissionMenuOpen,
+  } = ui.permissionBody;
+  const { searchMenuOpen, setSearchMenuOpen } = ui.searchBody;
+  const hasOverlayOpen =
+    blockMenu.open ||
+    overflowMenuOpen ||
+    permissionMenuOpen ||
+    searchMenuOpen ||
+    slashMenu.open ||
+    selectionAi.aiBubble.open ||
+    selectionAi.selectionBubble.open;
+
+  useEffect(() => {
+    if ((!actionError && !permissionError) || !hasOverlayOpen) {
+      return;
+    }
+
+    if (blockMenu.open) {
+      setBlockMenu((current) => ({
+        ...current,
+        open: false,
+        pos: null,
+        showTurnInto: false,
+      }));
+    }
+    if (overflowMenuOpen) {
+      setOverflowMenuOpen(false);
+    }
+    if (permissionMenuOpen) {
+      setPermissionMenuOpen(false);
+    }
+    if (searchMenuOpen) {
+      setSearchMenuOpen(false);
+    }
+    if (slashMenu.open) {
+      setSlashMenu((current) => closeSlashMenu(current));
+    }
+    if (selectionAi.aiBubble.open || selectionAi.selectionBubble.open) {
+      dismissAiOverlays();
+    }
+  }, [
+    actionError,
+    blockMenu.open,
+    hasOverlayOpen,
+    overflowMenuOpen,
+    permissionError,
+    permissionMenuOpen,
+    searchMenuOpen,
+    selectionAi.aiBubble.open,
+    selectionAi.selectionBubble.open,
+    dismissAiOverlays,
+    setPermissionMenuOpen,
+    setSearchMenuOpen,
+    setSlashMenu,
+    slashMenu.open,
+    setBlockMenu,
+    setOverflowMenuOpen,
+  ]);
 
   useEditorShortcuts({
     canUndo: actions.canUndo,

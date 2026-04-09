@@ -29,10 +29,11 @@ export function exportEditorMarkdown({
   locale,
   setActionError,
   setActionNotice,
+  setOverflowMenuOpen,
   t,
 }: Pick<
   EditorActionBaseArgs,
-  "document" | "editor" | "setActionError" | "setActionNotice"
+  "document" | "editor" | "setActionError" | "setActionNotice" | "setOverflowMenuOpen"
 > &
   MarkdownActionI18nArgs) {
   const html = editor?.getHTML() ?? document.content;
@@ -56,8 +57,9 @@ export function exportEditorMarkdown({
   anchor.download = sanitizeMarkdownFilename(document.title);
   anchor.click();
   URL.revokeObjectURL(downloadUrl);
+  setOverflowMenuOpen?.(false);
   setActionError(null);
-  setActionNotice(t("export"));
+  setActionNotice(null);
 }
 
 export async function importEditorMarkdown(
@@ -111,10 +113,10 @@ async function exportEditorMarkdownZipInternal({
   editor,
   setActionError,
   setActionNotice,
-  t,
+  setOverflowMenuOpen,
 }: Pick<
   EditorActionBaseArgs,
-  "document" | "editor" | "setActionError" | "setActionNotice"
+  "document" | "editor" | "setActionError" | "setActionNotice" | "setOverflowMenuOpen"
 > &
   MarkdownActionI18nArgs) {
   const html = editor?.getHTML() ?? document.content;
@@ -133,8 +135,9 @@ async function exportEditorMarkdownZipInternal({
   anchor.download = sanitizeZipFilename(document.title);
   anchor.click();
   URL.revokeObjectURL(downloadUrl);
+  setOverflowMenuOpen?.(false);
   setActionError(null);
-  setActionNotice(t("export"));
+  setActionNotice(null);
 }
 
 async function importMarkdownZip(

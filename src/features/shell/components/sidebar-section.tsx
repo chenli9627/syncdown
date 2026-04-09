@@ -1,4 +1,4 @@
-import { Clock3, Ellipsis, FileLock2, PanelsTopLeft, Plus } from "lucide-react";
+import { Clock3, FileLock2, PanelsTopLeft, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { DocumentRecord } from "@/features/app-state/types";
@@ -130,7 +130,7 @@ export function SidebarSection({
           {visibleItems.length ? (
             visibleItems.map((item) => (
               <button
-                className="flex items-center justify-between px-2.5 py-2 text-left text-sm transition hover:bg-[var(--color-muted)]"
+                className="flex items-center px-2.5 py-2 text-left text-sm transition hover:bg-[var(--color-muted)]"
                 key={item.id}
                 onClick={() => {
                   onOpenItem?.(item.id);
@@ -138,9 +138,6 @@ export function SidebarSection({
                 type="button"
               >
                 <span className="truncate">{item.title}</span>
-                <span className="text-xs text-[var(--color-muted-foreground)]">
-                  <Ellipsis className="size-4" />
-                </span>
               </button>
             ))
           ) : (

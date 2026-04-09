@@ -84,7 +84,7 @@ function WorkspaceCard({
           width={40}
         />
       ) : (
-        <div className="flex size-10 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-[var(--color-primary-foreground)]">
+        <div className="flex size-10 items-center justify-center rounded-full bg-[#2563eb] text-sm font-semibold text-white">
           {currentUser.name.slice(0, 1).toUpperCase()}
         </div>
       )}

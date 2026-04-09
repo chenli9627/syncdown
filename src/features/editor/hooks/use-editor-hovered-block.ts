@@ -33,8 +33,20 @@ export function useEditorHoveredBlock({
         return;
       }
 
+      if (position < 0 || position > editor.state.doc.content.size) {
+        setHoveredBlock(null);
+        return;
+      }
+
       const container = editorContainerRef.current;
-      const domNode = editor.view.nodeDOM(position);
+      let domNode: Node | null = null;
+
+      try {
+        domNode = editor.view.nodeDOM(position);
+      } catch {
+        setHoveredBlock(null);
+        return;
+      }
 
       const blockElement =
         (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
@@ -42,12 +54,14 @@ export function useEditorHoveredBlock({
         ) ?? null;
 
       if (!(container instanceof HTMLElement) || !(blockElement instanceof HTMLElement)) {
+        setHoveredBlock(null);
         return;
       }
 
       const blockInfo = getTopLevelBlockInfoFromElement(editor, blockElement, container);
 
       if (!blockInfo) {
+        setHoveredBlock(null);
         return;
       }
 

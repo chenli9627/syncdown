@@ -6,7 +6,10 @@ import {
   shareDocumentWithUser,
   updateDocumentAccessForOwner,
 } from "../src/features/app-state/lib/mutations/document-access";
-import { updateDocumentForUser } from "../src/features/app-state/lib/mutations/document-editing";
+import {
+  createDocumentForWorkspace,
+  updateDocumentForUser,
+} from "../src/features/app-state/lib/mutations/document-editing";
 import {
   moveDocumentToTrashForOwner,
   restoreDocumentFromTrashForOwner,
@@ -119,6 +122,18 @@ test("restoring a trashed document resolves title collisions", () => {
   const document = restored.state.documents.find((entry) => entry.id === "doc_shared");
   assert.equal(document?.status, "shared");
   assert.equal(document?.title, "Shared doc (Restored)");
+});
+
+test("creating a document assigns the next untitled title immediately", () => {
+  const result = createDocumentForWorkspace(createState(), "user_one", "ws_one");
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  const document = result.state.documents.find((entry) => entry.id === result.documentId);
+  assert.equal(document?.title, "Untitled");
 });
 
 test("guest cannot edit document title", () => {

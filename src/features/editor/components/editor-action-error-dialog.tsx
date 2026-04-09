@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { translateAppError } from "@/lib/i18n/error-messages";
+import { AppErrorDialog } from "@/components/ui/app-error-dialog";
 
 type EditorActionErrorDialogProps = {
   error: string | null;
@@ -12,34 +12,18 @@ export function EditorActionErrorDialog({
   error,
   onClose,
 }: EditorActionErrorDialogProps) {
-  const { locale, t } = useLocale();
-  if (!error) {
-    return null;
-  }
+  const { t } = useLocale();
+  const title = (() => {
+    if (!error) {
+      return t("editorActionFailed");
+    }
 
-  return (
-    <div className="absolute inset-0 z-[120]">
-      <div className="sticky top-0 flex h-screen items-center justify-center bg-[rgba(15,23,42,0.18)] px-6">
-        <div className="w-full max-w-[420px] border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
-          <div className="border-b border-[var(--color-border)] px-4 py-3">
-            <p className="text-sm font-semibold text-[var(--color-foreground)]">{t("importFailed")}</p>
-          </div>
-          <div className="space-y-4 px-4 py-4">
-            <p className="text-sm leading-6 text-[var(--color-foreground)]">
-              {translateAppError(error, t, locale) ?? error}
-            </p>
-            <div className="flex justify-end">
-              <button
-                className="border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-                onClick={onClose}
-                type="button"
-              >
-                {t("close")}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    if (error === t("downloadImageFailed")) {
+      return t("downloadImageFailed");
+    }
+
+    return t("editorActionFailed");
+  })();
+
+  return <AppErrorDialog error={error} onClose={onClose} title={title} />;
 }

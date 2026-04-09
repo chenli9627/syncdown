@@ -10,7 +10,7 @@ test("translates exact mapped errors", () => {
     "zh",
   );
 
-  assert.equal(translated, "Workspace 名称已存在");
+  assert.equal(translated, "工作区名称已存在");
 });
 
 test("translates zip prefix errors and preserves file details", () => {

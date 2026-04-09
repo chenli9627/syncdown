@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { useLocale } from "@/components/providers/locale-provider";
+import { AppErrorDialog } from "@/components/ui/app-error-dialog";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import type { User } from "@/features/app-state/types";
 import { translateAppError } from "@/lib/i18n/error-messages";
@@ -194,7 +195,7 @@ function SettingsContent({
                 height={64}
               />
             ) : (
-              <div className="flex size-16 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-card)] text-xl font-semibold text-[var(--color-muted-foreground)]">
+              <div className="flex size-16 items-center justify-center rounded-full border border-[#1d4ed8] bg-[#2563eb] text-xl font-semibold text-white">
                 {currentUser.name.slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -251,7 +252,6 @@ function SettingsContent({
               </div>
             </div>
           </div>
-          {error ? <p className="text-sm text-[#dd5b00]">{error}</p> : null}
           {notice ? (
             <p className="text-sm text-[var(--color-muted-foreground)]">{notice}</p>
           ) : null}
@@ -331,7 +331,6 @@ function SettingsContent({
                 />
               </div>
             </div>
-            {passwordError ? <p className="text-sm text-[#dd5b00]">{passwordError}</p> : null}
             {passwordNotice ? (
               <p className="text-sm text-[var(--color-muted-foreground)]">{passwordNotice}</p>
             ) : null}
@@ -385,6 +384,16 @@ function SettingsContent({
           </div>
         </Section>
       </div>
+      <AppErrorDialog
+        error={error}
+        onClose={() => setError(null)}
+        title={t("profileUpdateFailed")}
+      />
+      <AppErrorDialog
+        error={passwordError}
+        onClose={() => setPasswordError(null)}
+        title={t("passwordUpdateFailed")}
+      />
     </div>
   );
 }

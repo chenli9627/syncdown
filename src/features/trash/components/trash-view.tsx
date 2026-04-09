@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
+import { AppErrorDialog } from "@/components/ui/app-error-dialog";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import { translateAppError } from "@/lib/i18n/error-messages";
@@ -76,7 +77,6 @@ export function TrashView() {
       {notice ? (
         <p className="mt-6 text-sm text-[var(--color-muted-foreground)]">{notice}</p>
       ) : null}
-      {error ? <p className="mt-6 text-sm text-[#dd5b00]">{error}</p> : null}
 
       {trashItems.length ? (
         <div className="mt-8 max-h-[min(60vh,720px)] max-w-4xl overflow-y-auto border border-[var(--color-border)] bg-[var(--color-card)]">
@@ -192,6 +192,7 @@ export function TrashView() {
           </div>
         </div>
       ) : null}
+      <AppErrorDialog error={error} onClose={() => setError(null)} title={t("deleteFailed")} />
     </div>
   );
 }

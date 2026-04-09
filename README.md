@@ -1,123 +1,42 @@
 # Syncdown
 
-`Syncdown` is the new product line for this workspace.
+Syncdown is a collaborative document app built with Next.js, Tiptap, Yjs, and Hocuspocus.
 
-This directory is reserved for the v2 rebuild described in [my_plan.md](../my_plan.md).
+This repository is the active `syncdown v2` implementation inside the `/home/chen/code/bs` workspace. The product direction is a restrained, Notion-like collaborative editor, but scope is limited to the features already confirmed in the codebase and project docs.
 
-Current workspace structure:
+## Current Scope
 
-- `syncdown/`
-  - new implementation workspace for the rebuilt product
-- `my_plan.md`
-  - current product definition for the rebuild
+- authentication: login, register, settings
+- workspace shell and workspace switching
+- private documents, shared documents, trash
+- rich text editing with slash menu and block menu
+- image upload for editor content and user avatars
+- markdown `.md` and `.zip` import/export
+- AI editor actions
+- real-time collaboration with awareness-based presence
+- owner / guest access model with `can_edit` and `can_view`
 
-Immediate focus for v2:
-
-- auth-first entry flow
-- workspace, shared/private/guest information architecture
-- rebuilt editor interaction model
-- future-ready collaboration and AI integration points
-
-## Current Stack Direction
+## Tech Stack
 
 - Next.js App Router
-- React + TypeScript
+- React
+- TypeScript
 - Tailwind CSS
-- shadcn/ui-compatible foundation
-- PostgreSQL
-- local file-backed media storage adapter in development
-- MinIO / R2 through an S3-compatible adapter in production
-- Tiptap editor
+- Tiptap
+- Yjs
+- Hocuspocus
+- PostgreSQL or local JSON snapshot persistence
+- local media storage or S3-compatible object storage
 
-## Phase Workflow
+## Local Development
 
-Execution phases are tracked in [docs/IMPLEMENTATION_PHASES.md](./docs/IMPLEMENTATION_PHASES.md).
-
-## Development
-
-Planned local commands:
+Install dependencies:
 
 ```bash
 pnpm install
-pnpm dev
 ```
 
-The dev server will be exposed on `0.0.0.0:3000` for LAN access during review.
-
-## Settings
-
-The current build includes a real `/settings` page:
-
-- `Profile`
-  - update display name
-  - upload avatar
-  - change password
-  - view immutable username
-  - view email
-- `Preferences`
-  - switch language
-  - switch theme (`System / Light / Dark`)
-
-The settings entry is available from the top workspace popover.
-
-## State Persistence
-
-The app now supports two state backends:
-
-- no `DATABASE_URL`
-  - state persists to `.data/app-state.json`
-- `DATABASE_URL` configured
-  - state persists to PostgreSQL through a JSONB snapshot table named `syncdown_state`
-
-This keeps the current API surface stable while allowing the project to move off local JSON storage.
-
-On the first PostgreSQL read, if the table is empty and `.data/app-state.json` already exists,
-Syncdown will bootstrap the database snapshot from that local file before falling back to seed data.
-
-Example PostgreSQL environment:
-
-```bash
-DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/syncdown
-```
-
-The password reset command follows the same storage backend:
-
-```bash
-pnpm reset-password --username one --password newpassword123
-```
-
-## AI
-
-AI requests are sent from the frontend to `/api/ai/action`.
-
-The server reads these environment variables:
-
-```bash
-AI_API_KEY=
-AI_BASE_URL=
-AI_MODEL=
-```
-
-For Volcengine's OpenAI-compatible endpoint, the current local setup uses:
-
-```bash
-AI_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-AI_MODEL=deepseek-v3-2-251201
-```
-
-The route automatically resolves the OpenAI-compatible `responses` endpoint from the configured base URL.
-
-## Collaboration
-
-The current build now follows the official Tiptap + Yjs direction for collaboration:
-
-- `Y.Doc`
-- `@tiptap/extension-collaboration`
-- `@hocuspocus/provider`
-- `@hocuspocus/server`
-- awareness-based collaborator presence
-
-Local development uses a bundled websocket server:
+Start the app:
 
 ```bash
 pnpm dev
@@ -125,10 +44,54 @@ pnpm dev
 
 This starts:
 
-- the Next.js app on `0.0.0.0:3000`
-- the collaboration websocket server on `0.0.0.0:1234`
+- the web app on `http://127.0.0.1:3000`
+- the collaboration websocket server on `ws://127.0.0.1:1234`
 
-Environment direction:
+Other useful commands:
+
+```bash
+pnpm lint
+pnpm test
+pnpm build
+pnpm reset-password --email <email> --password <new-password>
+```
+
+Backward-compatible password reset:
+
+```bash
+pnpm reset-password --username <username> --password <new-password>
+```
+
+## Persistence
+
+App state supports two backends:
+
+- no `DATABASE_URL`
+  - state is stored in `.data/app-state.json`
+- `DATABASE_URL` configured
+  - state is stored in PostgreSQL table `syncdown_state`
+
+Media storage supports two backends:
+
+- `STORAGE_BACKEND=local`
+  - files are written to `.data/media`
+- `STORAGE_BACKEND=s3`
+  - files are stored through an S3-compatible adapter
+
+Important rule:
+
+- app-facing image and avatar URLs should remain on `/api/media/...`
+- do not switch user-facing state to direct bucket URLs
+
+## Environment
+
+### Database
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/syncdown
+```
+
+### Collaboration
 
 ```bash
 NEXT_PUBLIC_COLLAB_URL=
@@ -137,52 +100,9 @@ COLLAB_HOST=0.0.0.0
 COLLAB_PORT=1234
 ```
 
-Current collaboration behavior:
+### Media Storage
 
-- document bodies sync through Yjs
-- active collaborator state uses awareness instead of app-owned TTL polling
-- remote text caret markers are not rendered
-- collaborators are shown as avatars beside the block they are actively editing
-- when block controls are visible, collaborator avatars align in the same control lane as `+` and the six-dots button
-- if multiple collaborators are inside the same block, show up to two avatars and collapse overflow into `+N`
-- local development uses a bundled Hocuspocus websocket server
-
-This replaces the old REST presence endpoint path.
-
-## Testing
-
-The current repository includes automated regression coverage for:
-
-- AI route validation, missing-config failures, and remote request routing
-- markdown import guard rules
-- media storage configuration and URL generation
-- auth validation and naming rules
-- document sharing, trash, and restore behavior
-- workspace/document visibility rules
-
-Run:
-
-```bash
-pnpm test
-pnpm lint
-pnpm build
-```
-
-## Media Storage
-
-The current build stores uploaded editor images through the app-owned `/api/media`
-interface. The default development backend writes to `.data/media/`.
-
-Environment direction:
-
-- `STORAGE_BACKEND=local` for local development
-- `STORAGE_BACKEND=s3` enables the S3-compatible adapter for MinIO or R2
-- `STORAGE_PUBLIC_BASE_URL` can point the editor at a public media origin instead of routing reads through `/api/media`
-- `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID`,
-  `STORAGE_SECRET_ACCESS_KEY`, and `STORAGE_FORCE_PATH_STYLE` configure the S3-compatible backend
-- editor-facing image URLs remain on `/api/media/...`, so switching storage backends does not affect editor or markdown export logic
-
-Example local MinIO environment:
+Example local S3-compatible setup:
 
 ```bash
 STORAGE_BACKEND=s3
@@ -193,3 +113,70 @@ STORAGE_ACCESS_KEY_ID=minioadmin
 STORAGE_SECRET_ACCESS_KEY=minioadmin
 STORAGE_FORCE_PATH_STYLE=true
 ```
+
+### AI
+
+```bash
+AI_API_KEY=
+AI_BASE_URL=
+AI_MODEL=
+```
+
+The frontend sends AI requests to `/api/ai/action`.
+
+## Collaboration Behavior
+
+- document bodies sync through Yjs
+- active collaborator presence uses awareness
+- remote text caret markers are intentionally hidden
+- collaborator avatars appear beside the block being edited
+- local dev uses the bundled Hocuspocus server
+
+## Editor and Media Notes
+
+- new documents are auto-named as `Untitled`, `Untitled1`, `Untitled2`, etc.
+- new image uploads return `/api/media/...`
+- markdown export supports images and bundles them into zip assets when needed
+- drag-and-drop image upload is supported
+- copying image to clipboard has been removed from the image block menu
+
+## Internationalization and UI Notes
+
+- Chinese locale localizes the sidebar labels
+- login page uses a large serif brand treatment
+- login / register switch links use `New User? ...` and `Existing User? ...`
+- default user avatars fall back to blue background with white initial
+
+## Testing
+
+Automated checks:
+
+```bash
+pnpm lint
+pnpm test
+pnpm build
+```
+
+Current automated coverage includes:
+
+- auth validation and password hashing
+- untitled naming rules
+- sharing and access control
+- trash / restore behavior
+- markdown import/export guards
+- media URL normalization and export bundling
+- workspace visibility rules
+- AI route validation
+- collaboration provider sync
+
+## Important Docs
+
+- `../my_plan.md`
+- `PROJECT_CONTEXT.md`
+- `ARCHITECTURE_V2.md`
+- `../DESIGN.md`
+
+## Known Non-Product Noise
+
+- hydration warnings mentioning `body className="vsc-initialized"` are usually caused by browser extensions mutating the DOM before hydration
+- the root layout keeps `suppressHydrationWarning` on `html` and `body` to reduce this noise

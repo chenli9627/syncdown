@@ -40,6 +40,14 @@ This file stores high-signal project requirements and current status so work can
 - `Recents / Shared / Private` section headers do not show a `...` button
 - Section headers keep the numeric show-count selector
 - `Private` keeps its `+` action
+- In Chinese locale, sidebar labels should be localized (`主页 / 最近 / 共享 / 私有 / 废纸篓`)
+
+## Login / Entry UI Rules
+
+- The login page remains the first-entry route
+- The login page brand wordmark is intentionally large and serif-styled
+- The serif stack should prefer `Noto Serif`
+- The entry-link copy currently uses `New User? ...` / `Existing User? ...`
 
 ## Explicit Do / Do Not
 
@@ -57,6 +65,9 @@ This file stores high-signal project requirements and current status so work can
   - PostgreSQL for app-state persistence
   - S3-compatible object storage for media
 - Do not assume `.data/app-state.json` is the active persistence backend without checking env/runtime
+- Even when S3-compatible storage is enabled, app-facing managed media URLs should remain on `/api/media/...`
+- Do not switch public Syncdown state to direct bucket URLs for avatars or editor images
+- Public state now normalizes previously stored managed bucket URLs back to `/api/media/...`
 
 ## Verified Runtime Facts
 
@@ -66,12 +77,18 @@ This file stores high-signal project requirements and current status so work can
 - Uploaded avatar files have been verified in the object storage bucket
 - Passwords are now stored as `scrypt` hashes instead of plaintext
 - Existing plaintext passwords in the live PostgreSQL snapshot have already been migrated to hashes
+- The dev server has been run locally on `127.0.0.1:3000`
+- The collaboration websocket server has been run locally on `127.0.0.1:1234`
+- Current upload responses now return `/api/media/...` instead of direct `STORAGE_PUBLIC_BASE_URL` links
 
 ## Important Files
 
+- `src/app/layout.tsx`
+- `src/app/(auth)/login/page.tsx`
 - `src/features/shell/components/shell-sidebar.tsx`
 - `src/features/shell/components/sidebar-section.tsx`
 - `src/features/shell/components/shell-sidebar-sections.tsx`
+- `src/features/auth/components/login-form.tsx`
 - `src/features/editor/components/editor-canvas.tsx`
 - `src/features/editor/components/editor-block-controls.tsx`
 - `src/features/editor/components/editor-collaborator-avatar-stack.tsx`
@@ -80,6 +97,8 @@ This file stores high-signal project requirements and current status so work can
 - `src/features/app-state/hooks/use-app-state-sync.ts`
 - `src/features/app-state/lib/mutations/auth.ts`
 - `src/features/app-state/lib/password.ts`
+- `src/lib/server/media-references.ts`
+- `src/lib/server/media-storage/config.ts`
 - `src/lib/server/state-store.ts`
 - `scripts/reset-password.mjs`
 
@@ -88,6 +107,11 @@ This file stores high-signal project requirements and current status so work can
 - `pnpm lint`
 - `pnpm test`
 - `pnpm build`
+
+## Known Noise / Non-Product Errors
+
+- If the console shows a hydration warning mentioning `body className=\"vsc-initialized\"`, treat it as browser-extension DOM mutation noise rather than a Syncdown product bug
+- Root layout keeps `suppressHydrationWarning` on both `html` and `body` to reduce this noise
 
 ## Current Password Reset CLI
 

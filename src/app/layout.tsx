@@ -21,7 +21,7 @@ export default async function RootLayout({
 
   return (
     <html lang={initialLocale === "zh" ? "zh-CN" : "en"} suppressHydrationWarning>
-      <body>
+      <body suppressHydrationWarning>
         <AppProviders initialLocale={initialLocale}>{children}</AppProviders>
       </body>
     </html>

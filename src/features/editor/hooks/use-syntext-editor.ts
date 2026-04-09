@@ -18,6 +18,7 @@ import StarterKit from "@tiptap/starter-kit";
 import type * as Y from "yjs";
 import { useEffect, useRef, useState } from "react";
 import type { HocuspocusProvider } from "@hocuspocus/provider";
+import { NodeSelection } from "@tiptap/pm/state";
 import type { User } from "@/features/app-state/types";
 import { syntextLowlight } from "@/features/editor/lib/code-highlighting";
 import { toEditorContent } from "@/features/editor/lib/content";
@@ -133,7 +134,37 @@ export function useSyntextEditor({
         class:
           "syntext-editor min-h-[60vh] max-w-none pl-6 outline-none text-base leading-8 text-[var(--color-foreground)]",
       },
+      handleClickOn: (_view, _pos, node, nodePos, event, direct) => {
+        if (!canEditBody || !direct || node.type.name !== "image") {
+          return false;
+        }
+
+        event.preventDefault();
+        const currentEditor = editorRef.current;
+
+        if (!currentEditor) {
+          return true;
+        }
+
+        const selection = NodeSelection.create(currentEditor.state.doc, nodePos);
+        const transaction = currentEditor.state.tr.setSelection(selection);
+        currentEditor.view.dispatch(transaction);
+        currentEditor.commands.focus();
+        return true;
+      },
       handleKeyDown: (_view, event) => {
+        const currentEditor = editorRef.current;
+
+        if (
+          currentEditor &&
+          canEditBody &&
+          event.key === "Delete" &&
+          isCursorInEmptyListItem(currentEditor)
+        ) {
+          event.preventDefault();
+          return true;
+        }
+
         return onEditorKeyDown(event);
       },
       handlePaste: (_view, event) => {
@@ -156,11 +187,35 @@ export function useSyntextEditor({
           return true;
         }
 
-        void insertImageFile(currentEditor, file).then((result) => {
-          if (!result.ok) {
-            setStatus("error");
-          }
-        });
+        void insertImageFromFile(currentEditor, file);
+        return true;
+      },
+      handleDrop: (_view, event) => {
+        if (!canEditBody) {
+          return false;
+        }
+
+        const file = Array.from(event.dataTransfer?.files ?? []).find((item) =>
+          item.type.startsWith("image/"),
+        );
+
+        if (!file) {
+          return false;
+        }
+
+        event.preventDefault();
+        const currentEditor = editorRef.current;
+
+        if (!currentEditor) {
+          return true;
+        }
+
+        const dropPosition = currentEditor.view.posAtCoords({
+          left: event.clientX,
+          top: event.clientY,
+        })?.pos;
+
+        void insertImageFromFile(currentEditor, file, dropPosition);
         return true;
       },
     },
@@ -249,4 +304,45 @@ export function useSyntextEditor({
     editorReadyVersion,
     editorRef,
   };
+
+  function insertImageFromFile(currentEditor: Editor, file: File, position?: number) {
+    return insertImageFile(currentEditor, file, {
+      position,
+    }).then((result) => {
+      if (!result.ok) {
+        setStatus("error");
+      }
+    });
+  }
+}
+
+function isCursorInEmptyListItem(editor: Editor) {
+  const { selection } = editor.state;
+
+  if (!selection.empty) {
+    return false;
+  }
+
+  const { $from } = selection;
+
+  if ($from.parent.textContent.trim().length > 0) {
+    return false;
+  }
+
+  let itemDepth = -1;
+
+  for (let depth = $from.depth; depth > 0; depth -= 1) {
+    const node = $from.node(depth);
+
+    if (node.type.name === "listItem" || node.type.name === "taskItem") {
+      itemDepth = depth;
+      break;
+    }
+  }
+
+  if (itemDepth < 0) {
+    return false;
+  }
+
+  return true;
 }

@@ -28,12 +28,12 @@ test("builds api media URL when no public media origin is configured", () => {
   assert.equal(buildMediaSourceUrl("image 1.png"), "/api/media/image%201.png");
 });
 
-test("builds direct public media URL when public origin is configured", () => {
+test("keeps api media URL even when a public media origin is configured", () => {
   process.env.STORAGE_PUBLIC_BASE_URL = "https://cdn.example.com/media/";
 
   assert.equal(
     buildMediaSourceUrl("asset.png"),
-    "https://cdn.example.com/media/asset.png",
+    "/api/media/asset.png",
   );
 });
 

@@ -44,12 +44,20 @@ export function EditorHeaderOverflowAction(props: EditorHeaderOverflowActionProp
       actionNotice={props.actionNotice}
       canEditBody={props.canEditBody}
       canUndo={props.canUndo}
-      onExport={() => void props.handleExportMarkdown()}
+      onExport={() => {
+        props.setOverflowMenuOpen(false);
+        props.setActionError(null);
+        props.setActionNotice(null);
+        void props.handleExportMarkdown();
+      }}
       onInsertImage={() => {
         props.setOverflowMenuOpen(false);
         props.imageInputRef.current?.click();
       }}
-      onImport={() => props.importInputRef.current?.click()}
+      onImport={() => {
+        props.setOverflowMenuOpen(false);
+        props.importInputRef.current?.click();
+      }}
       onMoveToTrash={() => moveToTrash(props)}
       onOpenChange={(next) => {
         props.setOverflowMenuOpen(next);

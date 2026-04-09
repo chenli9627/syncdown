@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import type { StoredSyntextState } from "../src/features/app-state/types";
 import {
   extractManagedMediaFileNames,
+  normalizeManagedMediaContent,
+  normalizeManagedMediaUrl,
   removeUnreferencedMediaFiles,
 } from "../src/lib/server/media-references";
 
@@ -30,6 +32,21 @@ test("extracts managed media names from html and api urls", () => {
   );
 
   assert.deepEqual([...names], ["a file.png"]);
+});
+
+test("normalizes managed public media URLs to api media URLs", () => {
+  process.env.STORAGE_PUBLIC_BASE_URL = "https://cdn.example.com/media/";
+
+  assert.equal(
+    normalizeManagedMediaUrl("https://cdn.example.com/media/avatar%201.png"),
+    "/api/media/avatar%201.png",
+  );
+  assert.equal(
+    normalizeManagedMediaContent(
+      '<p><img src="https://cdn.example.com/media/doc%201.png" /></p>',
+    ),
+    '<p><img src="/api/media/doc%201.png" /></p>',
+  );
 });
 
 test("removes only media that is no longer referenced", async () => {

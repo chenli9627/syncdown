@@ -105,11 +105,19 @@ export async function insertImageFile(
     ? editor.chain().focus().setTextSelection(position)
     : editor.chain().focus();
 
-  chain.setImage({
-    alt: file.name,
-    src: upload.src,
-    title: file.name,
-  }).run();
+  chain.insertContent([
+    {
+      attrs: {
+        alt: file.name,
+        src: upload.src,
+        title: file.name,
+      },
+      type: "image",
+    },
+    {
+      type: "paragraph",
+    },
+  ]).run();
 
   return {
     ok: true as const,

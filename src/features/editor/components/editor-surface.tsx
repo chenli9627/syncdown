@@ -114,7 +114,6 @@ export function EditorSurface({
         editorContainerRef={model.ui.editorContainerRef}
         filteredSlashItems={model.slash.filteredSlashItems}
         handleCloseSlashMenu={model.slash.closeSlashMenuFromUi}
-        handleCopyImage={model.actions.handleCopyImage}
         handleDeleteBlock={model.actions.handleDeleteBlock}
         handleDeleteTable={model.actions.handleDeleteTable}
         handleDownloadImage={model.actions.handleDownloadImage}

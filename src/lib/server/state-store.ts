@@ -8,6 +8,10 @@ import type {
   User,
 } from "@/features/app-state/types";
 import {
+  normalizeManagedMediaContent,
+  normalizeManagedMediaUrl,
+} from "@/lib/server/media-references";
+import {
   readStoredStateFromPostgres,
   writeStoredStateToPostgres,
 } from "@/lib/server/postgres-state-store";
@@ -21,7 +25,7 @@ function sanitizeUsers(users: StoredSyntextState["users"]): User[] {
     email: user.email,
     username: user.username,
     name: user.name,
-    avatarUrl: user.avatarUrl,
+    avatarUrl: normalizeManagedMediaUrl(user.avatarUrl),
     createdAt: user.createdAt,
   }));
 }
@@ -30,7 +34,10 @@ export function toPublicState(state: StoredSyntextState): SyntextState {
   return {
     users: sanitizeUsers(state.users),
     workspaces: state.workspaces,
-    documents: state.documents,
+    documents: state.documents.map((document) => ({
+      ...document,
+      content: normalizeManagedMediaContent(document.content),
+    })),
     accesses: state.accesses,
     recentVisits: state.recentVisits,
   };

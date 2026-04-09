@@ -191,45 +191,6 @@ export function useEditorActions({
     setActionNotice(t("imageAdded"));
   }
 
-  async function handleCopyImage() {
-    if (!editor || blockMenu.pos == null) {
-      return;
-    }
-
-    const src = getImageSourceAtPos(editor, blockMenu.pos);
-
-    if (!src) {
-      return;
-    }
-
-    if (!("clipboard" in navigator) || !("ClipboardItem" in window)) {
-      setActionError(t("copyImageUnsupported"));
-      setActionNotice(null);
-      return;
-    }
-
-    try {
-      const response = await fetch(src);
-      const blob = await response.blob();
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [blob.type || "image/png"]: blob,
-        }),
-      ]);
-      setActionError(null);
-      setActionNotice(t("imageCopied"));
-      setBlockMenu((current) => ({
-        ...current,
-        open: false,
-        pos: null,
-        showTurnInto: false,
-      }));
-    } catch {
-      setActionError(t("copyImageFailed"));
-      setActionNotice(null);
-    }
-  }
-
   async function handleDownloadImage() {
     if (!editor || blockMenu.pos == null) {
       return;
@@ -473,7 +434,6 @@ export function useEditorActions({
   return {
     canUndo,
     currentTransformActiveId,
-    handleCopyImage,
     handleDeleteBlock: blockActions.handleDeleteBlock,
     handleDeleteTable: () => {
       updateTable((currentEditor) => currentEditor.chain().focus().deleteTable().run());

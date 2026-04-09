@@ -1,7 +1,7 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   getAiViewOnly,
@@ -25,11 +25,32 @@ export function useEditorSelectionAi({
   const { locale } = useLocale();
   const selectionBubbleRef = useRef<HTMLDivElement | null>(null);
   const aiBubbleRef = useRef<HTMLDivElement | null>(null);
+  const dismissedSelectionRef = useRef<{ from: number; to: number } | null>(null);
   const [selectionBubble, setSelectionBubble] = useState<SelectionBubbleState>(closedSelectionBubble);
   const [aiBubble, setAiBubble] = useState<AiBubbleState>(closedAiBubble);
   const hasWritableResult = !aiBubble.viewOnly && Boolean(aiBubble.result.trim());
   const visibleSelectionBubble = canEditBody ? selectionBubble : closedSelectionBubble();
   const visibleAiBubble = canEditBody ? aiBubble : closedAiBubble();
+  const dismissAll = useCallback(() => {
+    const currentSelection =
+      aiBubble.open
+        ? { from: aiBubble.from, to: aiBubble.to }
+        : selectionBubble.open
+          ? { from: selectionBubble.from, to: selectionBubble.to }
+          : editor
+            ? {
+                from: editor.state.selection.from,
+                to: editor.state.selection.to,
+              }
+            : null;
+
+    dismissedSelectionRef.current =
+      currentSelection && currentSelection.from !== currentSelection.to
+        ? currentSelection
+        : null;
+    setAiBubble(closedAiBubble());
+    setSelectionBubble(closedSelectionBubble());
+  }, [aiBubble.from, aiBubble.open, aiBubble.to, editor, selectionBubble.from, selectionBubble.open, selectionBubble.to]);
 
   useEffect(() => {
     if (!editor || !canEditBody) {
@@ -41,7 +62,22 @@ export function useEditorSelectionAi({
         setSelectionBubble(closedSelectionBubble());
         return;
       }
-      setSelectionBubble(getSelectionBubbleFromEditor(editor));
+
+      const nextSelectionBubble = getSelectionBubbleFromEditor(editor);
+      const dismissedSelection = dismissedSelectionRef.current;
+
+      if (
+        dismissedSelection &&
+        nextSelectionBubble.open &&
+        nextSelectionBubble.from === dismissedSelection.from &&
+        nextSelectionBubble.to === dismissedSelection.to
+      ) {
+        setSelectionBubble(closedSelectionBubble());
+        return;
+      }
+
+      dismissedSelectionRef.current = null;
+      setSelectionBubble(nextSelectionBubble);
     };
 
     syncSelectionBubble();
@@ -75,8 +111,7 @@ export function useEditorSelectionAi({
         return;
       }
 
-      setSelectionBubble(closedSelectionBubble());
-      setAiBubble(closedAiBubble());
+      dismissAll();
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -84,8 +119,7 @@ export function useEditorSelectionAi({
         return;
       }
 
-      setSelectionBubble(closedSelectionBubble());
-      setAiBubble(closedAiBubble());
+      dismissAll();
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -95,7 +129,7 @@ export function useEditorSelectionAi({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [aiBubble.open, selectionBubble.open]);
+  }, [aiBubble.open, dismissAll, selectionBubble.open]);
 
   const actions = useMemo(
     () => ({
@@ -225,6 +259,7 @@ export function useEditorSelectionAi({
           prompt: value,
         }));
       },
+      dismissAll,
       closeAll() {
         if (!editor) {
           setAiBubble(closedAiBubble());
@@ -255,7 +290,7 @@ export function useEditorSelectionAi({
         chain.run();
       },
     }),
-    [aiBubble, editor, editorContainerRef, hasWritableResult, locale, visibleSelectionBubble],
+    [aiBubble, dismissAll, editor, editorContainerRef, hasWritableResult, locale, visibleSelectionBubble],
   );
 
   return {

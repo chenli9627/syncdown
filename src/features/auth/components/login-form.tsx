@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { ArrowRight, KeyRound, UserRound } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
+import { AppErrorDialog } from "@/components/ui/app-error-dialog";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
-import { translateAppError } from "@/lib/i18n/error-messages";
 
 export function LoginForm() {
   const router = useRouter();
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   const { currentUser, login, ready } = useAppState();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -82,11 +82,6 @@ export function LoginForm() {
             />
           </div>
         </div>
-        {error ? (
-          <p className="text-sm text-[#dd5b00]">
-            {translateAppError(error, t, locale) ?? error}
-          </p>
-        ) : null}
         <button
           className="flex h-11 w-full items-center justify-center gap-2 bg-[var(--color-primary)] px-4 text-[15px] font-semibold text-[var(--color-primary-foreground)] disabled:opacity-70"
           disabled={isPending}
@@ -98,8 +93,9 @@ export function LoginForm() {
       </div>
 
       <div className="text-sm text-[var(--color-muted-foreground)]">
-        <Link href="/register">{t("register")}</Link>
+        <Link href="/register">{t("newUserSignUp")}</Link>
       </div>
+      <AppErrorDialog error={error} onClose={() => setError(null)} title={t("loginFailed")} />
     </form>
   );
 }

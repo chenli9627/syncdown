@@ -13,7 +13,6 @@ type EditorBlockMenuProps = {
   blockTransformItems: BlockTransformItem[];
   canEditBody: boolean;
   currentTransformActiveId: string | null;
-  handleCopyImage: () => void;
   handleDeleteBlock: () => void;
   handleDeleteTable: () => void;
   handleDownloadImage: () => void;
@@ -59,7 +58,6 @@ export function EditorBlockMenu({
   blockTransformItems,
   canEditBody,
   currentTransformActiveId,
-  handleCopyImage,
   handleDeleteBlock,
   handleDeleteTable,
   handleDownloadImage,
@@ -173,16 +171,6 @@ export function EditorBlockMenu({
         </>
       ) : isImageBlock ? (
         <>
-          <button
-            className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-            onClick={handleCopyImage}
-            type="button"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <Copy className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>{t("copyImage")}</span>
-            </span>
-          </button>
           <button
             className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
             onClick={handleDownloadImage}

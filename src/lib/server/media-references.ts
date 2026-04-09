@@ -55,6 +55,36 @@ export function extractManagedMediaFileNames(value: string | null | undefined) {
   return matches;
 }
 
+export function normalizeManagedMediaUrl(value: string | null | undefined) {
+  if (!value) {
+    return value ?? null;
+  }
+
+  const fileName = resolveManagedMediaFileName(value, getPublicMediaPrefix());
+
+  if (!fileName) {
+    return value;
+  }
+
+  return `/api/media/${encodeURIComponent(fileName)}`;
+}
+
+export function normalizeManagedMediaContent(value: string) {
+  if (!value) {
+    return value;
+  }
+
+  return value.replace(HTML_IMAGE_PATTERN, (full, rawUrl: string) => {
+    const normalized = normalizeManagedMediaUrl(rawUrl);
+
+    if (!normalized || normalized === rawUrl) {
+      return full;
+    }
+
+    return full.replace(rawUrl, normalized);
+  });
+}
+
 export async function removeUnreferencedMediaFiles(
   previousState: StoredSyntextState,
   nextState: StoredSyntextState,
@@ -118,4 +148,9 @@ function resolveManagedMediaFileName(rawUrl: string, publicPrefix: string | null
   }
 
   return decodeURIComponent(fileName.split(/[?#]/)[0] ?? "").trim() || null;
+}
+
+function getPublicMediaPrefix() {
+  const publicBaseUrl = getMediaStorageConfig().publicBaseUrl;
+  return publicBaseUrl ? `${publicBaseUrl}/` : null;
 }

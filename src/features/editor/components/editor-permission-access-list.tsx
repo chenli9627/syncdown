@@ -89,7 +89,7 @@ function EditorPermissionAccessRow({
           height={40}
         />
       ) : (
-        <span className="flex size-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] text-sm font-medium text-[var(--color-muted-foreground)]">
+        <span className="flex size-10 items-center justify-center rounded-full border border-[#1d4ed8] bg-[#2563eb] text-sm font-medium text-white">
           {entry.name.slice(0, 1).toUpperCase()}
         </span>
       )}

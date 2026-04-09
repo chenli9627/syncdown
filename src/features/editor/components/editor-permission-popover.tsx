@@ -2,11 +2,11 @@
 
 import type { RefObject } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
+import { AppErrorDialog } from "@/components/ui/app-error-dialog";
 import { EditorPermissionAccessList } from "@/features/editor/components/editor-permission-access-list";
 import { EditorPermissionShareForm } from "@/features/editor/components/editor-permission-share-form";
 import { EditorPermissionTrigger } from "@/features/editor/components/editor-permission-trigger";
 import type { AccessEntry } from "@/features/editor/lib/types";
-import { translateAppError } from "@/lib/i18n/error-messages";
 
 type EditorPermissionPopoverProps = {
   accessEntries: AccessEntry[];
@@ -67,7 +67,7 @@ export function EditorPermissionPopover({
   shareEmail,
   sharePermission,
 }: EditorPermissionPopoverProps) {
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   return (
     <div className="relative">
       <EditorPermissionTrigger
@@ -120,11 +120,6 @@ export function EditorPermissionPopover({
               />
             </div>
 
-            {permissionError ? (
-              <p className="pt-1 text-sm text-[#dd5b00]">
-                {translateAppError(permissionError, t, locale) ?? permissionError}
-              </p>
-            ) : null}
             {permissionNotice ? (
               <p className="pt-1 text-sm text-[var(--color-muted-foreground)]">
                 {permissionNotice}
@@ -133,6 +128,11 @@ export function EditorPermissionPopover({
           </div>
         </div>
       ) : null}
+      <AppErrorDialog
+        error={permissionError}
+        onClose={() => setPermissionError(null)}
+        title={t("permissionUpdateFailed")}
+      />
     </div>
   );
 }

@@ -89,7 +89,6 @@ type EditorCanvasProps = {
   editorContainerRef: RefObject<HTMLDivElement | null>;
   filteredSlashItems: SlashItem[];
   handleCloseSlashMenu: () => void;
-  handleCopyImage: () => Promise<void>;
   handleDeleteBlock: () => void;
   handleDeleteTable: () => void;
   handleDownloadImage: () => Promise<void>;
@@ -156,7 +155,6 @@ export function EditorCanvas({
   editorContainerRef,
   filteredSlashItems,
   handleCloseSlashMenu,
-  handleCopyImage,
   handleDeleteBlock,
   handleDeleteTable,
   handleDownloadImage,
@@ -370,7 +368,12 @@ export function EditorCanvas({
   }, [editor, editorContainerRef, hoveredBlock?.pos, remoteEntries, slashMenu.open]);
 
   const hoveredBlockType =
-    editor && hoveredBlock ? editor.state.doc.nodeAt(hoveredBlock.pos)?.type.name ?? null : null;
+    editor &&
+    hoveredBlock &&
+    hoveredBlock.pos >= 0 &&
+    hoveredBlock.pos <= editor.state.doc.content.size
+      ? editor.state.doc.nodeAt(hoveredBlock.pos)?.type.name ?? null
+      : null;
   const tableOverlay =
     canEditBody && hoveredBlock && hoveredBlockType === "table"
       ? {
@@ -1167,9 +1170,6 @@ export function EditorCanvas({
                 blockTransformItems={blockTransformItems}
                 canEditBody={canEditBody}
                 currentTransformActiveId={currentTransformActiveId}
-                handleCopyImage={() => {
-                  void handleCopyImage();
-                }}
                 handleDeleteBlock={handleDeleteBlock}
                 handleDeleteTable={handleDeleteTable}
                 handleDownloadImage={() => {

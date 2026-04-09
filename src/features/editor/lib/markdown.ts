@@ -33,7 +33,7 @@ const UNSUPPORTED_MARKDOWN_PATTERNS: Array<{
 ];
 
 const DATA_IMAGE_URL_PATTERN = /^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/;
-const LOCAL_MEDIA_URL_PATTERN = /\/api\/media\/([^/?#]+)$/;
+const LOCAL_MEDIA_URL_PATTERN = /(?:https?:\/\/[^/]+)?\/api\/media\/([^/?#]+)$/i;
 
 function escapeHtml(input: string) {
   return input
@@ -214,7 +214,7 @@ export async function editorHtmlToMarkdownBundle(html: string) {
 
     if (localMediaMatch) {
       try {
-        const response = await fetch(src);
+        const response = await fetch(new URL(src, globalThis.location?.href).toString());
 
         if (!response.ok) {
           return src;
