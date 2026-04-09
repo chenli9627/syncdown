@@ -64,6 +64,7 @@ export function useEditorPresence({
     await fetch(`/api/presence/${documentId}`, {
       body: JSON.stringify({
         anchor: selection.anchor,
+        avatarUrl: currentUser.avatarUrl,
         head: selection.head,
         name: currentUser.name,
         userId: currentUser.id,
@@ -183,6 +184,7 @@ export function useEditorPresence({
   const participants = useMemo<PresenceParticipant[]>(
     () =>
       entries.map((entry) => ({
+        avatarUrl: entry.avatarUrl ?? null,
         color: colorForUser(entry.userId),
         name: entry.name,
         userId: entry.userId,

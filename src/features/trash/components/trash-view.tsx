@@ -57,7 +57,10 @@ export function TrashView() {
   const trashItems = buckets?.trash ?? [];
 
   return (
-    <div className="relative flex min-h-full flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.94)_22%,transparent_42%)] p-8 md:p-10">
+    <div
+      className="relative flex min-h-full flex-col p-8 md:p-10"
+      style={{ background: "var(--color-page-gradient)" }}
+    >
       <div className="max-w-4xl space-y-3">
         <h1 className="text-3xl font-semibold leading-tight tracking-[-0.04em] md:text-4xl">
           Trash

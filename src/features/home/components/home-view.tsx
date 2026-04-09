@@ -24,7 +24,10 @@ export function HomeView() {
   const recentDocuments = useMemo(() => buckets?.recents.slice(0, 4) ?? [], [buckets]);
 
   return (
-    <div className="flex min-h-full flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.94)_22%,transparent_42%)] p-8 md:p-10">
+    <div
+      className="flex min-h-full flex-col p-8 md:p-10"
+      style={{ background: "var(--color-page-gradient)" }}
+    >
       <div className="max-w-3xl space-y-4">
         <p className="text-sm uppercase tracking-[0.24em] text-[var(--color-muted-foreground)]">
           Home

@@ -4,6 +4,7 @@ import { getPostgresPool } from "@/lib/server/postgres-client";
 
 export type PresenceRecord = {
   anchor: number;
+  avatarUrl?: string | null;
   documentId: string;
   head: number;
   name: string;
@@ -37,10 +38,14 @@ async function ensurePresenceTable() {
         anchor integer not null,
         head integer not null,
         name text not null,
+        avatar_url text,
         updated_at timestamptz not null default now(),
         primary key (document_id, user_id)
       )
     `);
+    await client.query(
+      `alter table ${PRESENCE_TABLE} add column if not exists avatar_url text`,
+    );
   } finally {
     client.release();
   }
@@ -124,12 +129,14 @@ async function getPresenceForDocumentFromPostgres(documentId: string) {
     );
     const result = await client.query<{
       anchor: number;
+      avatar_url: string | null;
       head: number;
       name: string;
       updated_at: Date | string;
       user_id: string;
     }>(
       `select anchor, head, name, updated_at, user_id
+              , avatar_url
        from ${PRESENCE_TABLE}
        where document_id = $1
        order by updated_at desc`,
@@ -138,6 +145,7 @@ async function getPresenceForDocumentFromPostgres(documentId: string) {
 
     return result.rows.map((row) => ({
       anchor: row.anchor,
+      avatarUrl: row.avatar_url,
       documentId,
       head: row.head,
       name: row.name,
@@ -164,15 +172,24 @@ async function upsertPresenceInPostgres(record: Omit<PresenceRecord, "updatedAt"
         anchor,
         head,
         name,
+        avatar_url,
         updated_at
-      ) values ($1, $2, $3, $4, $5, now())
+      ) values ($1, $2, $3, $4, $5, $6, now())
       on conflict (document_id, user_id)
       do update set
         anchor = excluded.anchor,
         head = excluded.head,
         name = excluded.name,
+        avatar_url = excluded.avatar_url,
         updated_at = now()`,
-      [record.documentId, record.userId, record.anchor, record.head, record.name],
+      [
+        record.documentId,
+        record.userId,
+        record.anchor,
+        record.head,
+        record.name,
+        record.avatarUrl ?? null,
+      ],
     );
 
     return getPresenceForDocumentFromPostgres(record.documentId);

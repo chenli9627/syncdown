@@ -71,7 +71,6 @@ type EditorHeaderActionsProps = {
   ) => Promise<{ error: string; ok: false } | { ok: true }>;
   shareEmail: string;
   sharePermission: "can_edit" | "can_view";
-  sharedAvatars: Array<{ id: string; name: string }>;
   updateDocumentAccess: (
     documentId: string,
     userId: string,
@@ -138,7 +137,6 @@ export function EditorHeaderActions({
   shareDocument,
   shareEmail,
   sharePermission,
-  sharedAvatars,
   updateDocumentAccess,
 }: EditorHeaderActionsProps) {
   return (
@@ -175,7 +173,6 @@ export function EditorHeaderActions({
         shareDocument={shareDocument}
         shareEmail={shareEmail}
         sharePermission={sharePermission}
-        sharedAvatars={sharedAvatars}
         updateDocumentAccess={updateDocumentAccess}
       />
 

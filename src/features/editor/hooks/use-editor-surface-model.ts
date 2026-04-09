@@ -54,7 +54,7 @@ export function useEditorSurfaceModel({
       saveDocument,
       setStatus: ui.setStatus,
     });
-  const { accessEntries, sharedAvatars } = useEditorAccessEntries(
+  const { accessEntries } = useEditorAccessEntries(
     state,
     document,
     currentWorkspace,
@@ -197,7 +197,6 @@ export function useEditorSurfaceModel({
     routerPushHome,
     searchHeaderLabel,
     selectionAi,
-    sharedAvatars,
     slash,
     titleError,
     titleInputRef,

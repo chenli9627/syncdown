@@ -23,6 +23,7 @@ export async function POST(request: Request, context: RouteContext) {
   const body = (await request.json().catch(() => null)) as
     | {
         anchor?: number;
+        avatarUrl?: string | null;
         head?: number;
         name?: string;
         userId?: string;
@@ -40,6 +41,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const records = await upsertPresence({
     anchor: body.anchor,
+    avatarUrl: body.avatarUrl ?? null,
     documentId,
     head: body.head,
     name: body.name,

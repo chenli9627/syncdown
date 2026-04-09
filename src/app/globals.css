@@ -38,8 +38,20 @@
   );
   --color-editor-surface-gradient: linear-gradient(180deg, #ffffff 0%, #fdfcfb 100%);
   --color-editor-header-background: rgba(255, 255, 255, 0.94);
-  --color-active-block-background: rgba(9, 127, 232, 0.14);
-  --color-active-block-ring: rgba(9, 127, 232, 0.1);
+  --color-active-block-background: rgba(9, 127, 232, 0.06);
+  --color-active-block-ring: rgba(9, 127, 232, 0.18);
+  --color-code-background: #f5f4f2;
+  --color-code-foreground: #1f2937;
+  --color-code-comment: #6b7280;
+  --color-code-keyword: #b45309;
+  --color-code-string: #047857;
+  --color-code-title: #1d4ed8;
+  --color-code-number: #9333ea;
+  --color-code-variable: #be123c;
+  --color-code-meta: #0f766e;
+  --color-task-checkbox-background: #ffffff;
+  --color-task-checkbox-border: rgba(0, 0, 0, 0.18);
+  --color-task-checkmark: #ffffff;
 }
 
 .dark {
@@ -70,8 +82,20 @@
   );
   --color-editor-surface-gradient: linear-gradient(180deg, #191816 0%, #1d1b19 100%);
   --color-editor-header-background: rgba(25, 24, 22, 0.92);
-  --color-active-block-background: rgba(98, 174, 240, 0.12);
-  --color-active-block-ring: rgba(98, 174, 240, 0.18);
+  --color-active-block-background: rgba(98, 174, 240, 0.08);
+  --color-active-block-ring: rgba(98, 174, 240, 0.28);
+  --color-code-background: #201e1b;
+  --color-code-foreground: #edf2ff;
+  --color-code-comment: #9aa3b2;
+  --color-code-keyword: #f5b34b;
+  --color-code-string: #53d2b2;
+  --color-code-title: #7fb2ff;
+  --color-code-number: #caa6ff;
+  --color-code-variable: #ff88ae;
+  --color-code-meta: #5cd3cc;
+  --color-task-checkbox-background: #2b2824;
+  --color-task-checkbox-border: rgba(255, 255, 255, 0.22);
+  --color-task-checkmark: #102236;
 }
 
 * {
@@ -249,8 +273,8 @@ button:disabled {
 }
 
 .syntext-editor ul[data-type="taskList"] > li > label span {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--color-task-checkbox-background);
+  border: 1px solid var(--color-task-checkbox-border);
   border-radius: 3px;
   display: block;
   height: 0.95rem;
@@ -259,8 +283,8 @@ button:disabled {
 }
 
 .syntext-editor ul[data-type="taskList"] > li > label span::after {
-  border-bottom: 2px solid var(--color-primary-foreground);
-  border-right: 2px solid var(--color-primary-foreground);
+  border-bottom: 2px solid var(--color-task-checkmark);
+  border-right: 2px solid var(--color-task-checkmark);
   content: "";
   height: 0.45rem;
   left: 0.28rem;
@@ -325,7 +349,7 @@ button:disabled {
 }
 
 .syntext-editor pre {
-  background: var(--color-muted);
+  background: var(--color-code-background);
   border: 1px solid var(--color-border);
   overflow-x: auto;
   padding: 0.85rem 1rem;
@@ -333,27 +357,27 @@ button:disabled {
 
 .syntext-editor pre code {
   background: transparent;
-  color: #1f2937;
+  color: var(--color-code-foreground);
   display: block;
   padding: 0;
 }
 
 .syntext-editor pre .hljs-comment,
 .syntext-editor pre .hljs-quote {
-  color: #6b7280;
+  color: var(--color-code-comment);
 }
 
 .syntext-editor pre .hljs-keyword,
 .syntext-editor pre .hljs-selector-tag,
 .syntext-editor pre .hljs-subst {
-  color: #b45309;
+  color: var(--color-code-keyword);
 }
 
 .syntext-editor pre .hljs-string,
 .syntext-editor pre .hljs-doctag,
 .syntext-editor pre .hljs-attribute,
 .syntext-editor pre .hljs-template-variable {
-  color: #047857;
+  color: var(--color-code-string);
 }
 
 .syntext-editor pre .hljs-title,
@@ -361,14 +385,14 @@ button:disabled {
 .syntext-editor pre .hljs-built_in,
 .syntext-editor pre .hljs-type,
 .syntext-editor pre .hljs-function .hljs-title {
-  color: #1d4ed8;
+  color: var(--color-code-title);
 }
 
 .syntext-editor pre .hljs-number,
 .syntext-editor pre .hljs-literal,
 .syntext-editor pre .hljs-symbol,
 .syntext-editor pre .hljs-bullet {
-  color: #9333ea;
+  color: var(--color-code-number);
 }
 
 .syntext-editor pre .hljs-variable,
@@ -376,12 +400,12 @@ button:disabled {
 .syntext-editor pre .hljs-property,
 .syntext-editor pre .hljs-selector-id,
 .syntext-editor pre .hljs-selector-class {
-  color: #be123c;
+  color: var(--color-code-variable);
 }
 
 .syntext-editor pre .hljs-meta,
 .syntext-editor pre .hljs-meta .hljs-keyword {
-  color: #0f766e;
+  color: var(--color-code-meta);
 }
 
 .syntext-editor img {

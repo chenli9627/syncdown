@@ -78,7 +78,6 @@ type EditorHeaderProps = {
   ) => Promise<{ error: string; ok: false } | { ok: true }>;
   shareEmail: string;
   sharePermission: "can_edit" | "can_view";
-  sharedAvatars: Array<{ id: string; name: string }>;
   statusLabel: string | null;
   titleDraft: string;
   titleError: string | null;
@@ -150,7 +149,6 @@ export function EditorHeader({
   shareDocument,
   shareEmail,
   sharePermission,
-  sharedAvatars,
   statusLabel,
   titleDraft,
   titleError,
@@ -223,7 +221,6 @@ export function EditorHeader({
     shareDocument,
     shareEmail,
     sharePermission,
-    sharedAvatars,
     updateDocumentAccess,
   };
 

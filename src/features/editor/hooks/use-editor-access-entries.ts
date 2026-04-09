@@ -41,6 +41,5 @@ export function useEditorAccessEntries(
 
   return {
     accessEntries,
-    sharedAvatars: accessEntries.slice(0, 4),
   };
 }

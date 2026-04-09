@@ -97,7 +97,6 @@ export function EditorSurface({
         shareDocument={model.shareDocument}
         shareEmail={model.ui.permissionBody.shareEmail}
         sharePermission={model.ui.permissionBody.sharePermission}
-        sharedAvatars={model.sharedAvatars}
         statusLabel={model.actions.statusLabel}
         titleDraft={model.titleDraft}
         titleError={model.titleError}

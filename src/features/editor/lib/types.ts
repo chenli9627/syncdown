@@ -86,6 +86,7 @@ export type AccessEntry = {
 
 export type PresenceEntry = {
   anchor: number;
+  avatarUrl?: string | null;
   head: number;
   name: string;
   updatedAt: string;
@@ -101,6 +102,7 @@ export type RemoteCursorMarker = {
 };
 
 export type PresenceParticipant = {
+  avatarUrl?: string | null;
   color: string;
   name: string;
   userId: string;

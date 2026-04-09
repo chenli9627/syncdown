@@ -37,7 +37,6 @@ type EditorPermissionPopoverProps = {
   setPermissionNotice: (value: string | null) => void;
   shareEmail: string;
   sharePermission: "can_edit" | "can_view";
-  sharedAvatars: Array<{ id: string; name: string }>;
 };
 
 export function EditorPermissionPopover({
@@ -65,7 +64,6 @@ export function EditorPermissionPopover({
   setPermissionNotice,
   shareEmail,
   sharePermission,
-  sharedAvatars,
 }: EditorPermissionPopoverProps) {
   return (
     <div className="relative">
@@ -79,7 +77,6 @@ export function EditorPermissionPopover({
         }}
         permissionButtonRef={permissionButtonRef}
         permissionMenuOpen={permissionMenuOpen}
-        sharedAvatars={sharedAvatars}
       />
 
       {permissionMenuOpen ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { PresenceParticipant } from "@/features/editor/lib/types";
 
 type EditorHeaderPresenceProps = {
@@ -20,15 +21,28 @@ export function EditorHeaderPresence({
       className="flex items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 shadow-[var(--shadow-whisper)]"
       title={safeParticipants.map((entry) => entry.name).join(", ")}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center -space-x-1">
         {safeParticipants.slice(0, 3).map((entry) => (
-          <span
-            className="border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--color-foreground)]"
-            key={entry.userId}
-            title={entry.name}
-          >
-            {entry.name || "Unknown"}
-          </span>
+          entry.avatarUrl ? (
+            <Image
+              alt={entry.name}
+              className="size-6 rounded-full border border-[var(--color-card)] object-cover"
+              key={entry.userId}
+              src={entry.avatarUrl}
+              title={entry.name}
+              unoptimized
+              width={24}
+              height={24}
+            />
+          ) : (
+            <span
+              className="flex size-6 items-center justify-center rounded-full border border-[var(--color-card)] bg-[var(--color-sidebar-panel)] text-[10px] font-semibold text-[var(--color-foreground)]"
+              key={entry.userId}
+              title={entry.name}
+            >
+              {(entry.name || "Unknown").slice(0, 1).toUpperCase()}
+            </span>
+          )
         ))}
       </div>
       {safeParticipants.length > 3 ? (

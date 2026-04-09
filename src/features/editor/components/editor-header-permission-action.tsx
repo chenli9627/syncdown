@@ -36,7 +36,6 @@ type EditorHeaderPermissionActionProps = {
   ) => Promise<{ error: string; ok: false } | { ok: true }>;
   shareEmail: string;
   sharePermission: "can_edit" | "can_view";
-  sharedAvatars: Array<{ id: string; name: string }>;
   updateDocumentAccess: (
     documentId: string,
     userId: string,
@@ -155,7 +154,6 @@ export function EditorHeaderPermissionAction(
       setPermissionNotice={props.setPermissionNotice}
       shareEmail={props.shareEmail}
       sharePermission={props.sharePermission}
-      sharedAvatars={props.sharedAvatars}
     />
   );
 }
