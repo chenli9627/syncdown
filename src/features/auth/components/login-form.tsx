@@ -14,7 +14,6 @@ export function LoginForm() {
   const { currentUser, login, ready } = useAppState();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [showResetHelp, setShowResetHelp] = useState(false);
 
   useEffect(() => {
     if (!ready || !currentUser) {
@@ -52,7 +51,7 @@ export function LoginForm() {
         </p>
         <h2 className="text-3xl font-semibold">{t("logInTitle")}</h2>
         <p className="text-sm text-[var(--color-muted-foreground)]">
-          {t("seedAccountsHint")}
+          {t("logInDescription")}
         </p>
       </div>
 
@@ -106,24 +105,8 @@ export function LoginForm() {
 
       <div className="flex items-center justify-between text-sm text-[var(--color-muted-foreground)]">
         <Link href="/register">{t("newUserSignUp")}</Link>
-        <button
-          onClick={() => {
-            setShowResetHelp((current) => !current);
-          }}
-          type="button"
-        >
-          {t("forgetPassword")}
-        </button>
+        <span>{t("passwordRecoveryNotice")}</span>
       </div>
-
-      {showResetHelp ? (
-        <div className="border border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3 text-sm text-[var(--color-muted-foreground)]">
-          <p>{t("resetPasswordHelp")}</p>
-          <p className="mt-2 font-mono text-[13px] text-[var(--color-foreground)]">
-            pnpm reset-password --email &lt;email&gt; --password &lt;new-password&gt;
-          </p>
-        </div>
-      ) : null}
     </form>
   );
 }
