@@ -73,19 +73,20 @@ Review checkpoint:
 - image insert flow works with limits
 - markdown import/export entry points work
 
-## Phase 5: AI and Collaboration-Ready Structure
+## Phase 5: AI and Collaboration Runtime
 
 Scope:
 
 - add AI bubble UI flows
-- add backend AI route placeholders
+- wire the backend AI route to the configured OpenAI-compatible provider
 - read AI API key from environment server-side only
-- add collaboration-ready abstractions
-- keep Yjs integration deferred
+- migrate collaboration to the official Tiptap + Yjs stack
+- use provider awareness for collaborator presence and remote cursors
+- run the bundled Hocuspocus websocket server in local development
 
 Review checkpoint:
 
 - AI UI interactions behave as planned
 - no client-side API key exposure exists
-- collaboration extension points are present
+- document collaboration and awareness are live
 - end-to-end behavior is stable enough for broader implementation
