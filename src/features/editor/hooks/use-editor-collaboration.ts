@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import * as Y from "yjs";
 import type { User } from "@/features/app-state/types";
-import type { PresenceParticipant } from "@/features/editor/lib/types";
 
 const PRESENCE_COLORS = [
   "#2383e2",
@@ -208,22 +207,10 @@ export function useEditorCollaboration({
     };
   }, [currentUserAvatarUrl, currentUserId, currentUserName, documentId]);
 
-  const remoteParticipants = useMemo<PresenceParticipant[]>(
-    () =>
-      remoteEntries.map((entry) => ({
-        avatarUrl: entry.avatarUrl,
-        color: entry.color,
-        name: entry.name,
-        userId: entry.userId,
-      })),
-    [remoteEntries],
-  );
-
   return {
     collaborationDocument,
     collaborationProvider,
     collaborationSynced,
     remoteEntries,
-    remoteParticipants,
   };
 }

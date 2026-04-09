@@ -99,10 +99,3 @@ export type PresenceEntry = {
   updatedAt: string;
   userId: string;
 };
-
-export type PresenceParticipant = {
-  avatarUrl?: string | null;
-  color: string;
-  name: string;
-  userId: string;
-};

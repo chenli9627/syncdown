@@ -207,7 +207,6 @@ export function useEditorSurfaceModel({
     permissionLabel,
     presence: {
       remoteEntries: collaboration.remoteEntries,
-      remoteParticipants: collaboration.remoteParticipants,
     },
     routerPushHome,
     searchHeaderLabel,
