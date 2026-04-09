@@ -270,66 +270,81 @@ function SettingsContent({
         </Section>
 
         <Section description={t("passwordSectionDescription")} title={t("password")}>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="settings-current-password">
-                {t("currentPassword")}
-              </label>
-              <input
-                autoComplete="current-password"
-                className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
-                id="settings-current-password"
-                name="settings-current-password"
-                onChange={(event) => setCurrentPassword(event.target.value)}
-                type="password"
-                value={currentPassword}
-              />
+          <form
+            className="space-y-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handlePasswordSave();
+            }}
+          >
+            <input
+              autoComplete="username"
+              className="sr-only"
+              id="settings-password-username"
+              name="settings-password-username"
+              readOnly
+              tabIndex={-1}
+              type="text"
+              value={currentUser.username}
+            />
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="settings-current-password">
+                  {t("currentPassword")}
+                </label>
+                <input
+                  autoComplete="current-password"
+                  className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
+                  id="settings-current-password"
+                  name="settings-current-password"
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  type="password"
+                  value={currentPassword}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="settings-new-password">
+                  {t("newPassword")}
+                </label>
+                <input
+                  autoComplete="new-password"
+                  className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
+                  id="settings-new-password"
+                  name="settings-new-password"
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  type="password"
+                  value={newPassword}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="settings-confirm-password">
+                  {t("confirmNewPassword")}
+                </label>
+                <input
+                  autoComplete="new-password"
+                  className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
+                  id="settings-confirm-password"
+                  name="settings-confirm-password"
+                  onChange={(event) => setConfirmNewPassword(event.target.value)}
+                  type="password"
+                  value={confirmNewPassword}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="settings-new-password">
-                {t("newPassword")}
-              </label>
-              <input
-                autoComplete="new-password"
-                className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
-                id="settings-new-password"
-                name="settings-new-password"
-                onChange={(event) => setNewPassword(event.target.value)}
-                type="password"
-                value={newPassword}
-              />
+            {passwordError ? <p className="text-sm text-[#dd5b00]">{passwordError}</p> : null}
+            {passwordNotice ? (
+              <p className="text-sm text-[var(--color-muted-foreground)]">{passwordNotice}</p>
+            ) : null}
+            <div className="flex justify-end">
+              <button
+                className="border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:brightness-95 disabled:opacity-50"
+                disabled={isUpdatingPassword}
+                type="submit"
+              >
+                {t("saveChanges")}
+              </button>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="settings-confirm-password">
-                {t("confirmNewPassword")}
-              </label>
-              <input
-                autoComplete="new-password"
-                className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
-                id="settings-confirm-password"
-                name="settings-confirm-password"
-                onChange={(event) => setConfirmNewPassword(event.target.value)}
-                type="password"
-                value={confirmNewPassword}
-              />
-            </div>
-          </div>
-          {passwordError ? <p className="text-sm text-[#dd5b00]">{passwordError}</p> : null}
-          {passwordNotice ? (
-            <p className="text-sm text-[var(--color-muted-foreground)]">{passwordNotice}</p>
-          ) : null}
-          <div className="flex justify-end">
-            <button
-              className="border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:brightness-95 disabled:opacity-50"
-              disabled={isUpdatingPassword}
-              onClick={() => {
-                void handlePasswordSave();
-              }}
-              type="button"
-            >
-              {t("saveChanges")}
-            </button>
-          </div>
+          </form>
         </Section>
 
         <Section description={t("settingsDescription")} title={t("preferences")}>

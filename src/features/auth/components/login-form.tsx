@@ -120,7 +120,7 @@ export function LoginForm() {
         <div className="border border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3 text-sm text-[var(--color-muted-foreground)]">
           <p>{t("resetPasswordHelp")}</p>
           <p className="mt-2 font-mono text-[13px] text-[var(--color-foreground)]">
-            pnpm reset-password --username &lt;username&gt; --password &lt;new-password&gt;
+            pnpm reset-password --email &lt;email&gt; --password &lt;new-password&gt;
           </p>
         </div>
       ) : null}

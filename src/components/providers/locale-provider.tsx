@@ -1,11 +1,12 @@
 "use client";
 
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import {
@@ -16,6 +17,39 @@ import {
 } from "@/lib/i18n/messages";
 
 const STORAGE_KEY = "syncdown.locale";
+const localeListeners = new Set<() => void>();
+
+let localeSnapshot: Locale | null = null;
+
+function resolveClientLocale() {
+  if (localeSnapshot) {
+    return localeSnapshot;
+  }
+
+  const savedLocale = window.localStorage.getItem(STORAGE_KEY);
+
+  if (savedLocale === "zh" || savedLocale === "en") {
+    localeSnapshot = savedLocale;
+    return localeSnapshot;
+  }
+
+  const browserLocale = window.navigator.language.toLowerCase();
+  localeSnapshot = browserLocale.startsWith("zh") ? "zh" : "en";
+
+  return localeSnapshot;
+}
+
+function subscribeLocale(listener: () => void) {
+  localeListeners.add(listener);
+
+  return () => {
+    localeListeners.delete(listener);
+  };
+}
+
+function emitLocaleChange() {
+  localeListeners.forEach((listener) => listener());
+}
 
 type LocaleContextValue = {
   locale: Locale;
@@ -30,34 +64,33 @@ type LocaleProviderProps = {
 };
 
 export function LocaleProvider({ children }: LocaleProviderProps) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
+  const locale = useSyncExternalStore(
+    subscribeLocale,
+    () => (typeof window === "undefined" ? defaultLocale : resolveClientLocale()),
+    () => defaultLocale,
+  );
+
+  const setLocale = useCallback((nextLocale: Locale) => {
     if (typeof window === "undefined") {
-      return defaultLocale;
+      return;
     }
 
-    const savedLocale = window.localStorage.getItem(STORAGE_KEY);
-
-    if (savedLocale === "zh" || savedLocale === "en") {
-      return savedLocale;
-    }
-
-    const browserLocale = window.navigator.language.toLowerCase();
-
-    return browserLocale.startsWith("zh") ? "zh" : "en";
-  });
+    localeSnapshot = nextLocale;
+    window.localStorage.setItem(STORAGE_KEY, nextLocale);
+    emitLocaleChange();
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
-    window.localStorage.setItem(STORAGE_KEY, locale);
   }, [locale]);
 
   const value = useMemo<LocaleContextValue>(
     () => ({
       locale,
-      setLocale: setLocaleState,
+      setLocale,
       t: (key) => getMessage(locale, key),
     }),
-    [locale],
+    [locale, setLocale],
   );
 
   return (
