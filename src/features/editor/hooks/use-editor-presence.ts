@@ -56,9 +56,16 @@ export function useEditorPresence({
   const [entries, setEntries] = useState<PresenceEntry[]>([]);
   const [markers, setMarkers] = useState<RemoteCursorMarker[]>([]);
   const publishTimeoutRef = useRef<number | null>(null);
+  const currentUserId = currentUser?.id ?? null;
+  const currentUserName = currentUser?.name ?? null;
+  const currentUserAvatarUrl = currentUser?.avatarUrl ?? null;
+  const presenceIdentityRef = useRef<{
+    documentId: string;
+    userId: string;
+  } | null>(null);
 
   const publishPresence = useCallback(async () => {
-    if (!editor || !currentUser) {
+    if (!editor || !currentUserId || !currentUserName) {
       return;
     }
 
@@ -66,31 +73,27 @@ export function useEditorPresence({
     await fetch(`/api/presence/${documentId}`, {
       body: JSON.stringify({
         anchor: selection.anchor,
-        avatarUrl: currentUser.avatarUrl,
+        avatarUrl: currentUserAvatarUrl,
         head: selection.head,
-        name: currentUser.name,
-        userId: currentUser.id,
+        name: currentUserName,
+        userId: currentUserId,
       }),
       headers: { "Content-Type": "application/json" },
       method: "POST",
     }).catch(() => undefined);
-  }, [currentUser, documentId, editor]);
+  }, [currentUserAvatarUrl, currentUserId, currentUserName, documentId, editor]);
 
-  const removePresence = useCallback(() => {
-    if (!currentUser) {
-      return;
-    }
-
-    void fetch(`/api/presence/${documentId}`, {
-      body: JSON.stringify({ userId: currentUser.id }),
+  const removePresenceByIdentity = useCallback((identity: { documentId: string; userId: string }) => {
+    void fetch(`/api/presence/${identity.documentId}`, {
+      body: JSON.stringify({ userId: identity.userId }),
       headers: { "Content-Type": "application/json" },
       keepalive: true,
       method: "DELETE",
     }).catch(() => undefined);
-  }, [currentUser, documentId]);
+  }, []);
 
   const refreshPresence = useCallback(async () => {
-    if (!currentUser) {
+    if (!currentUserId) {
       return;
     }
 
@@ -103,8 +106,8 @@ export function useEditorPresence({
     }
 
     const data = (await response.json()) as { records?: PresenceEntry[] };
-    setEntries((data.records ?? []).filter((entry) => entry.userId !== currentUser.id));
-  }, [currentUser, documentId]);
+    setEntries((data.records ?? []).filter((entry) => entry.userId !== currentUserId));
+  }, [currentUserId, documentId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -118,7 +121,13 @@ export function useEditorPresence({
   }, [documentId]);
 
   useEffect(() => {
-    if (!editor || !currentUser) {
+    presenceIdentityRef.current = currentUserId
+      ? { documentId, userId: currentUserId }
+      : null;
+  }, [currentUserId, documentId]);
+
+  useEffect(() => {
+    if (!editor || !currentUserId) {
       return;
     }
 
@@ -148,10 +157,10 @@ export function useEditorPresence({
         window.clearTimeout(publishTimeoutRef.current);
       }
     };
-  }, [currentUser, editor, publishPresence, refreshPresence]);
+  }, [currentUserId, editor, publishPresence, refreshPresence]);
 
   useEffect(() => {
-    if (!editor || !currentUser) {
+    if (!editor || !currentUserId) {
       return;
     }
 
@@ -162,10 +171,10 @@ export function useEditorPresence({
     return () => {
       window.clearInterval(heartbeatId);
     };
-  }, [currentUser, editor, publishPresence]);
+  }, [currentUserId, editor, publishPresence]);
 
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUserId) {
       return;
     }
 
@@ -177,7 +186,11 @@ export function useEditorPresence({
     }, REFRESH_INTERVAL_MS);
 
     const handlePageHide = () => {
-      removePresence();
+      const identity = presenceIdentityRef.current;
+
+      if (identity) {
+        removePresenceByIdentity(identity);
+      }
     };
     const handleFocus = () => {
       void publishPresence();
@@ -200,9 +213,18 @@ export function useEditorPresence({
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("pagehide", handlePageHide);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      removePresence();
     };
-  }, [currentUser, publishPresence, refreshPresence, removePresence]);
+  }, [currentUserId, publishPresence, refreshPresence, removePresenceByIdentity]);
+
+  useEffect(() => {
+    return () => {
+      const identity = presenceIdentityRef.current;
+
+      if (identity) {
+        removePresenceByIdentity(identity);
+      }
+    };
+  }, [removePresenceByIdentity]);
 
   const markerDependencies = useMemo(
     () =>
