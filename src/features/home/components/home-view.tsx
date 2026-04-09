@@ -2,26 +2,28 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
+import type { Locale, MessageKey } from "@/lib/i18n/messages";
 
-function getGreeting() {
-  const hour = new Date().getHours();
-
+function getGreeting(hour: number, locale: Locale, t: (key: MessageKey) => string) {
   if (hour < 12) {
-    return "Good morning";
+    return t("goodMorning");
   }
 
   if (hour < 18) {
-    return "Good afternoon";
+    return t("goodAfternoon");
   }
 
-  return "Good evening";
+  return t("goodEvening");
 }
 
 export function HomeView() {
   const router = useRouter();
+  const { locale, t } = useLocale();
   const { buckets, currentUser, openDocument } = useAppState();
   const recentDocuments = useMemo(() => buckets?.recents.slice(0, 4) ?? [], [buckets]);
+  const greeting = getGreeting(new Date().getHours(), locale, t as never);
 
   return (
     <div
@@ -30,15 +32,13 @@ export function HomeView() {
     >
       <div className="max-w-3xl space-y-4">
         <p className="text-sm uppercase tracking-[0.24em] text-[var(--color-muted-foreground)]">
-          Home
+          {t("home")}
         </p>
         <h1 className="text-4xl font-semibold leading-tight tracking-[-0.04em] md:text-6xl">
-          {getGreeting()}
+          {greeting}
         </h1>
         <p className="max-w-2xl text-base leading-7 text-[var(--color-muted-foreground)]">
-          {currentUser
-            ? `${currentUser.name} is inside the current workspace. Next phases will wire document permissions, editor state, and backend persistence.`
-            : "The v2 shell is live."}
+          {currentUser ? `${currentUser.name}，${t("homeDescription")}` : t("homeDescription")}
         </p>
       </div>
 
@@ -60,7 +60,7 @@ export function HomeView() {
               type="button"
             >
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">
-                Recently visited
+                {t("recentlyVisited")}
               </p>
               <p className="mt-2 text-lg font-semibold">{document.title}</p>
             </button>

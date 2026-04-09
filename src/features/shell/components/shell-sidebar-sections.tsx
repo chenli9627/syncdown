@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { SidebarSection } from "@/features/shell/components/sidebar-section";
 import { WorkspaceSettingsPopover } from "@/features/shell/components/workspace-settings-popover";
 import type { getWorkspaceBuckets } from "@/features/app-state/lib/state-utils";
@@ -40,6 +41,7 @@ function HomeRow({
   onSettingsToggle: () => void;
   settingsButtonRef: React.RefObject<HTMLButtonElement | null>;
 }) {
+  const { t } = useLocale();
   return (
     <div className="flex items-center gap-2 border border-transparent bg-[var(--color-sidebar-panel)] px-3.5 py-3 text-sm font-medium shadow-[var(--shadow-whisper)]">
       <Link
@@ -47,13 +49,13 @@ function HomeRow({
         href="/home"
       >
         <House className="size-4 text-[var(--color-muted-foreground)]" />
-        Home
+        {t("home")}
       </Link>
       {canManageCurrentWorkspace ? (
         <>
           <button
             className="flex size-8 items-center justify-center text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-            title="New document"
+            title={t("newDocument")}
             onClick={onCreateDocument}
             type="button"
           >
@@ -62,7 +64,7 @@ function HomeRow({
           <button
             className="flex size-8 items-center justify-center text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
             ref={settingsButtonRef}
-            title="Workspace settings"
+            title={t("workspaceSettings")}
             onClick={onSettingsToggle}
             type="button"
           >
@@ -94,6 +96,7 @@ export function ShellSidebarSections({
   showWorkspaceSettings,
   workspaceSettingsPopoverRef,
 }: ShellSidebarSectionsProps) {
+  const { t } = useLocale();
   return (
     <>
       <nav className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
@@ -120,10 +123,10 @@ export function ShellSidebarSections({
           ) : null}
         </div>
         <div className="grid min-h-0 flex-1 gap-3">
-          <SidebarSection items={buckets.recents} onOpenItem={handleOpenDocument} title="Recents" />
-          <SidebarSection items={buckets.shared} onOpenItem={handleOpenDocument} title="Shared" />
+          <SidebarSection items={buckets.recents} onOpenItem={handleOpenDocument} title={t("recents")} />
+          <SidebarSection items={buckets.shared} onOpenItem={handleOpenDocument} title={t("shared")} />
           {canManageCurrentWorkspace ? (
-            <SidebarSection items={buckets.privateDocs} onOpenItem={handleOpenDocument} title="Private" />
+            <SidebarSection items={buckets.privateDocs} onOpenItem={handleOpenDocument} title={t("private")} />
           ) : null}
         </div>
       </nav>
@@ -135,7 +138,7 @@ export function ShellSidebarSections({
         >
           <div className="flex items-center gap-3">
             <Trash2 className="size-4 text-[var(--color-muted-foreground)]" />
-            Trash
+            {t("trash")}
           </div>
         </button>
       ) : null}

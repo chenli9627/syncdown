@@ -2,6 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import { EditorHeaderPresence } from "@/features/editor/components/editor-header-presence";
 import { EditorHeaderOverflowAction } from "@/features/editor/components/editor-header-overflow-action";
 import { EditorHeaderPermissionAction } from "@/features/editor/components/editor-header-permission-action";
@@ -139,6 +140,7 @@ export function EditorHeaderActions({
   sharePermission,
   updateDocumentAccess,
 }: EditorHeaderActionsProps) {
+  const { locale } = useLocale();
   return (
     <div className="flex items-center gap-1.5">
       <EditorHeaderPresence participants={remoteParticipants} />
@@ -150,6 +152,7 @@ export function EditorHeaderActions({
         documentId={documentId}
         documentStatus={documentStatus}
         guestBadgeClass={guestBadgeClass}
+        locale={locale}
         onCloseOtherMenus={() => {
           setActionError(null);
           setActionNotice(null);

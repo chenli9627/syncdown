@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+
 type UseShellWorkspaceActionsArgs = {
   closeWorkspacePopovers: () => void;
   createWorkspace: (name: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -32,6 +34,8 @@ function resetWorkspaceMessages(args: Pick<
 }
 
 export function useShellWorkspaceActions(args: UseShellWorkspaceActionsArgs) {
+  const { t } = useLocale();
+
   return {
     onCreateWorkspace: async () => {
       resetWorkspaceMessages(args);
@@ -83,7 +87,7 @@ export function useShellWorkspaceActions(args: UseShellWorkspaceActionsArgs) {
         args.setWorkspaceError(result.error);
         return;
       }
-      args.setWorkspaceNotice("Workspace renamed");
+      args.setWorkspaceNotice(t("workspaceRenamed"));
       args.setShowWorkspaceSettings(false);
     },
     onSelectWorkspace: (workspaceId: string) => {

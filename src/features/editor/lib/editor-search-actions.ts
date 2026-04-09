@@ -7,7 +7,7 @@ export function runEditorSearch(args: EditorActionBaseArgs, direction: "forward"
     args.setSearchRects([]);
     args.setSearchMatchCount(0);
     args.setSearchMatchIndex(-1);
-    args.setSearchNotice("Enter text to search");
+    args.setSearchNotice(args.searchEmptyLabel);
     return;
   }
 
@@ -16,7 +16,7 @@ export function runEditorSearch(args: EditorActionBaseArgs, direction: "forward"
   if (!(editorRoot instanceof HTMLElement) || !(container instanceof HTMLElement)) {
     args.setSearchRects([]);
     args.setSearchMatchCount(0);
-    args.setSearchNotice("No match found");
+    args.setSearchNotice(args.searchNoMatchLabel);
     return;
   }
 
@@ -25,7 +25,7 @@ export function runEditorSearch(args: EditorActionBaseArgs, direction: "forward"
     args.setSearchRects([]);
     args.setSearchMatchCount(0);
     args.setSearchMatchIndex(-1);
-    args.setSearchNotice("No match found");
+    args.setSearchNotice(args.searchNoMatchLabel);
     return;
   }
 

@@ -2,6 +2,7 @@
 
 import { Download, ImagePlus, MoreHorizontal, Trash2, Undo2, Upload } from "lucide-react";
 import type { RefObject } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type EditorOverflowMenuProps = {
   actionNotice: string | null;
@@ -36,6 +37,7 @@ export function EditorOverflowMenu({
   overflowMenuRef,
   permission,
 }: EditorOverflowMenuProps) {
+  const { t } = useLocale();
   return (
     <div className="relative">
       <button
@@ -45,7 +47,7 @@ export function EditorOverflowMenu({
           onResetMessages();
         }}
         ref={overflowButtonRef}
-        title="Actions"
+        title={t("actions")}
         type="button"
       >
         <MoreHorizontal className="size-3.5 text-[var(--color-muted-foreground)]" />
@@ -58,7 +60,7 @@ export function EditorOverflowMenu({
         >
           <div className="border-b border-[var(--color-border)] px-4 py-3">
             <p className="text-[15px] font-semibold text-[var(--color-foreground)]">
-              Actions
+              {t("actions")}
             </p>
           </div>
           <div className="space-y-2 px-4 py-4">
@@ -68,7 +70,7 @@ export function EditorOverflowMenu({
               onClick={onUndo}
               type="button"
             >
-              <span>Undo</span>
+              <span>{t("undo")}</span>
               <Undo2 className="ml-auto size-4 text-[var(--color-muted-foreground)]" />
             </button>
             <button
@@ -77,7 +79,7 @@ export function EditorOverflowMenu({
               onClick={onInsertImage}
               type="button"
             >
-              <span>Upload image</span>
+              <span>{t("uploadImage")}</span>
               <ImagePlus className="ml-auto size-4" />
             </button>
             <button
@@ -86,7 +88,7 @@ export function EditorOverflowMenu({
               onClick={onImport}
               type="button"
             >
-              <span>Import .md / .zip</span>
+              <span>{t("importMdZip")}</span>
               <Upload className="ml-auto size-4" />
             </button>
             <button
@@ -94,7 +96,7 @@ export function EditorOverflowMenu({
               onClick={onExport}
               type="button"
             >
-              <span>Export</span>
+              <span>{t("export")}</span>
               <Download className="ml-auto size-4" />
             </button>
             {permission === "owner" ? (
@@ -103,7 +105,7 @@ export function EditorOverflowMenu({
                 onClick={onMoveToTrash}
                 type="button"
               >
-                <span>Move to Trash</span>
+                  <span>{t("moveToTrash")}</span>
                 <Trash2 className="ml-auto size-4" />
               </button>
             ) : null}

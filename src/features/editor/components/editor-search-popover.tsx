@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 import type { RefObject } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type EditorSearchPopoverProps = {
   onCloseOtherMenus: () => void;
@@ -32,6 +33,7 @@ export function EditorSearchPopover({
   searchQuery,
   setOpen,
 }: EditorSearchPopoverProps) {
+  const { t } = useLocale();
   return (
     <div className="relative">
       <button
@@ -54,7 +56,7 @@ export function EditorSearchPopover({
           <div className="border-b border-[var(--color-border)] px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <label className="text-[15px] font-semibold text-[var(--color-foreground)]">
-                Search
+                {t("search")}
               </label>
               <span className="w-28 text-right text-xs tabular-nums text-[var(--color-muted-foreground)]">
                 {searchHeaderLabel}
@@ -77,7 +79,7 @@ export function EditorSearchPopover({
                     onNext();
                   }
                 }}
-                placeholder="Find in document"
+                placeholder={t("findInDocument")}
                 ref={searchInputRef}
                 value={searchQuery}
               />
@@ -88,17 +90,17 @@ export function EditorSearchPopover({
                 onClick={onPrevious}
                 type="button"
               >
-                Previous
+                {t("previous")}
               </button>
               <button
                 className="h-8 flex-1 border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm transition hover:bg-[var(--color-hover)]"
                 onClick={onNext}
                 type="button"
               >
-                Next
+                {t("next")}
               </button>
             </div>
-            {searchNotice && searchNotice !== "No match found" ? (
+            {searchNotice && searchNotice !== t("noMatchFound") ? (
               <p className="text-sm text-[var(--color-muted-foreground)]">
                 {searchNotice}
               </p>

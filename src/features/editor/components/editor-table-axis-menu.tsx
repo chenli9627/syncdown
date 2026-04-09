@@ -8,6 +8,7 @@ import {
   Copy,
   Trash2,
 } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type EditorTableAxisMenuProps = {
   axis: "column" | "row";
@@ -24,19 +25,20 @@ export function EditorTableAxisMenu({
   onAction,
   top,
 }: EditorTableAxisMenuProps) {
+  const { t } = useLocale();
   const items =
     axis === "row"
       ? [
-          { action: "insert-above" as const, icon: ArrowUp, label: "Insert above" },
-          { action: "insert-below" as const, icon: ArrowDown, label: "Insert below" },
-          { action: "duplicate" as const, icon: Copy, label: "Duplicate" },
-          { action: "delete" as const, icon: Trash2, label: "Delete", danger: true },
+          { action: "insert-above" as const, icon: ArrowUp, label: t("insertAboveRow") },
+          { action: "insert-below" as const, icon: ArrowDown, label: t("insertBelowRow") },
+          { action: "duplicate" as const, icon: Copy, label: t("duplicate") },
+          { action: "delete" as const, icon: Trash2, label: t("delete"), danger: true },
         ]
       : [
-          { action: "insert-left" as const, icon: ArrowLeft, label: "Insert left" },
-          { action: "insert-right" as const, icon: ArrowRight, label: "Insert right" },
-          { action: "duplicate" as const, icon: Copy, label: "Duplicate" },
-          { action: "delete" as const, icon: Trash2, label: "Delete", danger: true },
+          { action: "insert-left" as const, icon: ArrowLeft, label: t("insertLeftColumn") },
+          { action: "insert-right" as const, icon: ArrowRight, label: t("insertRightColumn") },
+          { action: "duplicate" as const, icon: Copy, label: t("duplicate") },
+          { action: "delete" as const, icon: Trash2, label: t("delete"), danger: true },
         ];
 
   return (

@@ -41,25 +41,25 @@ export function EditorSelectionBubble({
       <SelectionActionButton
         active={Boolean(editor?.isActive("bold"))}
         icon={<Bold className="size-4" />}
-        label="Bold"
+        label={t("bold")}
         onClick={() => onFormat("bold")}
       />
       <SelectionActionButton
         active={Boolean(editor?.isActive("italic"))}
         icon={<Italic className="size-4" />}
-        label="Italic"
+        label={t("italic")}
         onClick={() => onFormat("italic")}
       />
       <SelectionActionButton
         active={Boolean(editor?.isActive("strike"))}
         icon={<Strikethrough className="size-4" />}
-        label="Strike"
+        label={t("strike")}
         onClick={() => onFormat("strike")}
       />
       <SelectionActionButton
         active={Boolean(editor?.isActive("code"))}
         icon={<Code2 className="size-4" />}
-        label="Code"
+        label={t("code")}
         onClick={() => onFormat("code")}
       />
       <SelectionActionButton

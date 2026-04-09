@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import { createSlashItems } from "@/features/editor/lib/menu-config";
 import { filterSlashItems, getEnabledSlashItems } from "@/features/editor/lib/slash-menu";
 
 export function useEditorSlashItems(query: string) {
-  const slashItems = useMemo(() => createSlashItems(), []);
+  const { t } = useLocale();
+  const slashItems = useMemo(() => createSlashItems(t), [t]);
   const filteredSlashItems = useMemo(
     () => filterSlashItems(slashItems, query),
     [query, slashItems],

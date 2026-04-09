@@ -2,6 +2,7 @@
 
 import { ArrowRightLeft, ChevronRight, Copy, Download, Sparkles, Trash2 } from "lucide-react";
 import type { RefObject } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { BlockTransformItem } from "@/features/editor/lib/types";
 
 type EditorBlockMenuProps = {
@@ -70,6 +71,7 @@ export function EditorBlockMenu({
   showTurnInto,
   turnIntoAlign,
 }: EditorBlockMenuProps) {
+  const { t } = useLocale();
   if (!canEditBody || !blockMenuOpen || !globalThis.document?.body) {
     return null;
   }
@@ -105,7 +107,7 @@ export function EditorBlockMenu({
           >
             <span className="flex min-w-0 items-center gap-2">
               <ArrowRightLeft className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>Turn into</span>
+              <span>{t("turnInto")}</span>
             </span>
             <ChevronRight
               className={`size-3.5 shrink-0 text-[var(--color-muted-foreground)] transition ${
@@ -137,7 +139,7 @@ export function EditorBlockMenu({
                   >
                     <span>{item.label}</span>
                     <span className="text-[11px] text-[var(--color-muted-foreground)]">
-                      {isCurrent ? "Current" : ""}
+                      {isCurrent ? t("currentStatus") : ""}
                     </span>
                   </button>
                 );
@@ -153,8 +155,8 @@ export function EditorBlockMenu({
       >
         <span className="flex min-w-0 items-center gap-2">
           <Copy className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-          <span>Duplicate</span>
-        </span>
+              <span>{t("duplicate")}</span>
+            </span>
       </button>
       {isTableBlock ? (
         <>
@@ -165,7 +167,7 @@ export function EditorBlockMenu({
           >
             <span className="flex min-w-0 items-center gap-2">
               <Trash2 className="size-3.5 shrink-0" />
-              <span>Delete table</span>
+              <span>{t("deleteTable")}</span>
             </span>
           </button>
         </>
@@ -178,7 +180,7 @@ export function EditorBlockMenu({
           >
             <span className="flex min-w-0 items-center gap-2">
               <Copy className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>Copy image</span>
+              <span>{t("copyImage")}</span>
             </span>
           </button>
           <button
@@ -188,7 +190,7 @@ export function EditorBlockMenu({
           >
             <span className="flex min-w-0 items-center gap-2">
               <Download className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>Download</span>
+              <span>{t("download")}</span>
             </span>
           </button>
         </>
@@ -200,8 +202,8 @@ export function EditorBlockMenu({
         >
           <span className="flex min-w-0 items-center gap-2">
             <Sparkles className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-            <span>AI actions</span>
-          </span>
+              <span>{t("aiActions")}</span>
+            </span>
         </button>
       )}
       <button
@@ -211,7 +213,7 @@ export function EditorBlockMenu({
       >
         <span className="flex min-w-0 items-center gap-2">
           <Trash2 className="size-3.5 shrink-0" />
-          <span>Delete</span>
+          <span>{t("delete")}</span>
         </span>
       </button>
     </div>

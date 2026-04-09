@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { useEditorAccessEntries } from "@/features/editor/hooks/use-editor-access-entries";
@@ -17,7 +18,7 @@ import { useEditorTitleState } from "@/features/editor/hooks/use-editor-title-st
 import { useSyntextEditor } from "@/features/editor/hooks/use-syntext-editor";
 import { createBlockTransformItems } from "@/features/editor/lib/menu-config";
 import type { BlockTransformItem } from "@/features/editor/lib/types";
-import { BLOCK_ELEMENT_SELECTOR, permissionLabel } from "@/features/editor/lib/utils";
+import { BLOCK_ELEMENT_SELECTOR } from "@/features/editor/lib/utils";
 import { useEffect } from "react";
 
 type UseEditorSurfaceModelArgs = {
@@ -33,6 +34,7 @@ export function useEditorSurfaceModel({
   routerPushHome,
   saveDocument,
 }: UseEditorSurfaceModelArgs) {
+  const { t } = useLocale();
   const {
     currentUser,
     currentWorkspace,
@@ -142,12 +144,19 @@ export function useEditorSurfaceModel({
     editor,
     editorContainerRef: ui.editorContainerRef,
   });
-  const blockTransformItems = useMemo<BlockTransformItem[]>(() => createBlockTransformItems(), []);
+  const blockTransformItems = useMemo<BlockTransformItem[]>(() => createBlockTransformItems(t), [t]);
   const guestBadgeClass =
     "rounded-full border border-[#f0d9a7] bg-[#fbefcf] px-2 py-0.5 text-[11px] font-semibold text-[#c98a10]";
+  const permissionLabel = (nextPermission: "owner" | "can_edit" | "can_view") => {
+    if (nextPermission === "owner") {
+      return t("owner");
+    }
+
+    return nextPermission === "can_edit" ? t("canEdit") : t("canView");
+  };
   const searchHeaderLabel =
-    ui.searchBody.searchNotice === "No match found"
-      ? "No match found"
+    ui.searchBody.searchNotice === t("noMatchFound")
+      ? t("noMatchFound")
       : ui.searchBody.searchMatchIndex >= 0
         ? `${ui.searchBody.searchMatchIndex + 1} / ${ui.searchBody.searchMatchCount}`
         : "";

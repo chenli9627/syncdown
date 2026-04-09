@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { X } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { AccessEntry } from "@/features/editor/lib/types";
 
 type EditorPermissionAccessListProps = {
@@ -71,6 +72,7 @@ function EditorPermissionAccessRow({
   permissionLabel,
   PermissionDropdown,
 }: EditorPermissionAccessRowProps) {
+  const { t } = useLocale();
   const isOwnerEntry = entry.permission === "owner";
   const isCurrentUser = currentUserId === entry.userId;
   const editablePermission = entry.permission === "can_edit" ? "can_edit" : "can_view";
@@ -94,9 +96,9 @@ function EditorPermissionAccessRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium">{entry.name}</p>
-          {!isOwnerEntry ? <span className={guestBadgeClass}>Guest</span> : null}
+          {!isOwnerEntry ? <span className={guestBadgeClass}>{t("guest")}</span> : null}
           {isCurrentUser ? (
-            <span className="text-sm text-[var(--color-muted-foreground)]">(You)</span>
+            <span className="text-sm text-[var(--color-muted-foreground)]">({t("you")})</span>
           ) : null}
         </div>
         <p className="truncate text-sm text-[var(--color-muted-foreground)]">
@@ -126,7 +128,7 @@ function EditorPermissionAccessRow({
         </div>
       ) : (
         <span className="text-sm text-[var(--color-muted-foreground)]">
-          {isOwnerEntry ? "Owner" : permissionLabel(entry.permission)}
+          {isOwnerEntry ? t("owner") : permissionLabel(entry.permission)}
         </span>
       )}
     </div>

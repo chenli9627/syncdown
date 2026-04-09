@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { User, Workspace } from "@/features/app-state/types";
 
 type WorkspaceSwitcherPopoverProps = {
@@ -50,6 +51,7 @@ export function WorkspaceSwitcherPopover({
   workspaceName,
   workspaceNotice,
 }: WorkspaceSwitcherPopoverProps) {
+  const { t } = useLocale();
   return (
     <div
       className="absolute left-0 top-[calc(100%+8px)] z-[80] w-full border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
@@ -70,12 +72,12 @@ export function WorkspaceSwitcherPopover({
               <span className="truncate">{workspace.name}</span>
               {workspace.ownerUserId !== currentUser.id ? (
                 <span className={guestBadgeClass}>
-                  Guest
+                  {t("guest")}
                 </span>
               ) : null}
             </div>
             <div className="shrink-0 text-xs text-[var(--color-muted-foreground)]">
-              {workspace.id === currentWorkspaceId ? "current" : ""}
+              {workspace.id === currentWorkspaceId ? t("current") : ""}
             </div>
           </button>
         ))}
@@ -102,7 +104,7 @@ export function WorkspaceSwitcherPopover({
               }}
               type="button"
             >
-              <span>Create workspace</span>
+              <span>{t("createWorkspace")}</span>
               <Plus className="size-4" />
             </button>
 
@@ -119,7 +121,7 @@ export function WorkspaceSwitcherPopover({
                   className="block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]"
                   htmlFor="workspace-name"
                 >
-                  New workspace
+                  {t("newWorkspace")}
                 </label>
                 <input
                   className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
@@ -128,7 +130,7 @@ export function WorkspaceSwitcherPopover({
                   onChange={(event) => {
                     setWorkspaceName(event.target.value);
                   }}
-                  placeholder="Workspace name"
+                  placeholder={t("workspaceName")}
                   value={workspaceName}
                 />
                 <div className="flex items-center justify-end gap-2">
@@ -140,14 +142,14 @@ export function WorkspaceSwitcherPopover({
                     }}
                     type="button"
                   >
-                    Cancel
+                    {t("cancel")}
                   </button>
                   <button
                     className="rounded-[4px] bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:brightness-95"
                     disabled={isWorking}
                     type="submit"
                   >
-                    Create
+                    {t("create")}
                   </button>
                 </div>
               </form>
@@ -159,14 +161,14 @@ export function WorkspaceSwitcherPopover({
           onClick={onOpenSettings}
           type="button"
         >
-          <span>Settings</span>
+          <span>{t("settings")}</span>
         </button>
         <button
           className="flex w-full items-center justify-between border border-transparent px-2 py-2 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
           onClick={onLogout}
           type="button"
         >
-          <span>Log out</span>
+          <span>{t("logOut")}</span>
         </button>
       </div>
     </div>

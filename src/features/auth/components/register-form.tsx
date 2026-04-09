@@ -9,44 +9,46 @@ import {
   KeyRound,
   UserRound,
 } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
-
-const fields = [
-  {
-    label: "Email",
-    type: "email",
-    autoComplete: "email",
-    icon: AtSign,
-    name: "email",
-  },
-  {
-    label: "Username",
-    type: "text",
-    autoComplete: "username",
-    icon: Fingerprint,
-    name: "username",
-  },
-  {
-    label: "Name",
-    type: "text",
-    autoComplete: "name",
-    icon: UserRound,
-    name: "name",
-  },
-  {
-    label: "Password",
-    type: "password",
-    autoComplete: "new-password",
-    icon: KeyRound,
-    name: "password",
-  },
-] as const;
 
 export function RegisterForm() {
   const router = useRouter();
+  const { t } = useLocale();
   const { currentUser, ready, register } = useAppState();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const fields = [
+    {
+      label: t("email"),
+      type: "email",
+      autoComplete: "email",
+      icon: AtSign,
+      name: "email",
+    },
+    {
+      label: t("username"),
+      type: "text",
+      autoComplete: "username",
+      icon: Fingerprint,
+      name: "username",
+    },
+    {
+      label: t("name"),
+      type: "text",
+      autoComplete: "name",
+      icon: UserRound,
+      name: "name",
+    },
+    {
+      label: t("password"),
+      type: "password",
+      autoComplete: "new-password",
+      icon: KeyRound,
+      name: "password",
+    },
+  ] as const;
 
   useEffect(() => {
     if (!ready || !currentUser) {
@@ -83,11 +85,11 @@ export function RegisterForm() {
     >
       <div className="space-y-2">
         <p className="text-sm uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">
-          New account
+          {t("newAccount")}
         </p>
-        <h1 className="text-3xl font-semibold">Sign up</h1>
+        <h1 className="text-3xl font-semibold">{t("signUpTitle")}</h1>
         <p className="text-sm text-[var(--color-muted-foreground)]">
-          Register a new owner account and return to login.
+          {t("registerDescription")}
         </p>
       </div>
 
@@ -119,11 +121,11 @@ export function RegisterForm() {
         type="submit"
       >
         <ArrowRight className="size-4" />
-        {isPending ? "Creating…" : "Sign up"}
+        {isPending ? t("creating") : t("signUpTitle")}
       </button>
 
       <div className="mt-4 text-sm text-[var(--color-muted-foreground)]">
-        <a href="/login">Existing user? Log in</a>
+        <a href="/login">{t("existingUserLogIn")}</a>
       </div>
     </form>
   );

@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { ArrowRight, KeyRound, UserRound } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 
 export function LoginForm() {
   const router = useRouter();
+  const { t } = useLocale();
   const { currentUser, login, ready } = useAppState();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -44,18 +46,18 @@ export function LoginForm() {
     >
       <div className="space-y-2">
         <p className="text-sm uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">
-          Entry
+          {t("entry")}
         </p>
-        <h2 className="text-3xl font-semibold">Log in</h2>
+        <h2 className="text-3xl font-semibold">{t("logInTitle")}</h2>
         <p className="text-sm text-[var(--color-muted-foreground)]">
-          Use the seed account `one / onepass123` or `two / twopass123`.
+          {t("seedAccountsHint")}
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="username">
-            Username
+            {t("username")}
           </label>
           <div className="flex h-11 items-center border border-[var(--color-border)] bg-[var(--color-card)] px-3">
             <UserRound className="size-4 text-[var(--color-muted-foreground)]" />
@@ -64,14 +66,14 @@ export function LoginForm() {
               className="h-full w-full bg-transparent px-3 outline-none ring-0 placeholder:text-[var(--color-muted-foreground)]"
               id="username"
               name="username"
-              placeholder="username"
+              placeholder={t("usernamePlaceholder")}
               type="text"
             />
           </div>
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="password">
-            Password
+            {t("password")}
           </label>
           <div className="flex h-11 items-center border border-[var(--color-border)] bg-[var(--color-card)] px-3">
             <KeyRound className="size-4 text-[var(--color-muted-foreground)]" />
@@ -80,7 +82,7 @@ export function LoginForm() {
               className="h-full w-full bg-transparent px-3 outline-none ring-0 placeholder:text-[var(--color-muted-foreground)]"
               id="password"
               name="password"
-              placeholder="password"
+              placeholder={t("passwordPlaceholder")}
               type="password"
             />
           </div>
@@ -94,25 +96,25 @@ export function LoginForm() {
           type="submit"
         >
           <ArrowRight className="size-4" />
-          {isPending ? "Opening…" : "Log in"}
+          {isPending ? t("opening") : t("logInTitle")}
         </button>
       </div>
 
       <div className="flex items-center justify-between text-sm text-[var(--color-muted-foreground)]">
-        <a href="/register">New user? Sign up</a>
+        <a href="/register">{t("newUserSignUp")}</a>
         <button
           onClick={() => {
             setShowResetHelp((current) => !current);
           }}
           type="button"
         >
-          Forget your password?
+          {t("forgetPassword")}
         </button>
       </div>
 
       {showResetHelp ? (
         <div className="border border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3 text-sm text-[var(--color-muted-foreground)]">
-          <p>If you forget your password, ask the administrator to run:</p>
+          <p>{t("resetPasswordHelp")}</p>
           <p className="mt-2 font-mono text-[13px] text-[var(--color-foreground)]">
             pnpm reset-password --username &lt;username&gt; --password &lt;new-password&gt;
           </p>

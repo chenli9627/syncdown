@@ -2,15 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 
-function formatDeletedAt(value: string | null | undefined) {
+function formatDeletedAt(value: string | null | undefined, locale: string, fallback: string) {
   if (!value) {
-    return "Deleted time unavailable";
+    return fallback;
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -21,6 +22,7 @@ function formatDeletedAt(value: string | null | undefined) {
 
 export function TrashView() {
   const router = useRouter();
+  const { locale, t } = useLocale();
   const {
     buckets,
     currentUser,
@@ -63,10 +65,10 @@ export function TrashView() {
     >
       <div className="max-w-4xl space-y-3">
         <h1 className="text-3xl font-semibold leading-tight tracking-[-0.04em] md:text-4xl">
-          Trash
+          {t("trash")}
         </h1>
         <p className="max-w-2xl text-base leading-7 text-[var(--color-muted-foreground)]">
-          Restore documents to their previous status or permanently delete them.
+          {t("trashDescription")}
         </p>
       </div>
 
@@ -92,7 +94,8 @@ export function TrashView() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{document.title}</p>
                   <p className="mt-1 text-[12px] text-[var(--color-muted-foreground)]">
-                    Deleted {formatDeletedAt(document.deletedAt)}
+                    {t("deletedAtPrefix")}{" "}
+                    {formatDeletedAt(document.deletedAt, locale, t("deletedTimeUnavailable"))}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -111,11 +114,11 @@ export function TrashView() {
                         return;
                       }
 
-                      setNotice("Document restored");
+                      setNotice(t("documentRestored"));
                     }}
                     type="button"
                   >
-                    Restore
+                    {t("restore")}
                   </button>
                   <button
                     className="border border-[#c93c37] px-3 py-1.5 text-[13px] text-[#c93c37] transition hover:bg-[#fff1f0] disabled:cursor-not-allowed disabled:opacity-50"
@@ -127,7 +130,7 @@ export function TrashView() {
                     }}
                     type="button"
                   >
-                    Delete permanently
+                    {t("deletePermanently")}
                   </button>
                 </div>
               </div>
@@ -136,7 +139,7 @@ export function TrashView() {
         </div>
       ) : (
         <div className="mt-8 max-w-4xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4 text-sm text-[var(--color-muted-foreground)]">
-          No pages inside
+          {t("noPagesInside")}
         </div>
       )}
 
@@ -144,11 +147,11 @@ export function TrashView() {
         <div className="absolute inset-0 z-[120] flex items-center justify-center bg-[rgba(15,23,42,0.18)] px-6">
           <div className="w-full max-w-md border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-[var(--shadow-soft-card)]">
             <p className="text-base leading-7 text-[var(--color-foreground)]">
-              Permanently delete{" "}
+              {t("permanentDeletePrompt")}{" "}
               <span className="font-semibold">{pendingDeleteDocument.title}</span>?
             </p>
             <p className="mt-2 text-sm leading-6 text-[var(--color-muted-foreground)]">
-              This action cannot be undone.
+              {t("permanentDeleteDescription")}
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -158,7 +161,7 @@ export function TrashView() {
                 }}
                 type="button"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 className="border border-[#c93c37] bg-[#c93c37] px-3 py-2 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
@@ -178,11 +181,11 @@ export function TrashView() {
                   }
 
                   setPendingDeleteDocument(null);
-                  setNotice("Document permanently deleted");
+                  setNotice(t("documentPermanentlyDeleted"));
                 }}
                 type="button"
               >
-                Delete permanently
+                {t("deletePermanently")}
               </button>
             </div>
           </div>

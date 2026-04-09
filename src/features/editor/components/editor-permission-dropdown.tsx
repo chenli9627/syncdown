@@ -2,6 +2,7 @@
 
 import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 export type EditorPermissionDropdownProps = {
   align?: "left" | "right";
@@ -18,6 +19,7 @@ export function EditorPermissionDropdown({
   value,
   widthClassName = "w-[96px]",
 }: EditorPermissionDropdownProps) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -58,7 +60,7 @@ export function EditorPermissionDropdown({
         type="button"
       >
         <span className="truncate">
-          {value === "can_edit" ? "Can edit" : "Can view"}
+          {value === "can_edit" ? t("canEdit") : t("canView")}
         </span>
         <ChevronDown
           className={`ml-2 size-3.5 shrink-0 text-[var(--color-muted-foreground)] transition ${
@@ -87,7 +89,7 @@ export function EditorPermissionDropdown({
               }}
               type="button"
             >
-              {option === "can_edit" ? "Can edit" : "Can view"}
+              {option === "can_edit" ? t("canEdit") : t("canView")}
             </button>
           ))}
         </div>

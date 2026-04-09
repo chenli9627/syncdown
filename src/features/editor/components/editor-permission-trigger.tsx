@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, Lock, LockOpen } from "lucide-react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 type EditorPermissionTriggerProps = {
   documentStatus: "private" | "shared" | "trashed";
@@ -15,6 +16,7 @@ export function EditorPermissionTrigger({
   permissionButtonRef,
   permissionMenuOpen,
 }: EditorPermissionTriggerProps) {
+  const { t } = useLocale();
   return (
     <button
       className="flex min-h-9 items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-1.5 text-[12px] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)]"
@@ -25,12 +27,12 @@ export function EditorPermissionTrigger({
       {documentStatus === "private" ? (
         <>
           <Lock className="size-3.5 text-[var(--color-muted-foreground)]" />
-          <span>Private</span>
+          <span>{t("private")}</span>
         </>
       ) : (
         <>
           <LockOpen className="size-3.5 text-[var(--color-muted-foreground)]" />
-          <span>Shared</span>
+          <span>{t("shared")}</span>
         </>
       )}
       <ChevronDown

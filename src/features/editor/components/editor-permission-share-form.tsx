@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+
 type EditorPermissionShareFormProps = {
   onShareEmailChange: (value: string) => void;
   onSharePermissionChange: (value: "can_edit" | "can_view") => void;
@@ -25,6 +27,7 @@ export function EditorPermissionShareForm({
   shareEmail,
   sharePermission,
 }: EditorPermissionShareFormProps) {
+  const { t } = useLocale();
   return (
     <form
       className="space-y-3 border-b border-[var(--color-border)] pb-4"
@@ -39,7 +42,7 @@ export function EditorPermissionShareForm({
           onChange={(event) => {
             onShareEmailChange(event.target.value);
           }}
-          placeholder="Email"
+          placeholder={t("email")}
           spellCheck={false}
           type="email"
           value={shareEmail}
@@ -54,7 +57,7 @@ export function EditorPermissionShareForm({
           disabled={permissionBusy}
           type="submit"
         >
-          Share
+          {t("share")}
         </button>
       </div>
     </form>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
+
 type WorkspaceSettingsPopoverProps = {
   currentWorkspaceName: string;
   deleteConfirmName: string;
@@ -23,6 +25,7 @@ export function WorkspaceSettingsPopover({
   renameWorkspaceName,
   workspaceSettingsPopoverRef,
 }: WorkspaceSettingsPopoverProps) {
+  const { t } = useLocale();
   return (
     <div
       className="absolute left-[calc(100%+8px)] top-0 z-[85] w-[296px] space-y-4 border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
@@ -39,7 +42,7 @@ export function WorkspaceSettingsPopover({
           className="block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]"
           htmlFor="rename-workspace"
         >
-          Rename workspace
+          {t("renameWorkspace")}
         </label>
         <input
           className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
@@ -56,7 +59,7 @@ export function WorkspaceSettingsPopover({
             disabled={isWorking}
             type="submit"
           >
-            Save
+            {t("saveChanges")}
           </button>
         </div>
       </form>
@@ -69,14 +72,14 @@ export function WorkspaceSettingsPopover({
         }}
       >
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
-          Delete workspace
+          {t("deleteWorkspace")}
         </p>
         <p className="text-sm text-[var(--color-muted-foreground)]">
-          Type{" "}
+          {t("deleteWorkspaceDescription")}{" "}
           <span className="font-semibold text-[var(--color-foreground)]">
             {currentWorkspaceName}
           </span>{" "}
-          to permanently delete this workspace and all its contents.
+          {t("deleteWorkspaceDescriptionSuffix")}
         </p>
         <input
           className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
@@ -93,7 +96,7 @@ export function WorkspaceSettingsPopover({
             disabled={isWorking}
             type="submit"
           >
-            Delete workspace permanently
+            {t("deleteWorkspacePermanently")}
           </button>
         </div>
       </form>

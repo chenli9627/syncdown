@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormEvent, RefObject } from "react";
+import { getMessage, type Locale } from "@/lib/i18n/messages";
 import { EditorPermissionDropdown } from "@/features/editor/components/editor-permission-dropdown";
 import { EditorPermissionPopover } from "@/features/editor/components/editor-permission-popover";
 import type { AccessEntry } from "@/features/editor/lib/types";
@@ -12,6 +13,7 @@ type EditorHeaderPermissionActionProps = {
   documentId: string;
   documentStatus: "private" | "shared" | "trashed";
   guestBadgeClass: string;
+  locale: Locale;
   onCloseOtherMenus: () => void;
   permissionBusy: boolean;
   permissionButtonRef: RefObject<HTMLButtonElement | null>;
@@ -43,6 +45,10 @@ type EditorHeaderPermissionActionProps = {
   ) => Promise<{ error: string; ok: false } | { ok: true }>;
 };
 
+function t(locale: Locale, key: Parameters<typeof getMessage>[1]) {
+  return getMessage(locale, key);
+}
+
 async function updateAccess(
   documentId: string,
   userId: string,
@@ -52,6 +58,7 @@ async function updateAccess(
     | "setPermissionBusy"
     | "setPermissionError"
     | "setPermissionNotice"
+    | "locale"
     | "updateDocumentAccess"
   >,
 ) {
@@ -64,7 +71,7 @@ async function updateAccess(
     props.setPermissionError(result.error);
     return;
   }
-  props.setPermissionNotice("Permission updated");
+  props.setPermissionNotice(t(props.locale, "permissionUpdated"));
 }
 
 async function removeAccess(
@@ -76,6 +83,7 @@ async function removeAccess(
     | "setPermissionBusy"
     | "setPermissionError"
     | "setPermissionNotice"
+    | "locale"
   >,
 ) {
   props.setPermissionBusy(true);
@@ -87,7 +95,7 @@ async function removeAccess(
     props.setPermissionError(result.error);
     return;
   }
-  props.setPermissionNotice("Access removed");
+  props.setPermissionNotice(t(props.locale, "accessRemoved"));
 }
 
 async function submitShare(
@@ -100,6 +108,7 @@ async function submitShare(
     | "setPermissionNotice"
     | "setShareEmail"
     | "setSharePermission"
+    | "locale"
     | "shareDocument"
     | "shareEmail"
     | "sharePermission"
@@ -120,7 +129,7 @@ async function submitShare(
   }
   props.setShareEmail("");
   props.setSharePermission("can_view");
-  props.setPermissionNotice("Guest added");
+  props.setPermissionNotice(t(props.locale, "guestAdded"));
 }
 
 export function EditorHeaderPermissionAction(

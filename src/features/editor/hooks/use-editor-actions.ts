@@ -3,6 +3,7 @@
 import type { Editor } from "@tiptap/react";
 import { useMemo } from "react";
 import { TextSelection } from "@tiptap/pm/state";
+import { useLocale } from "@/components/providers/locale-provider";
 import type {
   EditorActionBaseArgs,
   EditorBlockMenuState,
@@ -81,6 +82,7 @@ export function useEditorActions({
   setSearchRects,
   syncHoveredBlockFromPos,
 }: UseEditorActionsArgs) {
+  const { t } = useLocale();
   function getImageDownloadName(extension: string) {
     const base = document.title?.trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/\s+/g, "-") || "syncdown-image";
     const suffix = blockMenu.pos != null ? `${blockMenu.pos}` : `${Date.now()}`;
@@ -117,11 +119,11 @@ export function useEditorActions({
 
   const statusLabel =
     status === "saving"
-      ? "Saving..."
+      ? t("saving")
       : status === "saved"
-        ? "Saved"
+        ? t("saved")
         : status === "error"
-          ? "Save failed"
+          ? t("saveFailed")
           : null;
   const currentTransformActiveId = useMemo(
     () =>
@@ -142,8 +144,10 @@ export function useEditorActions({
     editorContainerRef,
     hoveredBlock,
     saveDocument,
+    searchEmptyLabel: t("enterTextToSearch"),
     searchInputRef,
     searchMatchIndex,
+    searchNoMatchLabel: t("noMatchFound"),
     searchQuery,
     setActionError,
     setActionNotice,

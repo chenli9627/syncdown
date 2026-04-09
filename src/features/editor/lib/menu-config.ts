@@ -1,5 +1,6 @@
 import { TextSelection } from "@tiptap/pm/state";
 import type { Editor } from "@tiptap/react";
+import type { MessageKey } from "@/lib/i18n/messages";
 import type { BlockTransformItem, SlashItem } from "@/features/editor/lib/types";
 import {
   normalizeParagraphTransform,
@@ -10,12 +11,14 @@ import {
   unwrapQuoteIfNeeded,
 } from "@/features/editor/lib/utils";
 
-export function createSlashItems(): SlashItem[] {
-  return slashItemConfigs.map(createSlashItem);
+type Translate = (key: MessageKey) => string;
+
+export function createSlashItems(t: Translate): SlashItem[] {
+  return slashItemConfigs.map((config) => createSlashItem(config, t));
 }
 
-export function createBlockTransformItems(): BlockTransformItem[] {
-  return blockTransformConfigs.map(createBlockTransformItem);
+export function createBlockTransformItems(t: Translate): BlockTransformItem[] {
+  return blockTransformConfigs.map((config) => createBlockTransformItem(config, t));
 }
 
 type MenuEditorAction = (editor: Editor) => void;
@@ -23,59 +26,59 @@ type MenuEditorAction = (editor: Editor) => void;
 type SlashItemConfig = {
   enabled?: boolean;
   id: string;
-  label: string;
+  labelKey: MessageKey;
   run: MenuEditorAction;
   shortcut: string;
 };
 
 type BlockTransformConfig = {
   id: string;
-  label: string;
+  labelKey: MessageKey;
   run: MenuEditorAction;
 };
 
 const slashItemConfigs: SlashItemConfig[] = [
-  { id: "text", label: "Text", shortcut: "", run: runParagraph },
-  { id: "heading-1", label: "Heading 1", shortcut: "#", run: createHeadingAction(1) },
-  { id: "heading-2", label: "Heading 2", shortcut: "##", run: createHeadingAction(2) },
-  { id: "heading-3", label: "Heading 3", shortcut: "###", run: createHeadingAction(3) },
-  { id: "heading-4", label: "Heading 4", shortcut: "####", run: createHeadingAction(4) },
-  { id: "bullet-list", label: "Bulleted list", shortcut: "-", run: runBulletList },
-  { id: "ordered-list", label: "Numbered list", shortcut: "1.", run: runOrderedList },
-  { id: "todo-list", label: "Todo list", shortcut: "[]", run: runTaskList },
-  { id: "quote", label: "Quote", shortcut: "\"", run: runQuote },
-  { id: "table", label: "Table", shortcut: "||", run: runTable },
-  { id: "divider", label: "Divider", shortcut: "--", run: runDivider },
-  { id: "code", label: "Code", shortcut: "```", run: runCodeBlock },
+  { id: "text", labelKey: "text", shortcut: "", run: runParagraph },
+  { id: "heading-1", labelKey: "heading1", shortcut: "#", run: createHeadingAction(1) },
+  { id: "heading-2", labelKey: "heading2", shortcut: "##", run: createHeadingAction(2) },
+  { id: "heading-3", labelKey: "heading3", shortcut: "###", run: createHeadingAction(3) },
+  { id: "heading-4", labelKey: "heading4", shortcut: "####", run: createHeadingAction(4) },
+  { id: "bullet-list", labelKey: "bulletedList", shortcut: "-", run: runBulletList },
+  { id: "ordered-list", labelKey: "numberedList", shortcut: "1.", run: runOrderedList },
+  { id: "todo-list", labelKey: "todoList", shortcut: "[]", run: runTaskList },
+  { id: "quote", labelKey: "quote", shortcut: "\"", run: runQuote },
+  { id: "table", labelKey: "table", shortcut: "||", run: runTable },
+  { id: "divider", labelKey: "divider", shortcut: "--", run: runDivider },
+  { id: "code", labelKey: "code", shortcut: "```", run: runCodeBlock },
 ];
 
 const blockTransformConfigs: BlockTransformConfig[] = [
-  { id: "paragraph", label: "Text", run: runParagraphWithUnwrap },
-  { id: "heading-1", label: "Heading 1", run: createHeadingTransformAction(1) },
-  { id: "heading-2", label: "Heading 2", run: createHeadingTransformAction(2) },
-  { id: "heading-3", label: "Heading 3", run: createHeadingTransformAction(3) },
-  { id: "heading-4", label: "Heading 4", run: createHeadingTransformAction(4) },
-  { id: "bullet-list", label: "Bulleted list", run: runBulletList },
-  { id: "ordered-list", label: "Numbered list", run: runOrderedList },
-  { id: "todo-list", label: "Todo list", run: runTaskList },
-  { id: "quote", label: "Quote", run: runQuote },
-  { id: "code", label: "Code", run: runCodeBlock },
+  { id: "paragraph", labelKey: "text", run: runParagraphWithUnwrap },
+  { id: "heading-1", labelKey: "heading1", run: createHeadingTransformAction(1) },
+  { id: "heading-2", labelKey: "heading2", run: createHeadingTransformAction(2) },
+  { id: "heading-3", labelKey: "heading3", run: createHeadingTransformAction(3) },
+  { id: "heading-4", labelKey: "heading4", run: createHeadingTransformAction(4) },
+  { id: "bullet-list", labelKey: "bulletedList", run: runBulletList },
+  { id: "ordered-list", labelKey: "numberedList", run: runOrderedList },
+  { id: "todo-list", labelKey: "todoList", run: runTaskList },
+  { id: "quote", labelKey: "quote", run: runQuote },
+  { id: "code", labelKey: "code", run: runCodeBlock },
 ];
 
-function createSlashItem(config: SlashItemConfig): SlashItem {
+function createSlashItem(config: SlashItemConfig, t: Translate): SlashItem {
   return {
     enabled: config.enabled ?? true,
     id: config.id,
-    label: config.label,
+    label: t(config.labelKey),
     run: config.run,
     shortcut: config.shortcut,
   };
 }
 
-function createBlockTransformItem(config: BlockTransformConfig): BlockTransformItem {
+function createBlockTransformItem(config: BlockTransformConfig, t: Translate): BlockTransformItem {
   return {
     id: config.id,
-    label: config.label,
+    label: t(config.labelKey),
     run: (editor, pos) => {
       const currentNode = editor.state.doc.nodeAt(pos);
 

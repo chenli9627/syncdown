@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/providers/locale-provider";
 import { getWorkspaceBuckets } from "@/features/app-state/lib/state-utils";
 import type { User, Workspace } from "@/features/app-state/types";
 import { ShellSidebarMenu } from "@/features/shell/components/shell-sidebar-menu";
@@ -62,6 +63,7 @@ function WorkspaceCard({
   onToggle: () => void;
   workspaceTriggerRef: React.RefObject<HTMLButtonElement | null>;
 }) {
+  const { t } = useLocale();
   return (
     <button
       className="flex w-full items-center gap-3 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3 py-3 text-left shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-card)]"
@@ -74,7 +76,7 @@ function WorkspaceCard({
       </div>
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <p className="truncate text-[15px] font-semibold">{currentWorkspace.name}</p>
-        {isGuest ? <span className={guestBadgeClass}>Guest</span> : null}
+        {isGuest ? <span className={guestBadgeClass}>{t("guest")}</span> : null}
       </div>
     </button>
   );

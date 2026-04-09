@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import { EditorPermissionAccessList } from "@/features/editor/components/editor-permission-access-list";
 import { EditorPermissionShareForm } from "@/features/editor/components/editor-permission-share-form";
 import { EditorPermissionTrigger } from "@/features/editor/components/editor-permission-trigger";
@@ -65,6 +66,7 @@ export function EditorPermissionPopover({
   shareEmail,
   sharePermission,
 }: EditorPermissionPopoverProps) {
+  const { t } = useLocale();
   return (
     <div className="relative">
       <EditorPermissionTrigger
@@ -86,7 +88,7 @@ export function EditorPermissionPopover({
         >
           <div className="border-b border-[var(--color-border)] px-4 py-3">
             <p className="text-[15px] font-semibold text-[var(--color-foreground)]">
-              Share
+              {t("share")}
             </p>
           </div>
 

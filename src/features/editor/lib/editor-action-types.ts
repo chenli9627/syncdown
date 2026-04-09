@@ -44,8 +44,10 @@ export type EditorActionBaseArgs = EditorActionStateSetters & {
   editorContainerRef: React.RefObject<HTMLDivElement | null>;
   hoveredBlock: HoveredBlock | null;
   saveDocument: SaveDocumentAction;
+  searchEmptyLabel: string;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   searchMatchIndex: number;
+  searchNoMatchLabel: string;
   searchQuery: string;
   syncHoveredBlockFromPos: (position: number) => void;
 };
