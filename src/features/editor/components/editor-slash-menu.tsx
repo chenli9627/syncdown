@@ -1,6 +1,7 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { SlashContext, SlashItem } from "@/features/editor/lib/types";
 
 type EditorSlashMenuProps = {
@@ -29,6 +30,7 @@ export function EditorSlashMenu({
   position,
   slashContext,
 }: EditorSlashMenuProps) {
+  const { t } = useLocale();
   if (!open || !filteredItems.length) {
     return null;
   }
@@ -84,7 +86,7 @@ export function EditorSlashMenu({
             >
               <span>{item.label}</span>
               <span className="text-[11px] text-[var(--color-muted-foreground)]">
-                {item.enabled ? item.shortcut || " " : "Soon"}
+                {item.enabled ? item.shortcut || " " : t("soon")}
               </span>
             </button>
           );
@@ -96,7 +98,7 @@ export function EditorSlashMenu({
           onClick={onClose}
           type="button"
         >
-          <span>Close menu</span>
+          <span>{t("closeMenu")}</span>
           <span className="text-[10px]">Esc</span>
         </button>
       </div>
