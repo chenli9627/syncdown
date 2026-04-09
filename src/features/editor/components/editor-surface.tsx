@@ -112,7 +112,6 @@ export function EditorSurface({
         currentTransformActiveId={model.actions.currentTransformActiveId}
         editor={model.editor}
         editorContainerRef={model.ui.editorContainerRef}
-        enabledSlashItems={model.slash.enabledSlashItems}
         filteredSlashItems={model.slash.filteredSlashItems}
         handleCloseSlashMenu={model.slash.closeSlashMenuFromUi}
         handleCopyImage={model.actions.handleCopyImage}

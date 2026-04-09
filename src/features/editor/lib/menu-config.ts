@@ -24,7 +24,6 @@ export function createBlockTransformItems(t: Translate): BlockTransformItem[] {
 type MenuEditorAction = (editor: Editor) => void;
 
 type SlashItemConfig = {
-  enabled?: boolean;
   id: string;
   labelKey: MessageKey;
   run: MenuEditorAction;
@@ -67,7 +66,6 @@ const blockTransformConfigs: BlockTransformConfig[] = [
 
 function createSlashItem(config: SlashItemConfig, t: Translate): SlashItem {
   return {
-    enabled: config.enabled ?? true,
     id: config.id,
     label: t(config.labelKey),
     run: config.run,

@@ -40,10 +40,6 @@ export function filterSlashItems(items: SlashItem[], query: string) {
   );
 }
 
-export function getEnabledSlashItems(items: SlashItem[]) {
-  return items.filter((item) => item.enabled);
-}
-
 export function getSlashMenuPosition(
   editor: Editor,
   container: HTMLElement,
@@ -92,21 +88,21 @@ export function handleSlashMenuKeyDownEvent(
     slashMenuRef,
   }: SlashMenuKeyDownHandlerArgs,
 ) {
-  const enabledItems = getEnabledSlashItems(filteredSlashItemsRef.current);
+  const filteredItems = filteredSlashItemsRef.current;
 
-  if (!slashMenuRef.current.open || !enabledItems.length) {
+  if (!slashMenuRef.current.open || !filteredItems.length) {
     return false;
   }
 
   if (event.key === "ArrowDown" || event.key === "ArrowUp") {
     event.preventDefault();
-    updateSlashMenuIndex(setSlashMenu, event.key === "ArrowDown" ? 1 : -1, enabledItems.length);
+    updateSlashMenuIndex(setSlashMenu, event.key === "ArrowDown" ? 1 : -1, filteredItems.length);
     return true;
   }
 
   if (event.key === "Enter") {
     event.preventDefault();
-    handleSlashMenuEnter(editorRef, enabledItems, setSlashMenu, slashContextRef, slashMenuRef);
+    handleSlashMenuEnter(editorRef, filteredItems, setSlashMenu, slashContextRef, slashMenuRef);
     return true;
   }
 
@@ -149,12 +145,12 @@ function updateSlashMenuIndex(
 
 function handleSlashMenuEnter(
   editorRef: React.RefObject<Editor | null>,
-  enabledItems: SlashItem[],
+  filteredItems: SlashItem[],
   setSlashMenu: React.Dispatch<React.SetStateAction<SlashMenuState>>,
   slashContextRef: React.RefObject<SlashContext | null>,
   slashMenuRef: React.RefObject<SlashMenuState>,
 ) {
-  const item = enabledItems[slashMenuRef.current.activeIndex] ?? enabledItems[0];
+  const item = filteredItems[slashMenuRef.current.activeIndex] ?? filteredItems[0];
   const slashContext = slashContextRef.current;
   const editor = editorRef.current;
 

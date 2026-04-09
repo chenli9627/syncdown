@@ -4,7 +4,6 @@ export type SlashItem = {
   id: string;
   label: string;
   shortcut: string;
-  enabled: boolean;
   run: (editor: Editor) => void;
 };
 

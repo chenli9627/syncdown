@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import { createSlashItems } from "@/features/editor/lib/menu-config";
-import { filterSlashItems, getEnabledSlashItems } from "@/features/editor/lib/slash-menu";
+import { filterSlashItems } from "@/features/editor/lib/slash-menu";
 
 export function useEditorSlashItems(query: string) {
   const { t } = useLocale();
@@ -12,13 +12,8 @@ export function useEditorSlashItems(query: string) {
     () => filterSlashItems(slashItems, query),
     [query, slashItems],
   );
-  const enabledSlashItems = useMemo(
-    () => getEnabledSlashItems(filteredSlashItems),
-    [filteredSlashItems],
-  );
 
   return {
-    enabledSlashItems,
     filteredSlashItems,
   };
 }

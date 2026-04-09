@@ -87,7 +87,6 @@ type EditorCanvasProps = {
   currentTransformActiveId: string | null;
   editor: Editor | null;
   editorContainerRef: RefObject<HTMLDivElement | null>;
-  enabledSlashItems: SlashItem[];
   filteredSlashItems: SlashItem[];
   handleCloseSlashMenu: () => void;
   handleCopyImage: () => Promise<void>;
@@ -155,7 +154,6 @@ export function EditorCanvas({
   currentTransformActiveId,
   editor,
   editorContainerRef,
-  enabledSlashItems,
   filteredSlashItems,
   handleCloseSlashMenu,
   handleCopyImage,
@@ -1329,7 +1327,6 @@ export function EditorCanvas({
         <EditorSlashMenu
           activeIndex={slashMenu.activeIndex}
           editor={editor}
-          enabledItems={enabledSlashItems}
           filteredItems={filteredSlashItems}
           onActivateItem={(nextIndex) => {
             setSlashMenu((current) => ({

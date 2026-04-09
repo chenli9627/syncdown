@@ -31,7 +31,7 @@ export function useEditorSlashMenu({
   const slashMenuRef = useRef(slashMenu);
   const slashContextRef = useRef<SlashContext | null>(null);
   const filteredSlashItemsRef = useRef<SlashItem[]>([]);
-  const { enabledSlashItems, filteredSlashItems } = useEditorSlashItems(slashMenu.query);
+  const { filteredSlashItems } = useEditorSlashItems(slashMenu.query);
 
   useEffect(() => {
     slashMenuRef.current = slashMenu;
@@ -142,7 +142,6 @@ export function useEditorSlashMenu({
 
   return {
     closeSlashMenuFromUi,
-    enabledSlashItems,
     filteredSlashItems,
     handleEditorKeyDown,
     openSlashMenuFromEditor,
