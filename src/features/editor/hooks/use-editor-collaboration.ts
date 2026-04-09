@@ -15,14 +15,14 @@ const PRESENCE_COLORS = [
   "#0369a1",
 ];
 
-type AwarenessUser = {
+export type AwarenessUser = {
   avatarUrl?: string | null;
   color: string;
   name: string;
   userId: string;
 };
 
-type AwarenessCursor = {
+export type AwarenessCursor = {
   anchor: unknown;
   head: unknown;
 };
@@ -35,7 +35,7 @@ export type RemoteAwarenessEntry = {
   userId: string;
 };
 
-type AwarenessState = {
+export type AwarenessState = {
   cursor?: AwarenessCursor | null;
   user?: AwarenessUser | null;
 };
@@ -73,7 +73,7 @@ function getCollabServerUrl() {
   return `${protocol}://${host}:${port}`;
 }
 
-function toRemoteEntries(
+export function toRemoteEntries(
   awareness: HocuspocusProvider["awareness"],
   currentUserId: string | null,
 ) {
