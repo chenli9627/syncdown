@@ -2,6 +2,8 @@
 
 @theme inline {
   --font-sans: "Geist", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Noto Serif SC",
+    "Source Han Serif SC", ui-serif, Georgia, serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
 
   --color-background: #ffffff;

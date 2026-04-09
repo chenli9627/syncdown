@@ -46,7 +46,7 @@ export function LoginForm() {
       }}
     >
       <div className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.22em] text-[var(--color-muted-foreground)]">
+        <p className="font-[family-name:var(--font-serif)] text-3xl leading-none tracking-[-0.04em] text-[var(--color-foreground)] md:text-4xl">
           Syncdown
         </p>
         <h1 className="text-3xl font-semibold tracking-[-0.03em]">{t("logInTitle")}</h1>
