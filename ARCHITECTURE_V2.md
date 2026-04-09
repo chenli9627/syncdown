@@ -300,7 +300,7 @@ Right-side document area top bar includes:
 Permission button behavior:
 
 - `Private` state shows lock + `Private`
-- `Shared` state shows `Shared` + authorized user avatars
+- `Shared` state shows unlock + `Shared`
 
 Permission popover shows:
 
@@ -366,7 +366,7 @@ Search behavior:
 
 - title and body autosave
 - current version syncs document bodies through `Y.Doc` and Tiptap collaboration
-- collaborator presence and remote cursors come from provider awareness
+- collaborator presence and collaboration positions come from provider awareness
 - `StarterKit` must disable default `undoRedo` in collaboration mode
 - collaboration documents initialize content only once after sync instead of reapplying local content on every mount
 
@@ -382,9 +382,9 @@ Search behavior:
 - the sticky editor header should stay visually minimal
 - do not show redundant workspace name, permission label, or current block label in the sticky header
 - keep title prominent but not oversized
-- place save/read-only status immediately next to the title with a fixed slot to avoid layout shift
-- align save/read-only status to the visual vertical center of the title row
-- wrap save/read-only states in a compact tag
+- place save-state status immediately next to the title with a fixed slot to avoid layout shift
+- align save-state status to the visual vertical center of the title row
+- wrap save states in a compact tag
 - keep the title cluster near the left edge and the top-right action buttons near the right edge, with only a small inset
 - keep only save-state tags in the header; do not render a separate `View only` tag
 - the current workspace owner can move the current document to trash from the top-right overflow menu
@@ -498,6 +498,7 @@ Current implementation:
 - collaborator names and avatars come from awareness user state
 - awareness cursor positions are still used internally, but the product UI does not render remote text caret markers
 - instead, the current build maps awareness positions to top-level blocks and renders collaborator avatars at the left side of the active block
+- in the default non-hover state, collaborator avatars sit slightly left of the normal block-control lane so they do not cover document text
 - when block controls are visible, collaborator avatars sit in the same horizontal control lane as `+` and the six-dots button
 - if multiple collaborators are inside the same block, show up to two avatars and collapse overflow into `+N`
 - document body sync uses the collaboration extension instead of app-owned polling

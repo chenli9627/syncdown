@@ -141,8 +141,10 @@ Current collaboration behavior:
 
 - document bodies sync through Yjs
 - active collaborator state uses awareness instead of app-owned TTL polling
-- the editor header shows active collaborators
-- remote cursor markers are rendered from awareness cursor state
+- remote text caret markers are not rendered
+- collaborators are shown as avatars beside the block they are actively editing
+- when block controls are visible, collaborator avatars align in the same control lane as `+` and the six-dots button
+- if multiple collaborators are inside the same block, show up to two avatars and collapse overflow into `+N`
 - local development uses a bundled Hocuspocus websocket server
 
 This replaces the old REST presence endpoint path.
