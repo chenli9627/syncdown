@@ -15,6 +15,11 @@ export type AppStateActions = {
   logout: () => void;
   updateProfileName: (userId: string, name: string) => Promise<Result>;
   updateProfileAvatar: (userId: string, avatarUrl: string | null) => Promise<Result>;
+  changePassword: (
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<Result>;
   switchWorkspace: (workspaceId: string) => void;
   createWorkspace: (name: string) => Promise<Result>;
   renameCurrentWorkspace: (name: string) => Promise<Result>;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  changePasswordForUser,
   updateProfileAvatarForUser,
   updateProfileNameForUser,
 } from "@/features/app-state/lib/mutations";
@@ -18,7 +19,9 @@ export async function PATCH(request: Request) {
   const body = (await request.json().catch(() => null)) as
     | {
         avatarUrl?: string | null;
+        currentPassword?: string;
         name?: string;
+        newPassword?: string;
         userId?: string;
       }
     | null;
@@ -45,6 +48,21 @@ export async function PATCH(request: Request) {
       state,
       body.userId,
       body.avatarUrl ?? null,
+    );
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    state = result.state;
+  }
+
+  if (body.currentPassword !== undefined || body.newPassword !== undefined) {
+    const result = changePasswordForUser(
+      state,
+      body.userId,
+      body.currentPassword ?? "",
+      body.newPassword ?? "",
     );
 
     if (!result.ok) {

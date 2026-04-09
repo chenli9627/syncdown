@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { StoredSyntextState } from "../src/features/app-state/types";
 import {
+  changePasswordForUser,
   registerUser,
   resetPasswordForUser,
   updateProfileAvatarForUser,
@@ -152,4 +153,34 @@ test("profile avatar updates for existing user", () => {
   }
 
   assert.equal(result.state.users[0]?.avatarUrl, "/api/media/avatar-test.png");
+});
+
+test("change password rejects incorrect current password", () => {
+  const result = changePasswordForUser(
+    createState(),
+    "user_one",
+    "wrongpass123",
+    "newvalid123",
+  );
+
+  assert.deepEqual(result, {
+    error: "Current password is incorrect",
+    ok: false,
+  });
+});
+
+test("change password updates stored password", () => {
+  const result = changePasswordForUser(
+    createState(),
+    "user_one",
+    "onepass123",
+    "newvalid123",
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  assert.equal(result.state.users[0]?.password, "newvalid123");
 });

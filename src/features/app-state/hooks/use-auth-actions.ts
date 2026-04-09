@@ -102,6 +102,29 @@ export function useAuthActions({ setSession, setState }: UseAuthActionsArgs) {
 
         return { ok: true };
       },
+      changePassword: async (
+        userId: string,
+        currentPassword: string,
+        newPassword: string,
+      ): Promise<Result> => {
+        const response = await fetch("/api/account/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, currentPassword, newPassword }),
+        });
+        const data = await readJson<{ error?: string; state?: SyntextState }>(response);
+
+        if (!response.ok || !data.state) {
+          return {
+            ok: false,
+            error: data.error ?? "Password update failed",
+          };
+        }
+
+        setState(data.state);
+
+        return { ok: true };
+      },
     }),
     [setSession, setState],
   );

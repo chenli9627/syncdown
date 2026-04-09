@@ -52,10 +52,16 @@ function PreferenceButton({
 }
 
 function SettingsContent({
+  changePassword,
   currentUser,
   updateProfileAvatar,
   updateProfileName,
 }: {
+  changePassword: (
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
   currentUser: User;
   updateProfileAvatar: (userId: string, avatarUrl: string | null) => Promise<{ ok: true } | { ok: false; error: string }>;
   updateProfileName: (userId: string, name: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -68,6 +74,12 @@ function SettingsContent({
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   async function handleSaveProfile() {
     setError(null);
@@ -120,6 +132,35 @@ function SettingsContent({
         avatarInputRef.current.value = "";
       }
     }
+  }
+
+  async function handlePasswordSave() {
+    setPasswordError(null);
+    setPasswordNotice(null);
+
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      setPasswordError(t("passwordFieldsRequired"));
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError(t("passwordMismatch"));
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    const result = await changePassword(currentUser.id, currentPassword, newPassword);
+    setIsUpdatingPassword(false);
+
+    if (!result.ok) {
+      setPasswordError(result.error);
+      return;
+    }
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setPasswordNotice(t("passwordUpdated"));
   }
 
   const currentTheme = theme === "system" ? "system" : resolvedTheme ?? theme ?? "system";
@@ -227,6 +268,69 @@ function SettingsContent({
           </div>
         </Section>
 
+        <Section description={t("passwordSectionDescription")} title={t("password")}>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="settings-current-password">
+                {t("currentPassword")}
+              </label>
+              <input
+                autoComplete="current-password"
+                className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
+                id="settings-current-password"
+                name="settings-current-password"
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                type="password"
+                value={currentPassword}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="settings-new-password">
+                {t("newPassword")}
+              </label>
+              <input
+                autoComplete="new-password"
+                className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
+                id="settings-new-password"
+                name="settings-new-password"
+                onChange={(event) => setNewPassword(event.target.value)}
+                type="password"
+                value={newPassword}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="settings-confirm-password">
+                {t("confirmNewPassword")}
+              </label>
+              <input
+                autoComplete="new-password"
+                className="h-10 w-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 text-sm outline-none"
+                id="settings-confirm-password"
+                name="settings-confirm-password"
+                onChange={(event) => setConfirmNewPassword(event.target.value)}
+                type="password"
+                value={confirmNewPassword}
+              />
+            </div>
+          </div>
+          {passwordError ? <p className="text-sm text-[#dd5b00]">{passwordError}</p> : null}
+          {passwordNotice ? (
+            <p className="text-sm text-[var(--color-muted-foreground)]">{passwordNotice}</p>
+          ) : null}
+          <div className="flex justify-end">
+            <button
+              className="border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-primary-foreground)] transition hover:brightness-95 disabled:opacity-50"
+              disabled={isUpdatingPassword}
+              onClick={() => {
+                void handlePasswordSave();
+              }}
+              type="button"
+            >
+              {t("saveChanges")}
+            </button>
+          </div>
+        </Section>
+
         <Section description={t("settingsDescription")} title={t("preferences")}>
           <div className="space-y-2">
             <p className="text-sm font-medium">{t("language")}</p>
@@ -270,7 +374,7 @@ function SettingsContent({
 }
 
 export function SettingsView() {
-  const { currentUser, ready, updateProfileAvatar, updateProfileName } = useAppState();
+  const { changePassword, currentUser, ready, updateProfileAvatar, updateProfileName } = useAppState();
 
   if (!ready || !currentUser) {
     return null;
@@ -278,6 +382,7 @@ export function SettingsView() {
 
   return (
     <SettingsContent
+      changePassword={changePassword}
       currentUser={currentUser}
       key={`${currentUser.id}:${currentUser.name}`}
       updateProfileAvatar={updateProfileAvatar}

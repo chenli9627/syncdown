@@ -226,3 +226,36 @@ export function updateProfileAvatarForUser(
     },
   };
 }
+
+export function changePasswordForUser(
+  state: StoredSyntextState,
+  userId: string,
+  currentPassword: string,
+  nextPassword: string,
+) {
+  const user = state.users.find((item) => item.id === userId);
+
+  if (!user) {
+    return { ok: false as const, error: "User does not exist" };
+  }
+
+  if (user.password !== currentPassword) {
+    return { ok: false as const, error: "Current password is incorrect" };
+  }
+
+  const passwordError = validatePassword(nextPassword);
+
+  if (passwordError) {
+    return { ok: false as const, error: passwordError };
+  }
+
+  return {
+    ok: true as const,
+    state: {
+      ...state,
+      users: state.users.map((item) =>
+        item.id === userId ? { ...item, password: nextPassword } : item,
+      ),
+    },
+  };
+}

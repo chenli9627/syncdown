@@ -51,6 +51,7 @@ The current build includes a real `/settings` page:
 - `Profile`
   - update display name
   - upload avatar
+  - change password
   - view immutable username
   - view email
 - `Preferences`

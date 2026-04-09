@@ -1,4 +1,5 @@
 export {
+  changePasswordForUser,
   loginUser,
   registerUser,
   resetPasswordForUser,
