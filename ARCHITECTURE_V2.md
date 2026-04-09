@@ -690,5 +690,4 @@ syncdown/
 
 ## 14. Explicitly Deferred
 
-- toggle list
 - table cell blue-focus highlight parity with Notion
