@@ -38,7 +38,7 @@
   );
   --color-editor-surface-gradient: linear-gradient(180deg, #ffffff 0%, #fdfcfb 100%);
   --color-editor-header-background: rgba(255, 255, 255, 0.94);
-  --color-active-block-background: rgba(9, 127, 232, 0.06);
+  --color-active-block-background: rgba(9, 127, 232, 0.04);
   --color-active-block-ring: rgba(9, 127, 232, 0.18);
   --color-code-background: #f5f4f2;
   --color-code-foreground: #1f2937;
@@ -50,7 +50,7 @@
   --color-code-variable: #be123c;
   --color-code-meta: #0f766e;
   --color-task-checkbox-background: #ffffff;
-  --color-task-checkbox-border: rgba(0, 0, 0, 0.18);
+  --color-task-checkbox-border: rgba(0, 0, 0, 0.28);
   --color-task-checkmark: #ffffff;
 }
 
@@ -82,19 +82,19 @@
   );
   --color-editor-surface-gradient: linear-gradient(180deg, #191816 0%, #1d1b19 100%);
   --color-editor-header-background: rgba(25, 24, 22, 0.92);
-  --color-active-block-background: rgba(98, 174, 240, 0.08);
-  --color-active-block-ring: rgba(98, 174, 240, 0.28);
-  --color-code-background: #201e1b;
-  --color-code-foreground: #edf2ff;
-  --color-code-comment: #9aa3b2;
-  --color-code-keyword: #f5b34b;
-  --color-code-string: #53d2b2;
-  --color-code-title: #7fb2ff;
-  --color-code-number: #caa6ff;
-  --color-code-variable: #ff88ae;
-  --color-code-meta: #5cd3cc;
+  --color-active-block-background: rgba(98, 174, 240, 0.03);
+  --color-active-block-ring: rgba(98, 174, 240, 0.32);
+  --color-code-background: #171614;
+  --color-code-foreground: #f8fafc;
+  --color-code-comment: #97a4b3;
+  --color-code-keyword: #ffbf5c;
+  --color-code-string: #68e3bf;
+  --color-code-title: #8ec0ff;
+  --color-code-number: #d3b6ff;
+  --color-code-variable: #ff98b8;
+  --color-code-meta: #6ce0db;
   --color-task-checkbox-background: #2b2824;
-  --color-task-checkbox-border: rgba(255, 255, 255, 0.22);
+  --color-task-checkbox-border: rgba(255, 255, 255, 0.38);
   --color-task-checkmark: #102236;
 }
 
@@ -142,6 +142,13 @@ button:disabled {
 .syntext-editor [data-active-block="true"] {
   background: var(--color-active-block-background);
   box-shadow: inset 0 0 0 1px var(--color-active-block-ring);
+}
+
+.syntext-editor pre[data-active-block="true"] {
+  background: var(--color-code-background);
+  box-shadow:
+    inset 0 0 0 1px var(--color-primary),
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
 .syntext-editor p.is-editor-empty:first-child::before {

@@ -18,15 +18,15 @@ export function EditorHeaderPresence({
 
   return (
     <div
-      className="flex items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 shadow-[var(--shadow-whisper)]"
+      className="flex items-center gap-1.5"
       title={safeParticipants.map((entry) => entry.name).join(", ")}
     >
-      <div className="flex items-center -space-x-1">
+      <div className="flex items-center -space-x-1.5">
         {safeParticipants.slice(0, 3).map((entry) => (
           entry.avatarUrl ? (
             <Image
               alt={entry.name}
-              className="size-6 rounded-full border border-[var(--color-card)] object-cover"
+              className="size-6 rounded-full object-cover"
               key={entry.userId}
               src={entry.avatarUrl}
               title={entry.name}
@@ -36,7 +36,7 @@ export function EditorHeaderPresence({
             />
           ) : (
             <span
-              className="flex size-6 items-center justify-center rounded-full border border-[var(--color-card)] bg-[var(--color-sidebar-panel)] text-[10px] font-semibold text-[var(--color-foreground)]"
+              className="flex size-6 items-center justify-center rounded-full bg-[var(--color-sidebar-panel)] text-[10px] font-semibold text-[var(--color-foreground)]"
               key={entry.userId}
               title={entry.name}
             >

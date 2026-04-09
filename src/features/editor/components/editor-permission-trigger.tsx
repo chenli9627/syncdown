@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Lock } from "lucide-react";
+import { ChevronDown, Lock, LockOpen } from "lucide-react";
 
 type EditorPermissionTriggerProps = {
   documentStatus: "private" | "shared" | "trashed";
@@ -29,6 +29,7 @@ export function EditorPermissionTrigger({
         </>
       ) : (
         <>
+          <LockOpen className="size-3.5 text-[var(--color-muted-foreground)]" />
           <span>Shared</span>
         </>
       )}
