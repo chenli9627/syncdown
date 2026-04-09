@@ -469,24 +469,32 @@ AI rules:
 - the route resolves the OpenAI-compatible `responses` endpoint from the configured base URL
 - if AI environment variables are not configured, the current build falls back to local mock results so the interaction remains usable
 
-### 8.5 Collaboration-Ready Layer
+### 8.5 Collaboration Layer
 
-Initial build only prepares extension points for:
+The current build now follows the official Tiptap + Yjs route for collaboration:
 
-- presence store
-- collaborator avatar rendering
+- `Y.Doc`
+- `@tiptap/extension-collaboration`
+- `y-websocket`
+- awareness-based collaborator state
+
+Rules:
+
+- do not maintain a separate REST presence heartbeat system
+- do not maintain app-owned TTL cleanup for collaborator status
+- use Yjs awareness as the source of truth for collaborator presence
+- keep `StarterKit` `undoRedo` disabled when collaboration is active
+- only seed initial document content into the shared Yjs fragment once
 
 Current implementation:
 
-- `/api/presence/[documentId]` now stores ephemeral presence entries
-- the editor sends periodic presence heartbeats while a document is open
-- the client polls and renders remote cursor markers inside the editor
-- the document header renders active collaborator names from the same presence feed
-- when `DATABASE_URL` is configured, presence uses PostgreSQL instead of the local presence snapshot file
-- presence remains separate from future Yjs content synchronization
-- block-level activity markers
+- local development starts a websocket collaboration server on `COLLAB_PORT`
+- the editor connects to `NEXT_PUBLIC_COLLAB_URL` or falls back to `NEXT_PUBLIC_COLLAB_PORT`
+- collaborator names and avatars come from awareness user state
+- remote cursor markers come from awareness cursor state
+- document body sync uses the collaboration extension instead of app-owned polling
 
-Do not implement live Yjs sync yet.
+This replaces the old REST presence route.
 
 ## 9. Media and Object Storage
 

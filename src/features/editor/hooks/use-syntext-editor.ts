@@ -3,6 +3,7 @@
 import { useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
+import Collaboration from "@tiptap/extension-collaboration";
 import Image from "@tiptap/extension-image";
 import {
   Table,
@@ -13,6 +14,7 @@ import {
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import StarterKit from "@tiptap/starter-kit";
+import type * as Y from "yjs";
 import { useEffect, useRef, useState } from "react";
 import { syntextLowlight } from "@/features/editor/lib/code-highlighting";
 import { toEditorContent } from "@/features/editor/lib/content";
@@ -27,6 +29,7 @@ type SaveDocument = (
 
 type UseSyntextEditorArgs = {
   canEditBody: boolean;
+  collaborationDocument: Y.Doc | null;
   content: string;
   documentId: string;
   onEditorKeyDown: (event: KeyboardEvent) => boolean;
@@ -36,6 +39,7 @@ type UseSyntextEditorArgs = {
 
 export function useSyntextEditor({
   canEditBody,
+  collaborationDocument,
   content,
   documentId,
   onEditorKeyDown,
@@ -44,11 +48,20 @@ export function useSyntextEditor({
 }: UseSyntextEditorArgs) {
   const editorRef = useRef<Editor | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
+  const seededInitialContentRef = useRef(false);
   const [editorReadyVersion, setEditorReadyVersion] = useState(0);
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
+      ...(collaborationDocument
+        ? [
+            Collaboration.configure({
+              document: collaborationDocument,
+              field: "default",
+            }),
+          ]
+        : []),
       Image.configure({
         allowBase64: true,
         inline: false,
@@ -72,9 +85,10 @@ export function useSyntextEditor({
         heading: {
           levels: [1, 2, 3, 4],
         },
+        undoRedo: collaborationDocument ? false : undefined,
       }),
     ],
-    content: toEditorContent(content),
+    content: collaborationDocument ? undefined : toEditorContent(content),
     editable: canEditBody,
     editorProps: {
       attributes: {
@@ -147,6 +161,32 @@ export function useSyntextEditor({
       }, 500);
     },
   });
+
+  useEffect(() => {
+    seededInitialContentRef.current = false;
+  }, [content, documentId]);
+
+  useEffect(() => {
+    if (!editor || !collaborationDocument) {
+      return;
+    }
+
+    if (seededInitialContentRef.current) {
+      return;
+    }
+
+    const fragment = collaborationDocument.getXmlFragment("default");
+
+    if (fragment.length > 0 || !content.trim()) {
+      seededInitialContentRef.current = true;
+      return;
+    }
+
+    seededInitialContentRef.current = true;
+    editor.commands.setContent(toEditorContent(content), {
+      emitUpdate: false,
+    });
+  }, [collaborationDocument, content, editor]);
 
   useEffect(() => {
     if (!editor) {

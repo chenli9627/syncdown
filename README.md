@@ -6,8 +6,6 @@ This directory is reserved for the v2 rebuild described in [my_plan.md](../my_pl
 
 Current workspace structure:
 
-- `legacy-v1/`
-  - archived first implementation and all of its supporting files
 - `syncdown/`
   - new implementation workspace for the rebuilt product
 - `my_plan.md`
@@ -108,17 +106,43 @@ AI_MODEL=deepseek-v3-2-251201
 
 The route automatically resolves the OpenAI-compatible `responses` endpoint from the configured base URL.
 
-## Presence
+## Collaboration
 
-The current build includes a lightweight first-pass presence layer:
+The current build now follows the official Tiptap + Yjs direction for collaboration:
 
-- `/api/presence/[documentId]`
-- remote cursor markers rendered inside the editor
-- active collaborator names rendered in the document header
-- polling-based sync, independent from document content sync
-- when `DATABASE_URL` is configured, presence also persists through PostgreSQL instead of `.data/presence.json`
+- `Y.Doc`
+- `@tiptap/extension-collaboration`
+- `y-websocket`
+- awareness-based collaborator presence
 
-This is intentionally separate from future Yjs content collaboration.
+Local development uses a bundled websocket server:
+
+```bash
+pnpm dev
+```
+
+This starts:
+
+- the Next.js app on `0.0.0.0:3000`
+- the collaboration websocket server on `0.0.0.0:1234`
+
+Environment direction:
+
+```bash
+NEXT_PUBLIC_COLLAB_URL=
+NEXT_PUBLIC_COLLAB_PORT=1234
+COLLAB_HOST=0.0.0.0
+COLLAB_PORT=1234
+```
+
+Current collaboration behavior:
+
+- document bodies sync through Yjs
+- active collaborator state uses awareness instead of app-owned TTL polling
+- the editor header shows active collaborators
+- remote cursor markers are rendered from awareness cursor state
+
+This replaces the old REST presence endpoint path.
 
 ## Testing
 

@@ -5,6 +5,7 @@ import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { useEditorAccessEntries } from "@/features/editor/hooks/use-editor-access-entries";
 import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
+import { useEditorCollaboration } from "@/features/editor/hooks/use-editor-collaboration";
 import { useEditorHoveredBlock } from "@/features/editor/hooks/use-editor-hovered-block";
 import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
 import { useEditorPresence } from "@/features/editor/hooks/use-editor-presence";
@@ -46,6 +47,10 @@ export function useEditorSurfaceModel({
   const canEditTitle = permission === "owner";
   const canEditBody = permission === "owner" || permission === "can_edit";
   const canManageAccess = permission === "owner";
+  const collaboration = useEditorCollaboration({
+    currentUser,
+    documentId: document.id,
+  });
   const { commitTitle, setTitleDraft, titleDraft, titleError, titleInputRef } =
     useEditorTitleState({
       canEditTitle,
@@ -61,6 +66,7 @@ export function useEditorSurfaceModel({
   );
   const { editor, editorReadyVersion, editorRef } = useSyntextEditor({
     canEditBody,
+    collaborationDocument: collaboration.collaborationDocument,
     content: document.content,
     documentId: document.id,
     onEditorKeyDown: (event) => editorKeyDownRef.current(event),
@@ -78,10 +84,10 @@ export function useEditorSurfaceModel({
     editor,
   });
   const presence = useEditorPresence({
-    currentUser,
-    documentId: document.id,
+    collaborationProvider: collaboration.collaborationProvider,
     editor,
     editorContainerRef: ui.editorContainerRef,
+    remoteEntries: collaboration.remoteEntries,
   });
 
   useEffect(() => {
@@ -193,7 +199,10 @@ export function useEditorSurfaceModel({
     hovered,
     permission,
     permissionLabel,
-    presence,
+    presence: {
+      remoteCursorMarkers: presence.remoteCursorMarkers,
+      remoteParticipants: collaboration.remoteParticipants,
+    },
     routerPushHome,
     searchHeaderLabel,
     selectionAi,
