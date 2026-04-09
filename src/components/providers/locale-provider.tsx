@@ -17,27 +17,10 @@ import {
 } from "@/lib/i18n/messages";
 
 const STORAGE_KEY = "syncdown.locale";
+const COOKIE_KEY = "syncdown-locale";
 const localeListeners = new Set<() => void>();
 
 let localeSnapshot: Locale | null = null;
-
-function resolveClientLocale() {
-  if (localeSnapshot) {
-    return localeSnapshot;
-  }
-
-  const savedLocale = window.localStorage.getItem(STORAGE_KEY);
-
-  if (savedLocale === "zh" || savedLocale === "en") {
-    localeSnapshot = savedLocale;
-    return localeSnapshot;
-  }
-
-  const browserLocale = window.navigator.language.toLowerCase();
-  localeSnapshot = browserLocale.startsWith("zh") ? "zh" : "en";
-
-  return localeSnapshot;
-}
 
 function subscribeLocale(listener: () => void) {
   localeListeners.add(listener);
@@ -61,13 +44,17 @@ const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 type LocaleProviderProps = {
   children: ReactNode;
+  initialLocale?: Locale;
 };
 
-export function LocaleProvider({ children }: LocaleProviderProps) {
+export function LocaleProvider({
+  children,
+  initialLocale = defaultLocale,
+}: LocaleProviderProps) {
   const locale = useSyncExternalStore(
     subscribeLocale,
-    () => (typeof window === "undefined" ? defaultLocale : resolveClientLocale()),
-    () => defaultLocale,
+    () => localeSnapshot ?? initialLocale,
+    () => initialLocale,
   );
 
   const setLocale = useCallback((nextLocale: Locale) => {
@@ -77,10 +64,14 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
 
     localeSnapshot = nextLocale;
     window.localStorage.setItem(STORAGE_KEY, nextLocale);
+    document.cookie = `${COOKIE_KEY}=${nextLocale}; path=/; max-age=31536000; samesite=lax`;
     emitLocaleChange();
   }, []);
 
   useEffect(() => {
+    localeSnapshot = locale;
+    window.localStorage.setItem(STORAGE_KEY, locale);
+    document.cookie = `${COOKIE_KEY}=${locale}; path=/; max-age=31536000; samesite=lax`;
     document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
   }, [locale]);
 
