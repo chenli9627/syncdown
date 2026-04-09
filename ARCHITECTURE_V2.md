@@ -496,7 +496,10 @@ Current implementation:
 - the editor connects to `NEXT_PUBLIC_COLLAB_URL` or falls back to `NEXT_PUBLIC_COLLAB_PORT`
 - the client uses a `HocuspocusProvider` bound to the shared `Y.Doc`
 - collaborator names and avatars come from awareness user state
-- remote cursor markers come from awareness cursor state
+- awareness cursor positions are still used internally, but the product UI does not render remote text caret markers
+- instead, the current build maps awareness positions to top-level blocks and renders collaborator avatars at the left side of the active block
+- when block controls are visible, collaborator avatars sit in the same horizontal control lane as `+` and the six-dots button
+- if multiple collaborators are inside the same block, show up to two avatars and collapse overflow into `+N`
 - document body sync uses the collaboration extension instead of app-owned polling
 
 This replaces the old REST presence route.
@@ -683,3 +686,8 @@ syncdown/
 9. implement Markdown import/export zip pipeline
 10. implement AI interaction surfaces
 11. integrate official Yjs collaboration runtime and awareness
+
+## 14. Explicitly Deferred
+
+- toggle list
+- table cell blue-focus highlight parity with Notion
