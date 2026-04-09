@@ -187,7 +187,7 @@ export function useEditorActions({
     }
 
     setActionError(null);
-    setActionNotice("Image added");
+    setActionNotice(t("imageAdded"));
   }
 
   async function handleCopyImage() {
@@ -202,7 +202,7 @@ export function useEditorActions({
     }
 
     if (!("clipboard" in navigator) || !("ClipboardItem" in window)) {
-      setActionError("Copy image is not supported here");
+      setActionError(t("copyImageUnsupported"));
       setActionNotice(null);
       return;
     }
@@ -216,7 +216,7 @@ export function useEditorActions({
         }),
       ]);
       setActionError(null);
-      setActionNotice("Image copied");
+      setActionNotice(t("imageCopied"));
       setBlockMenu((current) => ({
         ...current,
         open: false,
@@ -224,7 +224,7 @@ export function useEditorActions({
         showTurnInto: false,
       }));
     } catch {
-      setActionError("Failed to copy image");
+      setActionError(t("copyImageFailed"));
       setActionNotice(null);
     }
   }
@@ -259,7 +259,7 @@ export function useEditorActions({
       link.remove();
       URL.revokeObjectURL(downloadUrl);
       setActionError(null);
-      setActionNotice("Image downloaded");
+      setActionNotice(t("imageDownloaded"));
       setBlockMenu((current) => ({
         ...current,
         open: false,
@@ -267,7 +267,7 @@ export function useEditorActions({
         showTurnInto: false,
       }));
     } catch {
-      setActionError("Failed to download image");
+      setActionError(t("downloadImageFailed"));
       setActionNotice(null);
     }
   }
@@ -322,13 +322,13 @@ export function useEditorActions({
     editor.chain().focus().setTextSelection(selectionPos).run();
 
     if (!command(editor)) {
-      setActionError("Failed to update table");
+      setActionError(t("tableUpdateFailed"));
       setActionNotice(null);
       return;
     }
 
     setActionError(null);
-    setActionNotice("Table updated");
+    setActionNotice(t("tableUpdated"));
     setBlockMenu((current) => ({
       ...current,
       open: false,
@@ -400,7 +400,7 @@ export function useEditorActions({
     const tableNode = getTableNode(tablePos);
 
     if (!tableNode) {
-      setActionError("Failed to update table");
+      setActionError(t("tableUpdateFailed"));
       setActionNotice(null);
       return;
     }
@@ -408,7 +408,7 @@ export function useEditorActions({
     const nextTable = buildNextTable(tableNode);
 
     if (!nextTable) {
-      setActionError("Failed to update table");
+      setActionError(t("tableUpdateFailed"));
       setActionNotice(null);
       return;
     }
@@ -419,7 +419,7 @@ export function useEditorActions({
     editor.view.dispatch(tr);
     editor.view.focus();
     setActionError(null);
-    setActionNotice("Table updated");
+    setActionNotice(t("tableUpdated"));
     setBlockMenu((current) => ({
       ...current,
       open: false,
@@ -448,13 +448,13 @@ export function useEditorActions({
     editor.chain().focus().setTextSelection(selectionPos).run();
 
     if (!command(editor)) {
-      setActionError("Failed to update table");
+      setActionError(t("tableUpdateFailed"));
       setActionNotice(null);
       return;
     }
 
     setActionError(null);
-    setActionNotice("Table updated");
+    setActionNotice(t("tableUpdated"));
     setBlockMenu((current) => ({
       ...current,
       open: false,
