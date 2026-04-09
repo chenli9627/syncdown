@@ -4,6 +4,7 @@ import type { StoredSyntextState } from "../src/features/app-state/types";
 import {
   removeDocumentAccessForOwner,
   shareDocumentWithUser,
+  updateDocumentAccessForOwner,
 } from "../src/features/app-state/lib/mutations/document-access";
 import { updateDocumentForUser } from "../src/features/app-state/lib/mutations/document-editing";
 import {
@@ -144,4 +145,31 @@ test("sharing with yourself is rejected", () => {
     error: "You cannot share a document with yourself",
     ok: false,
   });
+});
+
+test("updating guest permission keeps the document shared", () => {
+  const state = createState();
+  const previousEditedAt =
+    state.documents.find((entry) => entry.id === "doc_shared")?.lastEditedAt ?? "";
+  const result = updateDocumentAccessForOwner(
+    state,
+    "user_one",
+    "doc_shared",
+    "user_two",
+    "can_edit",
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  const document = result.state.documents.find((entry) => entry.id === "doc_shared");
+  const access = result.state.accesses.find(
+    (entry) => entry.documentId === "doc_shared" && entry.userId === "user_two",
+  );
+
+  assert.equal(document?.status, "shared");
+  assert.notEqual(document?.lastEditedAt, previousEditedAt);
+  assert.equal(access?.permission, "can_edit");
 });

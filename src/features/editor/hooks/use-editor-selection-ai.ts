@@ -9,13 +9,19 @@ import {
   type AiActionKind,
 } from "@/features/editor/lib/ai";
 import type { AiBubbleState, SelectionBubbleState } from "@/features/editor/lib/types";
+import { getSearchRects } from "@/features/editor/lib/search";
 
 type UseEditorSelectionAiArgs = {
   canEditBody: boolean;
   editor: Editor | null;
+  editorContainerRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelectionAiArgs) {
+export function useEditorSelectionAi({
+  canEditBody,
+  editor,
+  editorContainerRef,
+}: UseEditorSelectionAiArgs) {
   const { locale } = useLocale();
   const selectionBubbleRef = useRef<HTMLDivElement | null>(null);
   const aiBubbleRef = useRef<HTMLDivElement | null>(null);
@@ -101,7 +107,10 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
         editor
           .chain()
           .focus()
-          .insertContentAt({ from: aiBubble.from, to: aiBubble.to }, aiBubble.result)
+          .insertContentAt(
+            { from: aiBubble.from, to: aiBubble.to },
+            aiBubble.resultHtml || toAiInsertHtml(aiBubble.result),
+          )
           .run();
         setAiBubble(closedAiBubble());
         setSelectionBubble(closedSelectionBubble());
@@ -111,7 +120,11 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
           return;
         }
 
-        editor.chain().focus().insertContentAt(aiBubble.to, toAiInsertHtml(aiBubble.result)).run();
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(aiBubble.to, aiBubble.resultHtml || toAiInsertHtml(aiBubble.result))
+          .run();
         setAiBubble(closedAiBubble());
         setSelectionBubble(closedSelectionBubble());
       },
@@ -126,11 +139,18 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
           action: null,
           error: null,
           from: visibleSelectionBubble.from,
+          highlightRects: getSelectionHighlightRects(
+            editor,
+            editorContainerRef.current,
+            visibleSelectionBubble.from,
+            visibleSelectionBubble.to,
+          ),
           left: bubblePosition.left,
           loading: false,
           open: true,
           prompt: "",
           result: "",
+          resultHtml: "",
           text: visibleSelectionBubble.text,
           to: visibleSelectionBubble.to,
           top: bubblePosition.top,
@@ -173,8 +193,18 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
             ...current,
             action,
             error: null,
+            highlightRects:
+              current.highlightRects.length > 0
+                ? current.highlightRects
+                : getSelectionHighlightRects(
+                    editor,
+                    editorContainerRef.current,
+                    current.from,
+                    current.to,
+                  ),
             loading: false,
             result: data.result ?? "",
+            resultHtml: toAiInsertHtml(data.result ?? ""),
             viewOnly: data.viewOnly ?? getAiViewOnly(action),
           }));
         } catch {
@@ -184,6 +214,7 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
             error: "generation_failed",
             loading: false,
             result: "",
+            resultHtml: "",
             viewOnly: getAiViewOnly(action),
           }));
         }
@@ -224,7 +255,7 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
         chain.run();
       },
     }),
-    [aiBubble, editor, hasWritableResult, locale, visibleSelectionBubble],
+    [aiBubble, editor, editorContainerRef, hasWritableResult, locale, visibleSelectionBubble],
   );
 
   return {
@@ -234,6 +265,31 @@ export function useEditorSelectionAi({ canEditBody, editor }: UseEditorSelection
     selectionBubble: visibleSelectionBubble,
     selectionBubbleRef,
   };
+}
+
+function getSelectionHighlightRects(
+  editor: Editor | null,
+  container: HTMLElement | null,
+  from: number,
+  to: number,
+) {
+  if (!editor || !(container instanceof HTMLElement) || from === to) {
+    return [];
+  }
+
+  try {
+    const start = editor.view.domAtPos(from);
+    const end = editor.view.domAtPos(to);
+    const range = globalThis.document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+
+    return getSearchRects(range, container).filter(
+      (rect) => rect.width > 0 && rect.height > 0,
+    );
+  } catch {
+    return [];
+  }
 }
 
 function getSelectionBubbleFromEditor(editor: Editor): SelectionBubbleState {
@@ -343,11 +399,13 @@ function closedAiBubble(): AiBubbleState {
     action: null,
     error: null,
     from: 0,
+    highlightRects: [],
     left: 0,
     loading: false,
     open: false,
     prompt: "",
     result: "",
+    resultHtml: "",
     text: "",
     to: 0,
     top: 0,

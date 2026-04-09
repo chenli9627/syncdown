@@ -138,7 +138,14 @@ function AiResultView({ aiBubble, onApply, onClose, onInsertBelow }: AiResultVie
           ? t("aiGenerating")
           : aiBubble.error
             ? t("aiGenerationFailed")
-            : aiBubble.result}
+            : aiBubble.resultHtml
+              ? (
+                  <div
+                    className="syntext-editor min-h-0 pl-0 text-[12px] leading-5"
+                    dangerouslySetInnerHTML={{ __html: aiBubble.resultHtml }}
+                  />
+                )
+              : aiBubble.result}
       </div>
       <div className="flex items-center justify-between gap-2">
         <button

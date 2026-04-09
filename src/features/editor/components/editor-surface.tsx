@@ -135,6 +135,7 @@ export function EditorSurface({
         imageInputRef={model.ui.imageInputRef}
         importInputRef={model.ui.importInputRef}
         searchRects={model.ui.searchBody.searchRects}
+        aiHighlightRects={model.selectionAi.aiBubble.highlightRects}
         aiBubble={model.selectionAi.aiBubble}
         aiBubbleRef={model.selectionAi.aiBubbleRef}
         onAiApply={model.selectionAi.actions.applyResult}
@@ -144,7 +145,6 @@ export function EditorSurface({
         onAiPromptChange={model.selectionAi.actions.setPrompt}
         onFormatSelection={model.selectionAi.actions.formatSelection}
         onOpenAiMenu={model.selectionAi.actions.openAiMenu}
-        remoteCursorMarkers={model.presence.remoteCursorMarkers}
         selectionBubble={model.selectionAi.selectionBubble}
         selectionBubbleRef={model.selectionAi.selectionBubbleRef}
         syncHoveredBlockFromPos={model.hovered.syncHoveredBlockFromPos}

@@ -24,7 +24,6 @@ import type {
   AiBubbleState,
   BlockTransformItem,
   HoveredBlock,
-  RemoteCursorMarker,
   SelectionBubbleState,
   SlashContext,
   SlashItem,
@@ -110,6 +109,7 @@ type EditorCanvasProps = {
   imageInputRef: RefObject<HTMLInputElement | null>;
   importInputRef: RefObject<HTMLInputElement | null>;
   searchRects: SearchRect[];
+  aiHighlightRects: SearchRect[];
   aiBubble: AiBubbleState;
   aiBubbleRef: RefObject<HTMLDivElement | null>;
   onAiApply: () => void;
@@ -119,7 +119,6 @@ type EditorCanvasProps = {
   onAiPromptChange: (value: string) => void;
   onFormatSelection: (command: "bold" | "italic" | "strike" | "code") => void;
   onOpenAiMenu: () => void;
-  remoteCursorMarkers: RemoteCursorMarker[];
   selectionBubble: SelectionBubbleState;
   selectionBubbleRef: RefObject<HTMLDivElement | null>;
   syncHoveredBlockFromPos: (position: number) => void;
@@ -169,6 +168,7 @@ export function EditorCanvas({
   imageInputRef,
   importInputRef,
   searchRects,
+  aiHighlightRects,
   aiBubble,
   aiBubbleRef,
   onAiApply,
@@ -178,7 +178,6 @@ export function EditorCanvas({
   onAiPromptChange,
   onFormatSelection,
   onOpenAiMenu,
-  remoteCursorMarkers,
   selectionBubble,
   selectionBubbleRef,
   syncHoveredBlockFromPos,
@@ -948,27 +947,18 @@ export function EditorCanvas({
             }}
           />
         ))}
-        {remoteCursorMarkers.map((marker) => (
+        {aiHighlightRects.map((rect, index) => (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute z-[6]"
-            key={marker.userId}
+            className="pointer-events-none absolute z-[2] bg-[color-mix(in_srgb,var(--color-primary)_18%,transparent)]"
+            key={`${rect.left}-${rect.top}-${index}`}
             style={{
-              left: `${marker.left}px`,
-              top: `${marker.top}px`,
+              height: `${rect.height}px`,
+              left: `${rect.left}px`,
+              top: `${rect.top}px`,
+              width: `${rect.width}px`,
             }}
-          >
-            <span
-              className="block h-5 w-[2px]"
-              style={{ backgroundColor: marker.color }}
-            />
-            <span
-              className="mt-0.5 block max-w-40 truncate px-1.5 py-0.5 text-[11px] font-semibold text-white"
-              style={{ backgroundColor: marker.color }}
-            >
-              {marker.label}
-            </span>
-          </div>
+          />
         ))}
         {tableAxisMenu?.open ? (
           <span

@@ -19,6 +19,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@tiptap/extension-code-block-lowlight": "^3.22.3",
     "@tiptap/extension-collaboration": "^3.22.3",
+    "@tiptap/extension-collaboration-caret": "3.22.3",
     "@tiptap/extension-image": "^3.22.3",
     "@tiptap/extension-table": "^3.22.3",
     "@tiptap/extension-task-item": "^3.22.3",

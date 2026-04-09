@@ -421,3 +421,26 @@ button:disabled {
   margin: 0.2rem 0;
   max-width: min(100%, 46rem);
 }
+
+.collaboration-carets__caret {
+  border-left: 2px solid var(--color-primary);
+  border-right: none;
+  margin-left: -1px;
+  pointer-events: none;
+  position: relative;
+}
+
+.collaboration-carets__label {
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  left: -1px;
+  padding: 2px 6px;
+  position: absolute;
+  top: -1.4em;
+  white-space: nowrap;
+}
+
+.collaboration-carets__selection {
+  pointer-events: none;
+}

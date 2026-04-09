@@ -58,11 +58,18 @@ export type AiBubbleState = {
   action: import("@/features/editor/lib/ai").AiActionKind | null;
   error: string | null;
   from: number;
+  highlightRects: Array<{
+    height: number;
+    left: number;
+    top: number;
+    width: number;
+  }>;
   left: number;
   loading: boolean;
   open: boolean;
   prompt: string;
   result: string;
+  resultHtml: string;
   text: string;
   to: number;
   top: number;
@@ -90,14 +97,6 @@ export type PresenceEntry = {
   head: number;
   name: string;
   updatedAt: string;
-  userId: string;
-};
-
-export type RemoteCursorMarker = {
-  color: string;
-  label: string;
-  left: number;
-  top: number;
   userId: string;
 };
 

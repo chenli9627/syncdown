@@ -9,7 +9,6 @@ import { useEditorActions } from "@/features/editor/hooks/use-editor-actions";
 import { useEditorCollaboration } from "@/features/editor/hooks/use-editor-collaboration";
 import { useEditorHoveredBlock } from "@/features/editor/hooks/use-editor-hovered-block";
 import { useEditorOverlays } from "@/features/editor/hooks/use-editor-overlays";
-import { useEditorPresence } from "@/features/editor/hooks/use-editor-presence";
 import { useEditorSelectionAi } from "@/features/editor/hooks/use-editor-selection-ai";
 import { useEditorShortcuts } from "@/features/editor/hooks/use-editor-shortcuts";
 import { useEditorSlashMenu } from "@/features/editor/hooks/use-editor-slash-menu";
@@ -69,8 +68,10 @@ export function useEditorSurfaceModel({
   const { editor, editorReadyVersion, editorRef } = useSyntextEditor({
     canEditBody,
     collaborationDocument: collaboration.collaborationDocument,
+    collaborationProvider: collaboration.collaborationProvider,
     collaborationSynced: collaboration.collaborationSynced,
     content: document.content,
+    currentUser,
     documentId: document.id,
     onEditorKeyDown: (event) => editorKeyDownRef.current(event),
     saveDocument,
@@ -85,12 +86,7 @@ export function useEditorSurfaceModel({
   const selectionAi = useEditorSelectionAi({
     canEditBody,
     editor,
-  });
-  const presence = useEditorPresence({
-    collaborationProvider: collaboration.collaborationProvider,
-    editor,
     editorContainerRef: ui.editorContainerRef,
-    remoteEntries: collaboration.remoteEntries,
   });
 
   useEffect(() => {
@@ -210,7 +206,6 @@ export function useEditorSurfaceModel({
     permission,
     permissionLabel,
     presence: {
-      remoteCursorMarkers: presence.remoteCursorMarkers,
       remoteParticipants: collaboration.remoteParticipants,
     },
     routerPushHome,

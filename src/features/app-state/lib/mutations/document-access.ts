@@ -113,6 +113,8 @@ export function updateDocumentAccessForOwner(
     return { ok: false as const, error: "This user does not have access" };
   }
 
+  const editedAt = now();
+
   return {
     ok: true as const,
     state: {
@@ -121,6 +123,15 @@ export function updateDocumentAccessForOwner(
         access.documentId === documentId && access.userId === targetUserId
           ? { ...access, permission }
           : access,
+      ),
+      documents: state.documents.map((item) =>
+        item.id === documentId
+          ? {
+              ...item,
+              lastEditedAt: editedAt,
+              status: "shared" as const,
+            }
+          : item,
       ),
     },
   };

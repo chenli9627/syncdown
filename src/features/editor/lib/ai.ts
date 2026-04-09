@@ -1,5 +1,6 @@
 import type { Locale } from "@/lib/i18n/messages";
 import { toEditorContent } from "@/features/editor/lib/content";
+import { markdownToEditorHtml } from "@/features/editor/lib/markdown";
 
 export type AiActionKind =
   | "improve_writing"
@@ -81,5 +82,15 @@ export function insertAiResultBelow(editorHtmlResult: string) {
 }
 
 export function toAiInsertHtml(resultText: string) {
-  return toEditorContent(resultText);
+  const trimmed = resultText.trim();
+
+  if (!trimmed) {
+    return "<p></p>";
+  }
+
+  if (trimmed.startsWith("<")) {
+    return toEditorContent(resultText);
+  }
+
+  return markdownToEditorHtml(resultText);
 }

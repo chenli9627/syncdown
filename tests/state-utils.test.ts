@@ -112,3 +112,16 @@ test("workspace buckets hide private and trash from guest view", () => {
   assert.deepEqual(ownerBuckets.privateDocs.map((entry) => entry.id), ["doc_private"]);
   assert.deepEqual(ownerBuckets.trash.map((entry) => entry.id), ["doc_trashed"]);
 });
+
+test("guest keeps shared document after permission changes", () => {
+  const state = createState();
+  state.accesses = state.accesses.map((entry) =>
+    entry.documentId === "doc_shared" && entry.userId === "user_two"
+      ? { ...entry, permission: "can_view" as const }
+      : entry,
+  );
+
+  const guestBuckets = getWorkspaceBuckets(state, "ws_one", two);
+
+  assert.deepEqual(guestBuckets.shared.map((entry) => entry.id), ["doc_shared"]);
+});

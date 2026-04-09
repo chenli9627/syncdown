@@ -4,6 +4,7 @@ import { useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import Image from "@tiptap/extension-image";
 import {
   Table,
@@ -16,6 +17,8 @@ import TaskList from "@tiptap/extension-task-list";
 import StarterKit from "@tiptap/starter-kit";
 import type * as Y from "yjs";
 import { useEffect, useRef, useState } from "react";
+import type { HocuspocusProvider } from "@hocuspocus/provider";
+import type { User } from "@/features/app-state/types";
 import { syntextLowlight } from "@/features/editor/lib/code-highlighting";
 import { toEditorContent } from "@/features/editor/lib/content";
 import { insertImageFile } from "@/features/editor/lib/image";
@@ -30,8 +33,10 @@ type SaveDocument = (
 type UseSyntextEditorArgs = {
   canEditBody: boolean;
   collaborationDocument: Y.Doc | null;
+  collaborationProvider: HocuspocusProvider | null;
   collaborationSynced: boolean;
   content: string;
+  currentUser: User | null;
   documentId: string;
   onEditorKeyDown: (event: KeyboardEvent) => boolean;
   saveDocument: SaveDocument;
@@ -41,8 +46,10 @@ type UseSyntextEditorArgs = {
 export function useSyntextEditor({
   canEditBody,
   collaborationDocument,
+  collaborationProvider,
   collaborationSynced,
   content,
+  currentUser,
   documentId,
   onEditorKeyDown,
   saveDocument,
@@ -62,6 +69,35 @@ export function useSyntextEditor({
               document: collaborationDocument,
               field: "default",
             }),
+            ...(collaborationProvider && currentUser
+              ? [
+                  CollaborationCaret.configure({
+                    provider: collaborationProvider,
+                    user: {
+                      avatarUrl: currentUser.avatarUrl,
+                      color: "#2383e2",
+                      name: currentUser.name,
+                      userId: currentUser.id,
+                    },
+                    render: (user) => {
+                      const caret = document.createElement("span");
+                      caret.className = "collaboration-carets__caret";
+                      caret.style.borderColor = user.color;
+
+                      const label = document.createElement("div");
+                      label.className = "collaboration-carets__label";
+                      label.style.backgroundColor = user.color;
+                      label.textContent = user.name;
+                      caret.append(label);
+                      return caret;
+                    },
+                    selectionRender: (user) => ({
+                      class: "collaboration-carets__selection",
+                      style: `background-color: ${user.color}22`,
+                    }),
+                  }),
+                ]
+              : []),
           ]
         : []),
       Image.configure({
@@ -162,7 +198,7 @@ export function useSyntextEditor({
         }, 1200);
       }, 500);
     },
-  });
+  }, [canEditBody, collaborationDocument, collaborationProvider, currentUser?.id, documentId]);
 
   useEffect(() => {
     seededInitialContentRef.current = false;
@@ -199,6 +235,19 @@ export function useSyntextEditor({
 
     editor.setEditable(canEditBody);
   }, [canEditBody, editor]);
+
+  useEffect(() => {
+    if (!editor || !collaborationProvider || !currentUser) {
+      return;
+    }
+
+    editor.commands.updateUser({
+      avatarUrl: currentUser.avatarUrl,
+      color: "#2383e2",
+      name: currentUser.name,
+      userId: currentUser.id,
+    });
+  }, [collaborationProvider, currentUser, editor]);
 
   useEffect(() => {
     return () => {

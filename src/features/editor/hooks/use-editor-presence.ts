@@ -4,7 +4,14 @@ import type { Editor } from "@tiptap/react";
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RemoteAwarenessEntry } from "@/features/editor/hooks/use-editor-collaboration";
-import type { RemoteCursorMarker } from "@/features/editor/lib/types";
+
+type RemoteCursorMarker = {
+  color: string;
+  label: string;
+  left: number;
+  top: number;
+  userId: string;
+};
 
 function clampPresencePos(editor: Editor, position: number) {
   const max = editor.state.doc.content.size;
