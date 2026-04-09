@@ -4,6 +4,10 @@ import { GripVertical, Plus } from "lucide-react";
 import { useRef } from "react";
 import type { RefObject } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
+import {
+  CollaboratorAvatarStack,
+  getCollaboratorAvatarStackWidth,
+} from "@/features/editor/components/editor-collaborator-avatar-stack";
 import type { HoveredBlock } from "@/features/editor/lib/types";
 
 type EditorBlockControlsProps = {
@@ -18,6 +22,12 @@ type EditorBlockControlsProps = {
   };
   blockMenuWidth: number;
   canEditBody: boolean;
+  collaboratorAvatars: Array<{
+    avatarUrl: string | null;
+    color: string;
+    name: string;
+    userId: string;
+  }>;
   hoveredBlock: HoveredBlock | null;
   onInsertBlockBefore: () => void;
   onGripPointerDown: (
@@ -40,6 +50,7 @@ export function EditorBlockControls({
   blockMenu,
   blockMenuWidth,
   canEditBody,
+  collaboratorAvatars,
   hoveredBlock,
   onInsertBlockBefore,
   onGripPointerDown,
@@ -53,14 +64,18 @@ export function EditorBlockControls({
     return null;
   }
 
+  const avatarLaneWidth = getCollaboratorAvatarStackWidth(collaboratorAvatars.length);
+
   return (
     <div
       className="absolute left-[-50px] z-10 flex items-center gap-1"
       ref={blockControlsRef}
       style={{
+        left: `${-(50 + avatarLaneWidth + (avatarLaneWidth > 0 ? 4 : 0))}px`,
         top: `${Math.max(0, hoveredBlock.top + hoveredBlock.height / 2 - 14)}px`,
       }}
     >
+      <CollaboratorAvatarStack avatars={collaboratorAvatars} />
       <button
         aria-label={t("insertBlock")}
         className="flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"

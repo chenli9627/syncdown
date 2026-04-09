@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { EditorContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { relativePositionToAbsolutePosition, ySyncPluginKey } from "@tiptap/y-tiptap";
@@ -16,6 +15,10 @@ import { EditorAiBubble } from "@/features/editor/components/editor-ai-bubble";
 import { EditorSelectionBubble } from "@/features/editor/components/editor-selection-bubble";
 import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu";
 import { EditorTableAxisMenu } from "@/features/editor/components/editor-table-axis-menu";
+import {
+  CollaboratorAvatarStack,
+  getCollaboratorAvatarStackWidth,
+} from "@/features/editor/components/editor-collaborator-avatar-stack";
 import { useEditorBlockDrag } from "@/features/editor/hooks/use-editor-block-drag";
 import type { RemoteAwarenessEntry } from "@/features/editor/hooks/use-editor-collaboration";
 import type { AiActionKind } from "@/features/editor/lib/ai";
@@ -341,11 +344,11 @@ export function EditorCanvas({
           return null;
         }
 
-        const buttonOffset = hoveredBlock?.pos === pos && !slashMenu.open ? 26 : 0;
+        const avatarLaneWidth = getCollaboratorAvatarStackWidth(avatars.length);
 
         return {
           avatars,
-          left: blockInfo.left - 58 - buttonOffset,
+          left: blockInfo.left - 14 - Math.max(0, avatarLaneWidth - 20),
           pos,
           top: blockInfo.top + blockInfo.height / 2 - 10,
         };
@@ -1091,10 +1094,15 @@ export function EditorCanvas({
             }}
           />
         ))}
-        {collaboratorBlockMarkers.map((marker) => (
+        {collaboratorBlockMarkers
+          .filter(
+            (marker) =>
+              marker.pos !== hoveredBlock?.pos || slashMenu.open || drag.dragState.active,
+          )
+          .map((marker) => (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute z-[5] flex items-center -space-x-1"
+            className="pointer-events-none absolute z-[5] flex items-center"
             data-collaborator-block-marker="true"
             key={`collab-${marker.pos}`}
             style={{
@@ -1102,29 +1110,7 @@ export function EditorCanvas({
               top: `${marker.top}px`,
             }}
           >
-            {marker.avatars.slice(0, 3).map((avatar) =>
-              avatar.avatarUrl ? (
-                <Image
-                  alt=""
-                  className="size-5 rounded-full object-cover ring-2 ring-[var(--color-editor-surface-background)]"
-                  data-collaborator-avatar="true"
-                  key={avatar.userId}
-                  src={avatar.avatarUrl}
-                  unoptimized
-                  width={20}
-                  height={20}
-                />
-              ) : (
-                <span
-                  className="flex size-5 items-center justify-center rounded-full text-[9px] font-semibold text-white ring-2 ring-[var(--color-editor-surface-background)]"
-                  data-collaborator-avatar="true"
-                  key={avatar.userId}
-                  style={{ backgroundColor: avatar.color }}
-                >
-                  {avatar.name.slice(0, 1).toUpperCase()}
-                </span>
-              ),
-            )}
+            <CollaboratorAvatarStack avatars={marker.avatars} />
           </div>
         ))}
         {tableAxisMenu?.open ? (
@@ -1144,6 +1130,10 @@ export function EditorCanvas({
           blockMenu={blockMenu}
           blockMenuWidth={blockMenuWidth}
           canEditBody={canEditBody}
+          collaboratorAvatars={
+            collaboratorBlockMarkers.find((marker) => marker.pos === hoveredBlock?.pos)
+              ?.avatars ?? []
+          }
           hoveredBlock={slashMenu.open || drag.dragState.active ? null : hoveredBlock}
           onInsertBlockBefore={handleInsertBlockBefore}
           onGripPointerDown={drag.handleGripPointerDown}
