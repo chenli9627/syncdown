@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { User, Workspace } from "@/features/app-state/types";
+import { translateAppError } from "@/lib/i18n/error-messages";
 
 type WorkspaceSwitcherPopoverProps = {
   accessibleWorkspaces: Workspace[];
@@ -51,7 +52,7 @@ export function WorkspaceSwitcherPopover({
   workspaceName,
   workspaceNotice,
 }: WorkspaceSwitcherPopoverProps) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   return (
     <div
       className="absolute left-0 top-[calc(100%+8px)] z-[80] w-full border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
@@ -83,7 +84,9 @@ export function WorkspaceSwitcherPopover({
         ))}
       </div>
       {workspaceError ? (
-        <p className="mt-3 text-sm text-[#dd5b00]">{workspaceError}</p>
+        <p className="mt-3 text-sm text-[#dd5b00]">
+          {translateAppError(workspaceError, t, locale) ?? workspaceError}
+        </p>
       ) : null}
       {workspaceNotice ? (
         <p className="mt-3 text-sm text-[var(--color-muted-foreground)]">

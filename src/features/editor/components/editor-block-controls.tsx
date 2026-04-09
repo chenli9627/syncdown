@@ -3,6 +3,7 @@
 import { GripVertical, Plus } from "lucide-react";
 import { useRef } from "react";
 import type { RefObject } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { HoveredBlock } from "@/features/editor/lib/types";
 
 type EditorBlockControlsProps = {
@@ -45,6 +46,7 @@ export function EditorBlockControls({
   onOpenBlockMenu,
   shouldSuppressGripClick,
 }: EditorBlockControlsProps) {
+  const { t } = useLocale();
   const suppressNextMenuClickRef = useRef(false);
 
   if (!canEditBody || !hoveredBlock) {
@@ -60,19 +62,19 @@ export function EditorBlockControls({
       }}
     >
       <button
-        aria-label="Insert block"
+        aria-label={t("insertBlock")}
         className="flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
         onClick={onInsertBlockBefore}
         onMouseDown={(event) => {
           event.preventDefault();
         }}
-        title="Insert block"
+        title={t("insertBlock")}
         type="button"
       >
         <Plus className="size-4" />
       </button>
       <button
-        aria-label="Block menu"
+        aria-label={t("blockMenu")}
         className="flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
         onMouseDown={(event) => {
           event.preventDefault();
@@ -140,7 +142,7 @@ export function EditorBlockControls({
             top: nextTop,
           });
         }}
-        title="Block menu"
+        title={t("blockMenu")}
         type="button"
       >
         <GripVertical className="size-4" />

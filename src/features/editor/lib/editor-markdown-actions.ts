@@ -14,20 +14,37 @@ import {
 import type { EditorActionBaseArgs } from "@/features/editor/lib/editor-action-types";
 import { uploadImageBlob } from "@/features/editor/lib/image";
 import { isSupportedImageMimeType } from "@/features/editor/lib/image-shared";
+import type { Locale, MessageKey } from "@/lib/i18n/messages";
+import { translateAppError } from "@/lib/i18n/error-messages";
 import JSZip from "jszip";
 
-export function exportEditorMarkdown({ document, editor, setActionError, setActionNotice }: Pick<
+type MarkdownActionI18nArgs = {
+  locale: Locale;
+  t: (key: MessageKey) => string;
+};
+
+export function exportEditorMarkdown({
+  document,
+  editor,
+  locale,
+  setActionError,
+  setActionNotice,
+  t,
+}: Pick<
   EditorActionBaseArgs,
   "document" | "editor" | "setActionError" | "setActionNotice"
->) {
+> &
+  MarkdownActionI18nArgs) {
   const html = editor?.getHTML() ?? document.content;
 
   if (containsEmbeddedImages(html)) {
     return exportEditorMarkdownZipInternal({
       document,
       editor,
+      locale,
       setActionError,
       setActionNotice,
+      t,
     });
   }
 
@@ -40,13 +57,16 @@ export function exportEditorMarkdown({ document, editor, setActionError, setActi
   anchor.click();
   URL.revokeObjectURL(downloadUrl);
   setActionError(null);
-  setActionNotice("Markdown exported");
+  setActionNotice(t("export"));
 }
 
-export async function importEditorMarkdown(args: EditorActionBaseArgs, file: File) {
+export async function importEditorMarkdown(
+  args: EditorActionBaseArgs & MarkdownActionI18nArgs,
+  file: File,
+) {
   if (!args.canEditBody) {
     args.setOverflowMenuOpen?.(false);
-    args.setActionError("You do not have permission to import");
+    args.setActionError(translateAppError("You do not have permission to import", args.t, args.locale));
     args.setActionNotice(null);
     return;
   }
@@ -54,14 +74,16 @@ export async function importEditorMarkdown(args: EditorActionBaseArgs, file: Fil
 
   if (!lowerName.endsWith(".md") && !lowerName.endsWith(".zip")) {
     args.setOverflowMenuOpen?.(false);
-    args.setActionError("Only .md and .zip files are supported");
+    args.setActionError(
+      translateAppError("Only .md and .zip files are supported", args.t, args.locale),
+    );
     args.setActionNotice(null);
     return;
   }
 
   if (file.size > getMarkdownImportLimit(file.name)) {
     args.setOverflowMenuOpen?.(false);
-    args.setActionError("上传文件过大");
+    args.setActionError(translateAppError("上传文件过大", args.t, args.locale));
     args.setActionNotice(null);
     return;
   }
@@ -76,12 +98,12 @@ export async function importEditorMarkdown(args: EditorActionBaseArgs, file: Fil
 
   if (!validation.ok) {
     args.setOverflowMenuOpen?.(false);
-    args.setActionError(validation.error);
+    args.setActionError(translateAppError(validation.error, args.t, args.locale));
     args.setActionNotice(null);
     return;
   }
 
-  await insertMarkdownIntoEditor(args, markdownToEditorHtml(markdown), "Markdown imported");
+  await insertMarkdownIntoEditor(args, markdownToEditorHtml(markdown), args.t("importMdZip"));
 }
 
 async function exportEditorMarkdownZipInternal({
@@ -89,10 +111,12 @@ async function exportEditorMarkdownZipInternal({
   editor,
   setActionError,
   setActionNotice,
+  t,
 }: Pick<
   EditorActionBaseArgs,
   "document" | "editor" | "setActionError" | "setActionNotice"
->) {
+> &
+  MarkdownActionI18nArgs) {
   const html = editor?.getHTML() ?? document.content;
   const { assets, markdown } = await editorHtmlToMarkdownBundle(html);
   const zip = new JSZip();
@@ -110,23 +134,30 @@ async function exportEditorMarkdownZipInternal({
   anchor.click();
   URL.revokeObjectURL(downloadUrl);
   setActionError(null);
-  setActionNotice("Markdown zip exported");
+  setActionNotice(t("export"));
 }
 
-async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
+async function importMarkdownZip(
+  args: EditorActionBaseArgs & MarkdownActionI18nArgs,
+  file: File,
+) {
   const zip = await JSZip.loadAsync(file);
   const markdownEntries = getMarkdownEntries(zip);
 
   if (markdownEntries.length === 0) {
     args.setOverflowMenuOpen?.(false);
-    args.setActionError("Zip archive does not contain a Markdown file");
+    args.setActionError(
+      translateAppError("Zip archive does not contain a Markdown file", args.t, args.locale),
+    );
     args.setActionNotice(null);
     return;
   }
 
   if (markdownEntries.length > 1) {
     args.setOverflowMenuOpen?.(false);
-    args.setActionError("Zip archive must contain exactly one Markdown file");
+    args.setActionError(
+      translateAppError("Zip archive must contain exactly one Markdown file", args.t, args.locale),
+    );
     args.setActionNotice(null);
     return;
   }
@@ -138,7 +169,7 @@ async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
 
   if (!markdownValidation.ok) {
     args.setOverflowMenuOpen?.(false);
-    args.setActionError(markdownValidation.error);
+    args.setActionError(translateAppError(markdownValidation.error, args.t, args.locale));
     args.setActionNotice(null);
     return;
   }
@@ -148,7 +179,7 @@ async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
 
   if (!assetValidation.ok) {
     args.setOverflowMenuOpen?.(false);
-    args.setActionError(assetValidation.error);
+    args.setActionError(translateAppError(assetValidation.error, args.t, args.locale));
     args.setActionNotice(null);
     return;
   }
@@ -183,16 +214,16 @@ async function importMarkdownZip(args: EditorActionBaseArgs, file: File) {
     return upload.src;
   });
 
-  await insertMarkdownIntoEditor(args, html, "Markdown zip imported");
+  await insertMarkdownIntoEditor(args, html, args.t("importMdZip"));
 }
 
 async function insertMarkdownIntoEditor(
-  args: EditorActionBaseArgs,
+  args: EditorActionBaseArgs & MarkdownActionI18nArgs,
   html: string,
   notice: string,
 ) {
   if (!args.editor) {
-    args.setActionError("Editor is not ready");
+    args.setActionError(translateAppError("Editor is not ready", args.t, args.locale));
     args.setActionNotice(null);
     return;
   }
@@ -202,7 +233,7 @@ async function insertMarkdownIntoEditor(
 
   if (!result.ok) {
     args.setOverflowMenuOpen?.(false);
-    args.setActionError(result.error);
+    args.setActionError(translateAppError(result.error, args.t, args.locale));
     args.setActionNotice(null);
     return;
   }

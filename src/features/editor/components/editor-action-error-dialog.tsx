@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "@/components/providers/locale-provider";
+import { translateAppError } from "@/lib/i18n/error-messages";
 
 type EditorActionErrorDialogProps = {
   error: string | null;
@@ -11,7 +12,7 @@ export function EditorActionErrorDialog({
   error,
   onClose,
 }: EditorActionErrorDialogProps) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   if (!error) {
     return null;
   }
@@ -24,7 +25,9 @@ export function EditorActionErrorDialog({
             <p className="text-sm font-semibold text-[var(--color-foreground)]">{t("importFailed")}</p>
           </div>
           <div className="space-y-4 px-4 py-4">
-            <p className="text-sm leading-6 text-[var(--color-foreground)]">{error}</p>
+            <p className="text-sm leading-6 text-[var(--color-foreground)]">
+              {translateAppError(error, t, locale) ?? error}
+            </p>
             <div className="flex justify-end">
               <button
                 className="border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"

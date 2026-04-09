@@ -6,6 +6,7 @@ import { EditorPermissionAccessList } from "@/features/editor/components/editor-
 import { EditorPermissionShareForm } from "@/features/editor/components/editor-permission-share-form";
 import { EditorPermissionTrigger } from "@/features/editor/components/editor-permission-trigger";
 import type { AccessEntry } from "@/features/editor/lib/types";
+import { translateAppError } from "@/lib/i18n/error-messages";
 
 type EditorPermissionPopoverProps = {
   accessEntries: AccessEntry[];
@@ -66,7 +67,7 @@ export function EditorPermissionPopover({
   shareEmail,
   sharePermission,
 }: EditorPermissionPopoverProps) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   return (
     <div className="relative">
       <EditorPermissionTrigger
@@ -120,7 +121,9 @@ export function EditorPermissionPopover({
             </div>
 
             {permissionError ? (
-              <p className="pt-1 text-sm text-[#dd5b00]">{permissionError}</p>
+              <p className="pt-1 text-sm text-[#dd5b00]">
+                {translateAppError(permissionError, t, locale) ?? permissionError}
+              </p>
             ) : null}
             {permissionNotice ? (
               <p className="pt-1 text-sm text-[var(--color-muted-foreground)]">

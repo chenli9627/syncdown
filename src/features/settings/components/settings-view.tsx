@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import type { User } from "@/features/app-state/types";
+import { translateAppError } from "@/lib/i18n/error-messages";
 
 function Section({
   children,
@@ -89,7 +90,7 @@ function SettingsContent({
     setIsSaving(false);
 
     if (!result.ok) {
-      setError(result.error);
+      setError(translateAppError(result.error, t, locale));
       return;
     }
 
@@ -114,14 +115,14 @@ function SettingsContent({
         | null;
 
       if (!uploadResponse.ok || !uploadData?.ok || !uploadData.src) {
-        setError(uploadData?.error ?? "Image upload failed");
+        setError(translateAppError(uploadData?.error ?? "Image upload failed", t, locale));
         return;
       }
 
       const result = await updateProfileAvatar(currentUser.id, uploadData.src);
 
       if (!result.ok) {
-        setError(result.error);
+        setError(translateAppError(result.error, t, locale));
         return;
       }
 
@@ -153,7 +154,7 @@ function SettingsContent({
     setIsUpdatingPassword(false);
 
     if (!result.ok) {
-      setPasswordError(result.error);
+      setPasswordError(translateAppError(result.error, t, locale));
       return;
     }
 

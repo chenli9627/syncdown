@@ -11,10 +11,11 @@ import {
 } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
+import { translateAppError } from "@/lib/i18n/error-messages";
 
 export function RegisterForm() {
   const router = useRouter();
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const { currentUser, ready, register } = useAppState();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +114,11 @@ export function RegisterForm() {
         ))}
       </div>
 
-      {error ? <p className="mt-4 text-sm text-[#dd5b00]">{error}</p> : null}
+      {error ? (
+        <p className="mt-4 text-sm text-[#dd5b00]">
+          {translateAppError(error, t, locale) ?? error}
+        </p>
+      ) : null}
 
       <button
         className="mt-6 flex h-11 w-full items-center justify-center gap-2 bg-[var(--color-primary)] px-4 text-[15px] font-semibold text-[var(--color-primary-foreground)] disabled:opacity-70"

@@ -6,6 +6,7 @@ import { GripHorizontal, GripVertical, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
+import { useLocale } from "@/components/providers/locale-provider";
 import { EditorBlockControls } from "@/features/editor/components/editor-block-controls";
 import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu";
 import { EditorAiBubble } from "@/features/editor/components/editor-ai-bubble";
@@ -186,6 +187,7 @@ export function EditorCanvas({
   slashContextState,
   slashMenu,
 }: EditorCanvasProps) {
+  const { t } = useLocale();
   const activeBlockHighlightRef = useRef<HTMLSpanElement | null>(null);
   const tableAxisMenuRef = useRef<HTMLDivElement | null>(null);
   const suppressNextTableHandleClickRef = useRef(false);
@@ -1042,27 +1044,27 @@ export function EditorCanvas({
         {canEditBody && tableOverlay ? (
           <>
             <button
-              aria-label="Add table column"
+              aria-label={t("addColumn")}
               className="absolute z-20 flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
               onClick={handleInsertTableColumn}
               style={{
                 left: `${tableOverlay.right - 12}px`,
                 top: `${Math.max(0, tableOverlay.top + tableOverlay.height / 2 - 14)}px`,
               }}
-              title="Add column"
+              title={t("addColumn")}
               type="button"
             >
               <Plus className="size-4" />
             </button>
             <button
-              aria-label="Add table row"
+              aria-label={t("addRow")}
               className="absolute z-20 flex size-7 items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
               onClick={handleInsertTableRow}
               style={{
                 left: `${Math.max(0, tableOverlay.left + tableOverlay.width / 2 - 14)}px`,
                 top: `${tableOverlay.bottom - 12}px`,
               }}
-              title="Add row"
+              title={t("addRow")}
               type="button"
             >
               <Plus className="size-4" />
@@ -1071,7 +1073,7 @@ export function EditorCanvas({
         ) : null}
         {canEditBody && tableRowHandle ? (
           <button
-            aria-label="Row actions"
+            aria-label={t("rowActions")}
             className="absolute z-20 flex h-[18px] w-[16px] items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
             data-table-row-handle="true"
             onPointerDown={(event) => {
@@ -1103,7 +1105,7 @@ export function EditorCanvas({
               left: `${tableRowHandle.left}px`,
               top: `${tableRowHandle.top}px`,
             }}
-            title="Row actions"
+            title={t("rowActions")}
             type="button"
           >
             <GripVertical className="size-3.5" />
@@ -1111,7 +1113,7 @@ export function EditorCanvas({
         ) : null}
         {canEditBody && tableColumnHandle ? (
           <button
-            aria-label="Column actions"
+            aria-label={t("columnActions")}
             className="absolute z-20 flex h-[16px] w-[18px] items-center justify-center rounded-[4px] border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
             data-table-column-handle="true"
             onPointerDown={(event) => {
@@ -1143,7 +1145,7 @@ export function EditorCanvas({
               left: `${tableColumnHandle.left}px`,
               top: `${tableColumnHandle.top}px`,
             }}
-            title="Column actions"
+            title={t("columnActions")}
             type="button"
           >
             <GripHorizontal className="size-3.5" />

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
+import { translateAppError } from "@/lib/i18n/error-messages";
 
 function formatDeletedAt(value: string | null | undefined, locale: string, fallback: string) {
   if (!value) {
@@ -110,7 +111,7 @@ export function TrashView() {
                       setWorkingDocumentId(null);
 
                       if (!result.ok) {
-                        setError(result.error);
+                        setError(translateAppError(result.error, t, locale));
                         return;
                       }
 
@@ -176,7 +177,7 @@ export function TrashView() {
                   setWorkingDocumentId(null);
 
                   if (!result.ok) {
-                    setError(result.error);
+                    setError(translateAppError(result.error, t, locale));
                     return;
                   }
 

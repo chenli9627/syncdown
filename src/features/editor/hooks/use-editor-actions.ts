@@ -16,6 +16,7 @@ import {
   getBlockTransformActiveId,
   getImageSourceAtPos,
 } from "@/features/editor/lib/utils";
+import { translateAppError } from "@/lib/i18n/error-messages";
 
 type UseEditorActionsArgs = {
   blockMenu: EditorBlockMenuState;
@@ -82,7 +83,7 @@ export function useEditorActions({
   setSearchRects,
   syncHoveredBlockFromPos,
 }: UseEditorActionsArgs) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   function getImageDownloadName(extension: string) {
     const base = document.title?.trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/\s+/g, "-") || "syncdown-image";
     const suffix = blockMenu.pos != null ? `${blockMenu.pos}` : `${Date.now()}`;
@@ -181,7 +182,7 @@ export function useEditorActions({
     });
 
     if (!result.ok) {
-      setActionError(result.error);
+      setActionError(translateAppError(result.error, t, locale));
       setActionNotice(null);
       return;
     }
