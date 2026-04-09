@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useLocale } from "@/components/providers/locale-provider";
 import { getWorkspaceBuckets } from "@/features/app-state/lib/state-utils";
 import type { User, Workspace } from "@/features/app-state/types";
@@ -51,12 +52,14 @@ type ShellSidebarProps = {
 };
 
 function WorkspaceCard({
+  currentUser,
   currentWorkspace,
   guestBadgeClass,
   isGuest,
   onToggle,
   workspaceTriggerRef,
 }: {
+  currentUser: User;
   currentWorkspace: Workspace;
   guestBadgeClass: string;
   isGuest: boolean;
@@ -71,9 +74,19 @@ function WorkspaceCard({
       onClick={onToggle}
       type="button"
     >
-      <div className="flex size-10 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-[var(--color-primary-foreground)]">
-        {currentWorkspace.name.slice(0, 1).toUpperCase()}
-      </div>
+      {currentUser.avatarUrl ? (
+        <Image
+          alt={currentUser.name}
+          className="size-10 rounded-full object-cover"
+          height={40}
+          src={currentUser.avatarUrl}
+          width={40}
+        />
+      ) : (
+        <div className="flex size-10 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-[var(--color-primary-foreground)]">
+          {currentUser.name.slice(0, 1).toUpperCase()}
+        </div>
+      )}
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <p className="truncate text-[15px] font-semibold">{currentWorkspace.name}</p>
         {isGuest ? <span className={guestBadgeClass}>{t("guest")}</span> : null}
@@ -138,6 +151,7 @@ export function ShellSidebar({
     <aside className="relative z-20 flex h-screen min-h-0 flex-col overflow-visible border-r border-[var(--color-border)] bg-[var(--color-sidebar)] p-2.5 text-[var(--color-sidebar-foreground)]">
       <div className="relative z-30">
         <WorkspaceCard
+          currentUser={currentUser}
           currentWorkspace={currentWorkspace}
           guestBadgeClass={guestBadgeClass}
           isGuest={isGuest}

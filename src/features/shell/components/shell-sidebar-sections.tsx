@@ -123,10 +123,26 @@ export function ShellSidebarSections({
           ) : null}
         </div>
         <div className="grid min-h-0 flex-1 gap-3">
-          <SidebarSection items={buckets.recents} onOpenItem={handleOpenDocument} title={t("recents")} />
-          <SidebarSection items={buckets.shared} onOpenItem={handleOpenDocument} title={t("shared")} />
+          <SidebarSection
+            items={buckets.recents}
+            kind="recents"
+            onOpenItem={handleOpenDocument}
+            title={t("recents")}
+          />
+          <SidebarSection
+            items={buckets.shared}
+            kind="shared"
+            onOpenItem={handleOpenDocument}
+            title={t("shared")}
+          />
           {canManageCurrentWorkspace ? (
-            <SidebarSection items={buckets.privateDocs} onOpenItem={handleOpenDocument} title={t("private")} />
+            <SidebarSection
+              items={buckets.privateDocs}
+              kind="private"
+              onCreate={onCreateDocument}
+              onOpenItem={handleOpenDocument}
+              title={t("private")}
+            />
           ) : null}
         </div>
       </nav>
