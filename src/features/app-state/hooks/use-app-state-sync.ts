@@ -3,6 +3,10 @@
 import { useEffect } from "react";
 import { createSeedState } from "@/features/app-state/lib/seed";
 import type { Session, SyntextState } from "@/features/app-state/types";
+import {
+  resolveBootstrapState,
+  shouldApplySyncedState,
+} from "@/features/app-state/hooks/app-state-sync-shared";
 
 const SESSION_STORAGE_KEY = "syncdown.session";
 const STATE_STORAGE_KEY = "syncdown.state";
@@ -104,12 +108,11 @@ export function useAppStateSync({
           return;
         }
 
-        const nextState =
-          savedSession &&
-          !data.state.users.some((user) => user.id === savedSession.userId) &&
-          savedState?.users.some((user) => user.id === savedSession.userId)
-            ? savedState
-            : data.state;
+        const nextState = resolveBootstrapState({
+          savedSession,
+          savedState,
+          serverState: data.state,
+        });
 
         setState(nextState);
         setSession(savedSession);
@@ -151,10 +154,7 @@ export function useAppStateSync({
           return;
         }
 
-        if (
-          session &&
-          !data.state.users.some((user) => user.id === session.userId)
-        ) {
+        if (!shouldApplySyncedState({ nextState: data.state, session })) {
           return;
         }
 
