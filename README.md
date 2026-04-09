@@ -119,6 +119,25 @@ The current build includes a lightweight first-pass presence layer:
 
 This is intentionally separate from future Yjs content collaboration.
 
+## Testing
+
+The current repository includes automated regression coverage for:
+
+- AI route validation, mock fallback, and remote request routing
+- markdown import guard rules
+- media storage configuration and URL generation
+- auth validation and naming rules
+- document sharing, trash, and restore behavior
+- workspace/document visibility rules
+
+Run:
+
+```bash
+pnpm test
+pnpm lint
+pnpm build
+```
+
 ## Media Storage
 
 The current build stores uploaded editor images through the app-owned `/api/media`
