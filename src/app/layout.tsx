@@ -4,7 +4,7 @@ import "@/app/globals.css";
 
 export const metadata: Metadata = {
   title: "Syncdown",
-  description: "Workspace-first writing and sharing.",
+  description: "Think quietly. Share clearly.",
 };
 
 export default function RootLayout({
