@@ -5,6 +5,7 @@ import { createSeedState } from "@/features/app-state/lib/seed";
 import type { Session, SyntextState } from "@/features/app-state/types";
 
 const SESSION_STORAGE_KEY = "syncdown.session";
+const STATE_STORAGE_KEY = "syncdown.state";
 
 function toFallbackPublicState(): SyntextState {
   const seed = createSeedState();
@@ -43,6 +44,32 @@ function loadSavedSession() {
   }
 }
 
+function loadSavedState() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(STATE_STORAGE_KEY);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as SyntextState;
+  } catch {
+    return null;
+  }
+}
+
+function persistStateSnapshot(state: SyntextState) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+}
+
 export async function readJson<T>(response: Response) {
   return (await response.json()) as T;
 }
@@ -67,6 +94,7 @@ export function useAppStateSync({
 
     async function bootstrap() {
       const savedSession = loadSavedSession();
+      const savedState = loadSavedState();
 
       try {
         const response = await fetch("/api/app-state", { cache: "no-store" });
@@ -76,14 +104,22 @@ export function useAppStateSync({
           return;
         }
 
-        setState(data.state);
+        const nextState =
+          savedSession &&
+          !data.state.users.some((user) => user.id === savedSession.userId) &&
+          savedState?.users.some((user) => user.id === savedSession.userId)
+            ? savedState
+            : data.state;
+
+        setState(nextState);
         setSession(savedSession);
+        persistStateSnapshot(nextState);
       } catch {
         if (disposed) {
           return;
         }
 
-        setState(toFallbackPublicState());
+        setState(savedState ?? toFallbackPublicState());
         setSession(savedSession);
       } finally {
         if (!disposed) {
@@ -111,9 +147,19 @@ export function useAppStateSync({
         const response = await fetch("/api/app-state", { cache: "no-store" });
         const data = await readJson<{ state: SyntextState }>(response);
 
-        if (!cancelled) {
-          setState(data.state);
+        if (cancelled) {
+          return;
         }
+
+        if (
+          session &&
+          !data.state.users.some((user) => user.id === session.userId)
+        ) {
+          return;
+        }
+
+        setState(data.state);
+        persistStateSnapshot(data.state);
       } catch {
         // Ignore transient sync failures and keep current local state.
       }

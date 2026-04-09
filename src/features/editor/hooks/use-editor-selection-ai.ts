@@ -305,16 +305,27 @@ function getSelectionBubbleFromEditor(editor: Editor): SelectionBubbleState {
     return closedSelectionBubble();
   }
 
+  const domSelection = globalThis.window?.getSelection();
+  const range =
+    domSelection && domSelection.rangeCount > 0 ? domSelection.getRangeAt(0) : null;
+  const rangeRect = range ? range.getBoundingClientRect() : null;
+  const rangeRects = range ? Array.from(range.getClientRects()) : [];
   const start = editor.view.coordsAtPos(from);
   const end = editor.view.coordsAtPos(to);
+  const topRect = rangeRects[0] ?? rangeRect;
 
   return {
     from,
-    left: Math.max(16, (start.left + end.right) / 2),
+    left: Math.max(
+      16,
+      rangeRect && rangeRect.width > 0
+        ? rangeRect.left + rangeRect.width / 2
+        : (start.left + end.right) / 2,
+    ),
     open: true,
     text: selectedText,
     to,
-    top: Math.max(16, start.top - 56),
+    top: Math.max(16, (topRect?.top ?? start.top) - 56),
   };
 }
 

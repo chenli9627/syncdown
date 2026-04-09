@@ -348,7 +348,7 @@ export function EditorCanvas({
 
         return {
           avatars,
-          left: blockInfo.left - 14 - Math.max(0, avatarLaneWidth - 20),
+          left: blockInfo.left - 32 - Math.max(0, avatarLaneWidth - 20),
           pos,
           top: blockInfo.top + blockInfo.height / 2 - 10,
         };
