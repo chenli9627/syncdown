@@ -338,12 +338,12 @@ function SettingsContent({
             <div className="flex flex-wrap gap-2">
               <PreferenceButton
                 active={locale === "zh"}
-                label="中文"
+                label={t("languageChinese")}
                 onClick={() => setLocale("zh")}
               />
               <PreferenceButton
                 active={locale === "en"}
-                label="English"
+                label={t("languageEnglish")}
                 onClick={() => setLocale("en")}
               />
             </div>

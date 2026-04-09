@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { PresenceParticipant } from "@/features/editor/lib/types";
 
 type EditorHeaderPresenceProps = {
@@ -10,6 +11,7 @@ type EditorHeaderPresenceProps = {
 export function EditorHeaderPresence({
   participants,
 }: EditorHeaderPresenceProps) {
+  const { t } = useLocale();
   const safeParticipants = participants ?? [];
 
   if (safeParticipants.length === 0) {
@@ -40,7 +42,7 @@ export function EditorHeaderPresence({
               key={entry.userId}
               title={entry.name}
             >
-              {(entry.name || "Unknown").slice(0, 1).toUpperCase()}
+              {(entry.name || t("unknownUser")).slice(0, 1).toUpperCase()}
             </span>
           )
         ))}

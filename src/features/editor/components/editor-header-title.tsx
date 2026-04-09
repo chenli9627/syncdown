@@ -2,6 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 
 export type EditorHeaderTitleProps = {
   canEditTitle: boolean;
@@ -22,6 +23,8 @@ export function EditorHeaderTitle({
   titleDraft,
   titleInputRef,
 }: EditorHeaderTitleProps) {
+  const { t } = useLocale();
+
   return (
     <div className="inline-flex max-w-full items-center gap-1.5">
       <div className="relative max-w-[min(100%,48rem)]">
@@ -29,7 +32,7 @@ export function EditorHeaderTitle({
           aria-hidden="true"
           className="invisible block whitespace-pre border-none bg-transparent px-0 text-[1.15rem] font-semibold tracking-[-0.026em] md:text-[1.3rem]"
         >
-          {titleDraft || "Untitled"}
+          {titleDraft || t("untitled")}
         </span>
         <input
           className="absolute inset-0 w-full border-none bg-transparent px-0 text-[1.15rem] font-semibold tracking-[-0.026em] outline-none placeholder:text-[var(--color-muted-foreground)] disabled:cursor-default md:text-[1.3rem]"
@@ -45,7 +48,7 @@ export function EditorHeaderTitle({
             void commitTitle();
             editor?.commands.focus("end");
           }}
-          placeholder="Untitled"
+          placeholder={t("untitled")}
           ref={titleInputRef}
           value={titleDraft}
         />
@@ -56,7 +59,7 @@ export function EditorHeaderTitle({
         </div>
       ) : (
         <div className="invisible shrink-0 border border-[var(--color-border)] px-1.5 py-0.5 text-[11px] font-medium">
-          Saved
+          {t("saved")}
         </div>
       )}
     </div>

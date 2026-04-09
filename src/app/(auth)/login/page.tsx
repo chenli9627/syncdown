@@ -1,6 +1,11 @@
+"use client";
+
+import { useLocale } from "@/components/providers/locale-provider";
 import { LoginForm } from "@/features/auth/components/login-form";
 
 export default function LoginPage() {
+  const { t } = useLocale();
+
   return (
     <main className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl gap-8 border border-[var(--color-border)] bg-[var(--color-card)] shadow-[rgba(0,0,0,0.04)_0px_4px_18px,rgba(0,0,0,0.027)_0px_2px_8px] md:grid-cols-[1.08fr_0.92fr]">
       <section className="flex flex-col justify-between border-r border-[var(--color-border)] bg-[var(--color-muted)] p-8 text-[var(--color-foreground)] md:p-10">
@@ -9,20 +14,19 @@ export default function LoginPage() {
             Syncdown v2
           </div>
           <h1 className="max-w-lg text-4xl font-semibold leading-tight tracking-[-0.04em] md:text-6xl">
-            Write privately. Share by workspace.
+            {t("loginHeroTitle")}
           </h1>
           <p className="max-w-md text-sm leading-6 text-[var(--color-muted-foreground)] md:text-base">
-            The rebuild starts with clear ownership, guest-safe sharing, and an
-            editor that can grow into collaboration.
+            {t("loginHeroDescription")}
           </p>
         </div>
 
         <div className="grid gap-3 text-sm text-[var(--color-muted-foreground)] md:grid-cols-2">
           <div className="border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-            Owner-controlled permissions
+            {t("loginFeaturePermissions")}
           </div>
           <div className="border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-            Workspace-aware document access
+            {t("loginFeatureWorkspaceAccess")}
           </div>
         </div>
       </section>
