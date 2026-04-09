@@ -81,7 +81,7 @@ function toRemoteEntries(
     return [];
   }
 
-  const nextEntries: RemoteAwarenessEntry[] = [];
+  const nextEntriesByUserId = new Map<string, RemoteAwarenessEntry>();
 
   awareness.getStates().forEach((rawState) => {
     const state = rawState as AwarenessState;
@@ -91,16 +91,37 @@ function toRemoteEntries(
       return;
     }
 
-    nextEntries.push({
+    const nextEntry: RemoteAwarenessEntry = {
       avatarUrl: user.avatarUrl ?? null,
       color: user.color,
       head: state.cursor?.head ?? null,
       name: user.name,
       userId: user.userId,
-    });
+    };
+
+    const currentEntry = nextEntriesByUserId.get(user.userId);
+
+    if (!currentEntry) {
+      nextEntriesByUserId.set(user.userId, nextEntry);
+      return;
+    }
+
+    const currentHasHead = currentEntry.head != null;
+    const nextHasHead = nextEntry.head != null;
+
+    if (!currentHasHead && nextHasHead) {
+      nextEntriesByUserId.set(user.userId, nextEntry);
+      return;
+    }
+
+    if (currentHasHead && !nextHasHead) {
+      return;
+    }
+
+    nextEntriesByUserId.set(user.userId, nextEntry);
   });
 
-  return nextEntries;
+  return Array.from(nextEntriesByUserId.values());
 }
 
 export function useEditorCollaboration({
