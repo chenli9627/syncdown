@@ -23,14 +23,14 @@ type AwarenessUser = {
 };
 
 type AwarenessCursor = {
-  anchor: number;
-  head: number;
+  anchor: unknown;
+  head: unknown;
 };
 
 export type RemoteAwarenessEntry = {
   avatarUrl: string | null;
   color: string;
-  head: number | null;
+  head: unknown | null;
   name: string;
   userId: string;
 };
@@ -94,7 +94,7 @@ function toRemoteEntries(
     nextEntries.push({
       avatarUrl: user.avatarUrl ?? null,
       color: user.color,
-      head: typeof state.cursor?.head === "number" ? state.cursor.head : null,
+      head: state.cursor?.head ?? null,
       name: user.name,
       userId: user.userId,
     });

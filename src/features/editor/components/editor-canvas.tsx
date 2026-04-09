@@ -3,10 +3,12 @@
 import Image from "next/image";
 import { EditorContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
+import { relativePositionToAbsolutePosition, ySyncPluginKey } from "@tiptap/y-tiptap";
 import { GripHorizontal, GripVertical, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
+import * as Y from "yjs";
 import { useLocale } from "@/components/providers/locale-provider";
 import { EditorBlockControls } from "@/features/editor/components/editor-block-controls";
 import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu";
@@ -266,13 +268,34 @@ export function EditorCanvas({
 
       const grouped = new Map<number, Array<{ avatarUrl: string | null; color: string; name: string; userId: string }>>();
 
+      const syncState = ySyncPluginKey.getState(editor.state);
+
+      if (!syncState?.type || !syncState?.binding?.mapping) {
+        setCollaboratorBlockMarkers([]);
+        return;
+      }
+
       for (const entry of remoteEntries) {
         if (entry.head == null) {
           continue;
         }
 
         try {
-          const topLevelPos = getTopLevelBlockStartPos(editor, entry.head);
+          const absoluteHead =
+            typeof entry.head === "number"
+              ? entry.head
+              : relativePositionToAbsolutePosition(
+                  syncState.doc,
+                  syncState.type,
+                  Y.createRelativePositionFromJSON(entry.head as Record<string, unknown>),
+                  syncState.binding.mapping,
+                );
+
+          if (absoluteHead == null) {
+            continue;
+          }
+
+          const topLevelPos = getTopLevelBlockStartPos(editor, absoluteHead);
           const domNode = editor.view.nodeDOM(topLevelPos);
           const blockElement =
             (domNode instanceof HTMLElement ? domNode : domNode?.parentElement)?.closest(
@@ -322,7 +345,7 @@ export function EditorCanvas({
 
         return {
           avatars,
-          left: blockInfo.left - 34 - buttonOffset,
+          left: blockInfo.left - 58 - buttonOffset,
           pos,
           top: blockInfo.top + blockInfo.height / 2 - 10,
         };
@@ -1072,6 +1095,7 @@ export function EditorCanvas({
           <div
             aria-hidden="true"
             className="pointer-events-none absolute z-[5] flex items-center -space-x-1"
+            data-collaborator-block-marker="true"
             key={`collab-${marker.pos}`}
             style={{
               left: `${marker.left}px`,
@@ -1083,6 +1107,7 @@ export function EditorCanvas({
                 <Image
                   alt=""
                   className="size-5 rounded-full object-cover ring-2 ring-[var(--color-editor-surface-background)]"
+                  data-collaborator-avatar="true"
                   key={avatar.userId}
                   src={avatar.avatarUrl}
                   unoptimized
@@ -1092,6 +1117,7 @@ export function EditorCanvas({
               ) : (
                 <span
                   className="flex size-5 items-center justify-center rounded-full text-[9px] font-semibold text-white ring-2 ring-[var(--color-editor-surface-background)]"
+                  data-collaborator-avatar="true"
                   key={avatar.userId}
                   style={{ backgroundColor: avatar.color }}
                 >
