@@ -237,19 +237,6 @@ export function useSyntextEditor({
   }, [canEditBody, editor]);
 
   useEffect(() => {
-    if (!editor || !collaborationProvider || !currentUser) {
-      return;
-    }
-
-    editor.commands.updateUser({
-      avatarUrl: currentUser.avatarUrl,
-      color: "#2383e2",
-      name: currentUser.name,
-      userId: currentUser.id,
-    });
-  }, [collaborationProvider, currentUser, editor]);
-
-  useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         window.clearTimeout(saveTimeoutRef.current);
