@@ -197,7 +197,7 @@ There is no bottom sidebar `Settings` item.
 
 ### 5.3 Settings Access
 
-Settings are reached from the top workspace/profile popover.
+Settings are reached from the `Settings` icon on the right side of the `Home` row.
 
 Settings sections:
 
