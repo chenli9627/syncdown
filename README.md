@@ -150,7 +150,7 @@ This replaces the old REST presence endpoint path.
 
 The current repository includes automated regression coverage for:
 
-- AI route validation, mock fallback, and remote request routing
+- AI route validation, missing-config failures, and remote request routing
 - markdown import guard rules
 - media storage configuration and URL generation
 - auth validation and naming rules

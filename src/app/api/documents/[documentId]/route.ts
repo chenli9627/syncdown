@@ -5,6 +5,13 @@ import {
   updateDocumentAccessForOwner,
   updateDocumentForUser,
 } from "@/features/app-state/lib/mutations";
+import {
+  getMediaStorageAdapter,
+} from "@/lib/server/media-storage";
+import {
+  extractManagedMediaFileNames,
+  removeUnreferencedMediaFiles,
+} from "@/lib/server/media-references";
 import { readStoredState, toPublicState, writeStoredState } from "@/lib/server/state-store";
 
 type RouteContext = {
@@ -24,6 +31,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const state = await readStoredState();
+  const previousDocument = state.documents.find((document) => document.id === documentId) ?? null;
   const result = updateDocumentForUser(state, body.userId, documentId, {
     title: body.title,
     content: body.content,
@@ -34,6 +42,14 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   await writeStoredState(result.state);
+  if (body.content !== undefined && previousDocument) {
+    await removeUnreferencedMediaFiles(
+      state,
+      result.state,
+      extractManagedMediaFileNames(previousDocument.content),
+      (fileName) => getMediaStorageAdapter().deleteFile(fileName),
+    );
+  }
 
   return NextResponse.json({ state: toPublicState(result.state) });
 }

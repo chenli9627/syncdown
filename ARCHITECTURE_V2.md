@@ -467,7 +467,7 @@ AI rules:
 - front end calls the app-owned `/api/ai/action` endpoint instead of calling model providers directly
 - the back end reads `AI_API_KEY`, `AI_BASE_URL`, and `AI_MODEL` from environment variables
 - the route resolves the OpenAI-compatible `responses` endpoint from the configured base URL
-- if AI environment variables are not configured, the current build falls back to local mock results so the interaction remains usable
+- if AI environment variables are not configured, the current build rejects AI requests with a configuration error instead of falling back to mock output
 
 ### 8.5 Collaboration Layer
 

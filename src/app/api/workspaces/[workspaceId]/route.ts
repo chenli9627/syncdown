@@ -3,6 +3,11 @@ import {
   deleteWorkspaceForUser,
   renameWorkspaceForUser,
 } from "@/features/app-state/lib/mutations";
+import { getMediaStorageAdapter } from "@/lib/server/media-storage";
+import {
+  extractManagedMediaFileNames,
+  removeUnreferencedMediaFiles,
+} from "@/lib/server/media-references";
 import { readStoredState, toPublicState, writeStoredState } from "@/lib/server/state-store";
 
 type RouteContext = {
@@ -49,6 +54,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   const state = await readStoredState();
+  const removedDocuments = state.documents.filter((document) => document.workspaceId === workspaceId);
   const result = deleteWorkspaceForUser(
     state,
     body.userId,
@@ -61,6 +67,12 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   await writeStoredState(result.state);
+  await removeUnreferencedMediaFiles(
+    state,
+    result.state,
+    removedDocuments.flatMap((document) => [...extractManagedMediaFileNames(document.content)]),
+    (fileName) => getMediaStorageAdapter().deleteFile(fileName),
+  );
 
   return NextResponse.json({ state: toPublicState(result.state) });
 }

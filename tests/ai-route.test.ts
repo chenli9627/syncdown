@@ -26,7 +26,7 @@ test("rejects invalid AI payloads", async () => {
   });
 });
 
-test("returns mock AI response when environment is not configured", async () => {
+test("rejects AI requests when environment is not configured", async () => {
   delete process.env.AI_API_KEY;
   delete process.env.ARK_API_KEY;
   delete process.env.AI_BASE_URL;
@@ -45,11 +45,11 @@ test("returns mock AI response when environment is not configured", async () => 
   );
   const payload = await response.json();
 
-  assert.equal(response.status, 200);
-  assert.equal(payload.ok, true);
-  assert.equal(payload.source, "mock");
-  assert.equal(payload.viewOnly, true);
-  assert.match(payload.result, /^Summary:/);
+  assert.equal(response.status, 503);
+  assert.deepEqual(payload, {
+    error: "AI service is not configured",
+    ok: false,
+  });
 });
 
 test("calls remote responses endpoint when AI environment is configured", async () => {

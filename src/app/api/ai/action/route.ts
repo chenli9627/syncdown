@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import {
   buildAiUserPrompt,
-  generateAiPreview,
   getAiViewOnly,
   type AiActionKind,
   type AiRequestPayload,
@@ -45,19 +44,16 @@ export async function POST(request: Request) {
   }
 
   const viewOnly = getAiViewOnly(body.action);
-  const fallback = generateAiPreview(body.action, selectedText, body.locale, body.prompt);
 
   const apiKey = process.env.AI_API_KEY?.trim() || process.env.ARK_API_KEY?.trim();
   const baseUrl = process.env.AI_BASE_URL?.trim();
   const model = process.env.AI_MODEL?.trim();
 
   if (!apiKey || !baseUrl || !model) {
-    return NextResponse.json({
-      ok: true,
-      result: fallback.text,
-      source: "mock",
-      viewOnly,
-    });
+    return NextResponse.json(
+      { error: "AI service is not configured", ok: false },
+      { status: 503 },
+    );
   }
 
   try {

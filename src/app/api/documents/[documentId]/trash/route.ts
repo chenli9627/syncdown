@@ -4,6 +4,11 @@ import {
   permanentlyDeleteDocumentFromTrashForOwner,
   restoreDocumentFromTrashForOwner,
 } from "@/features/app-state/lib/mutations";
+import { getMediaStorageAdapter } from "@/lib/server/media-storage";
+import {
+  extractManagedMediaFileNames,
+  removeUnreferencedMediaFiles,
+} from "@/lib/server/media-references";
 import { readStoredState, toPublicState, writeStoredState } from "@/lib/server/state-store";
 
 type RouteContext = {
@@ -65,6 +70,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   const state = await readStoredState();
+  const removedDocument = state.documents.find((document) => document.id === documentId) ?? null;
   const result = permanentlyDeleteDocumentFromTrashForOwner(
     state,
     body.userId,
@@ -76,6 +82,14 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   await writeStoredState(result.state);
+  if (removedDocument) {
+    await removeUnreferencedMediaFiles(
+      state,
+      result.state,
+      extractManagedMediaFileNames(removedDocument.content),
+      (fileName) => getMediaStorageAdapter().deleteFile(fileName),
+    );
+  }
 
   return NextResponse.json({ state: toPublicState(result.state) });
 }

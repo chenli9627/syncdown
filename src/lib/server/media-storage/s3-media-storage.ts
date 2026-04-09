@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -34,6 +35,17 @@ export class S3MediaStorageAdapter implements MediaStorageAdapter {
       forcePathStyle: options.forcePathStyle,
       region: options.region,
     });
+  }
+
+  async deleteFile(fileName: string): Promise<void> {
+    const safeFileName = fileName.split("/").pop() ?? fileName;
+
+    await this.client.send(
+      new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: safeFileName,
+      }),
+    );
   }
 
   async writeFile(input: WriteMediaFileInput): Promise<StoredMediaFile> {

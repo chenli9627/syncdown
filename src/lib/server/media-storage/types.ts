@@ -20,6 +20,7 @@ export type WriteMediaFileInput = {
 };
 
 export interface MediaStorageAdapter {
+  deleteFile(fileName: string): Promise<void>;
   writeFile(input: WriteMediaFileInput): Promise<StoredMediaFile>;
   readFile(fileName: string): Promise<ReadableMediaFile>;
 }

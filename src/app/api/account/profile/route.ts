@@ -3,6 +3,11 @@ import {
   updateProfileAvatarForUser,
   updateProfileNameForUser,
 } from "@/features/app-state/lib/mutations";
+import { getMediaStorageAdapter } from "@/lib/server/media-storage";
+import {
+  extractManagedMediaFileNames,
+  removeUnreferencedMediaFiles,
+} from "@/lib/server/media-references";
 import {
   readStoredState,
   toPublicState,
@@ -23,6 +28,7 @@ export async function PATCH(request: Request) {
   }
 
   let state = await readStoredState();
+  const previousUser = state.users.find((user) => user.id === body.userId) ?? null;
 
   if (body.name !== undefined) {
     const result = updateProfileNameForUser(state, body.userId, body.name ?? "");
@@ -49,6 +55,19 @@ export async function PATCH(request: Request) {
   }
 
   await writeStoredState(state);
+  if (body.avatarUrl !== undefined && previousUser) {
+    await removeUnreferencedMediaFiles(
+      {
+        ...state,
+        users: state.users.map((user) =>
+          user.id === previousUser.id ? { ...user, avatarUrl: previousUser.avatarUrl } : user,
+        ),
+      },
+      state,
+      extractManagedMediaFileNames(previousUser.avatarUrl),
+      (fileName) => getMediaStorageAdapter().deleteFile(fileName),
+    );
+  }
 
   return NextResponse.json({
     state: toPublicState(state),
