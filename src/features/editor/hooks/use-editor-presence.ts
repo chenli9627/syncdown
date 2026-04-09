@@ -17,6 +17,8 @@ const PRESENCE_COLORS = [
   "#be185d",
   "#0369a1",
 ];
+const HEARTBEAT_INTERVAL_MS = 3_000;
+const REFRESH_INTERVAL_MS = 3_000;
 
 function colorForUser(userId: string) {
   let hash = 0;
@@ -155,7 +157,7 @@ export function useEditorPresence({
 
     const heartbeatId = window.setInterval(() => {
       void publishPresence();
-    }, 5000);
+    }, HEARTBEAT_INTERVAL_MS);
 
     return () => {
       window.clearInterval(heartbeatId);
@@ -172,23 +174,35 @@ export function useEditorPresence({
     }, 0);
     const intervalId = window.setInterval(() => {
       void refreshPresence();
-    }, 2000);
+    }, REFRESH_INTERVAL_MS);
 
     const handlePageHide = () => {
       removePresence();
     };
+    const handleFocus = () => {
+      void publishPresence();
+      void refreshPresence();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void publishPresence();
+        void refreshPresence();
+      }
+    };
 
-    window.addEventListener("focus", refreshPresence);
+    window.addEventListener("focus", handleFocus);
     window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.clearTimeout(initialRefresh);
       window.clearInterval(intervalId);
-      window.removeEventListener("focus", refreshPresence);
+      window.removeEventListener("focus", handleFocus);
       window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       removePresence();
     };
-  }, [currentUser, refreshPresence, removePresence]);
+  }, [currentUser, publishPresence, refreshPresence, removePresence]);
 
   const markerDependencies = useMemo(
     () =>

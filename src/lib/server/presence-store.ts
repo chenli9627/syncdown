@@ -14,7 +14,8 @@ export type PresenceRecord = {
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const PRESENCE_FILE = path.join(DATA_DIR, "presence.json");
-const PRESENCE_TTL_MS = 15_000;
+const PRESENCE_TTL_MS = 60_000;
+const PRESENCE_TTL_SECONDS = Math.floor(PRESENCE_TTL_MS / 1000);
 const PRESENCE_TABLE = "syncdown_presence";
 
 async function ensurePresenceFile() {
@@ -125,7 +126,8 @@ async function getPresenceForDocumentFromPostgres(documentId: string) {
 
   try {
     await client.query(
-      `delete from ${PRESENCE_TABLE} where updated_at < now() - interval '15 seconds'`,
+      `delete from ${PRESENCE_TABLE} where updated_at < now() - ($1 || ' seconds')::interval`,
+      [String(PRESENCE_TTL_SECONDS)],
     );
     const result = await client.query<{
       anchor: number;
