@@ -364,8 +364,10 @@ Search behavior:
 ### 8.1 Save Model
 
 - title and body autosave
-- current version is single-user data architecture with future collaboration hooks
-- do not connect Yjs real-time sync in v2 initial build
+- current version syncs document bodies through `Y.Doc` and Tiptap collaboration
+- collaborator presence and remote cursors come from provider awareness
+- `StarterKit` must disable default `undoRedo` in collaboration mode
+- collaboration documents initialize content only once after sync instead of reapplying local content on every mount
 
 ### 8.2 Create Flow
 
@@ -679,4 +681,4 @@ syncdown/
 8. implement image upload and object storage integration
 9. implement Markdown import/export zip pipeline
 10. implement AI interaction surfaces
-11. leave collaboration extension points ready for later Yjs integration
+11. integrate official Yjs collaboration runtime and awareness
