@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
@@ -130,7 +131,7 @@ export function RegisterForm() {
       </button>
 
       <div className="mt-4 text-sm text-[var(--color-muted-foreground)]">
-        <a href="/login">{t("existingUserLogIn")}</a>
+        <Link href="/login">{t("existingUserLogIn")}</Link>
       </div>
     </form>
   );

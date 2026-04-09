@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { ArrowRight, KeyRound, UserRound } from "lucide-react";
@@ -104,7 +105,7 @@ export function LoginForm() {
       </div>
 
       <div className="flex items-center justify-between text-sm text-[var(--color-muted-foreground)]">
-        <a href="/register">{t("newUserSignUp")}</a>
+        <Link href="/register">{t("newUserSignUp")}</Link>
         <button
           onClick={() => {
             setShowResetHelp((current) => !current);
