@@ -1,8 +1,20 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomBytes, scryptSync } from "node:crypto";
 import path from "node:path";
 import pg from "pg";
 
 const chineseCharacterPattern = /[\u3400-\u9fff]/u;
+const HASH_PREFIX = "scrypt";
+const HASH_DELIMITER = "$";
+const SALT_BYTES = 16;
+const KEY_LENGTH = 64;
+
+function hashPassword(password) {
+  const salt = randomBytes(SALT_BYTES).toString("hex");
+  const hash = scryptSync(password, salt, KEY_LENGTH).toString("hex");
+
+  return [HASH_PREFIX, salt, hash].join(HASH_DELIMITER);
+}
 
 function readArg(flag) {
   const index = process.argv.indexOf(flag);
@@ -19,12 +31,80 @@ function fail(message) {
   process.exit(1);
 }
 
-const username = readArg("--username")?.trim().toLowerCase() ?? "";
-const password = readArg("--password") ?? "";
+async function loadEnvFile(fileName) {
+  const filePath = path.join(process.cwd(), fileName);
+  let raw;
 
-if (!username) {
-  fail("Missing --username");
+  try {
+    raw = await readFile(filePath, "utf8");
+  } catch {
+    return;
+  }
+
+  for (const line of raw.split(/\r?\n/u)) {
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const separatorIndex = trimmed.indexOf("=");
+
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const value = trimmed.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/gu, "");
+
+    if (!key || process.env[key] !== undefined) {
+      continue;
+    }
+
+    process.env[key] = value;
+  }
 }
+
+await loadEnvFile(".env");
+await loadEnvFile(".env.local");
+
+function normalizeLookupValue(value) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function getLookup(input, value) {
+  if (!value) {
+    return null;
+  }
+
+  return { input, value };
+}
+
+function findUser(users, lookup) {
+  if (lookup.input === "email") {
+    return users.find((item) => normalizeLookupValue(item.email) === lookup.value);
+  }
+
+  return users.find((item) => normalizeLookupValue(item.username) === lookup.value);
+}
+
+const username = normalizeLookupValue(readArg("--username"));
+const email = normalizeLookupValue(readArg("--email"));
+const password = readArg("--password") ?? "";
+const lookups = [
+  getLookup("username", username),
+  getLookup("email", email),
+].filter(Boolean);
+
+if (lookups.length === 0) {
+  fail("Missing --email or --username");
+}
+
+if (lookups.length > 1) {
+  fail("Use either --email or --username, not both");
+}
+
+const lookup = lookups[0];
 
 if (!password) {
   fail("Missing --password");
@@ -63,13 +143,13 @@ if (databaseUrl) {
     }
 
     const state = result.rows[0].snapshot;
-    const user = state.users.find((item) => item.username === username);
+    const user = findUser(state.users, lookup);
 
     if (!user) {
-      fail(`Username does not exist: ${username}`);
+      fail(`${lookup.input === "email" ? "Email" : "Username"} does not exist: ${lookup.value}`);
     }
 
-    user.password = password;
+    user.password = hashPassword(password);
 
     await client.query(
       `update syncdown_state
@@ -82,7 +162,7 @@ if (databaseUrl) {
     await pool.end();
   }
 
-  console.log(`Password reset for ${username}`);
+  console.log(`Password reset for ${lookup.input}: ${lookup.value}`);
   process.exit(0);
 }
 
@@ -99,14 +179,14 @@ try {
   fail(`State file does not exist yet: ${statePath}`);
 }
 
-const user = state.users.find((item) => item.username === username);
+const user = findUser(state.users, lookup);
 
 if (!user) {
-  fail(`Username does not exist: ${username}`);
+  fail(`${lookup.input === "email" ? "Email" : "Username"} does not exist: ${lookup.value}`);
 }
 
-user.password = password;
+user.password = hashPassword(password);
 
 await writeFile(statePath, JSON.stringify(state, null, 2), "utf8");
 
-console.log(`Password reset for ${username}`);
+console.log(`Password reset for ${lookup.input}: ${lookup.value}`);

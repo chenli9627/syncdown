@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createSeedState } from "@/features/app-state/lib/seed";
+import { migrateStoredStatePasswords } from "@/features/app-state/lib/password";
 import type {
   StoredSyntextState,
   SyntextState,
@@ -45,9 +46,30 @@ async function ensureStateFile() {
   }
 }
 
+async function persistMigratedState(state: StoredSyntextState) {
+  if (process.env.DATABASE_URL?.trim()) {
+    await writeStoredStateToPostgres(state);
+    return;
+  }
+
+  await ensureStateFile();
+  await writeFile(STATE_FILE, JSON.stringify(state, null, 2), "utf8");
+}
+
+async function readAndMigrateState(readState: () => Promise<StoredSyntextState>) {
+  const state = await readState();
+  const migrated = migrateStoredStatePasswords(state);
+
+  if (migrated.changed) {
+    await persistMigratedState(migrated.state);
+  }
+
+  return migrated.state;
+}
+
 export async function readStoredState() {
   if (process.env.DATABASE_URL?.trim()) {
-    return readStoredStateFromPostgres();
+    return readAndMigrateState(readStoredStateFromPostgres);
   }
 
   await ensureStateFile();
@@ -55,7 +77,7 @@ export async function readStoredState() {
   const raw = await readFile(STATE_FILE, "utf8");
 
   try {
-    return JSON.parse(raw) as StoredSyntextState;
+    return readAndMigrateState(async () => JSON.parse(raw) as StoredSyntextState);
   } catch {
     const seedState = createSeedState();
     await writeFile(STATE_FILE, JSON.stringify(seedState, null, 2), "utf8");

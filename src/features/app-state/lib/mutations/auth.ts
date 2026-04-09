@@ -4,6 +4,10 @@ import type {
   StoredUser,
 } from "@/features/app-state/types";
 import {
+  hashPassword,
+  verifyPassword,
+} from "@/features/app-state/lib/password";
+import {
   chineseCharacterPattern,
   makeWorkspace,
   now,
@@ -73,7 +77,7 @@ export function registerUser(state: StoredSyntextState, input: RegisterInput) {
     email,
     username,
     name,
-    password,
+    password: hashPassword(password),
     avatarUrl: null,
     createdAt: now(),
   };
@@ -96,12 +100,15 @@ export function loginUser(
   password: string,
 ) {
   const normalizedUsername = sanitizeUsername(username);
-
-  const user = state.users.find(
-    (item) => item.username === normalizedUsername && item.password === password,
-  );
+  const user = state.users.find((item) => item.username === normalizedUsername);
 
   if (!user) {
+    return { ok: false as const, error: "Invalid username or password" };
+  }
+
+  const passwordCheck = verifyPassword(user.password, password);
+
+  if (!passwordCheck.matches) {
     return { ok: false as const, error: "Invalid username or password" };
   }
 
@@ -143,6 +150,11 @@ export function loginUser(
     } satisfies Session,
     state: {
       ...state,
+      users: state.users.map((item) =>
+        item.id === user.id && passwordCheck.needsRehash
+          ? { ...item, password: hashPassword(password) }
+          : item,
+      ),
       workspaces: state.workspaces.map((workspace) =>
         workspace.id === nextWorkspace.id
           ? { ...workspace, lastAccessedAt: loginAt }
@@ -173,7 +185,9 @@ export function resetPasswordForUser(
     state: {
       ...state,
       users: state.users.map((user) =>
-        user.username === normalizedUsername ? { ...user, password } : user,
+        user.username === normalizedUsername
+          ? { ...user, password: hashPassword(password) }
+          : user,
       ),
     },
   };
@@ -239,7 +253,7 @@ export function changePasswordForUser(
     return { ok: false as const, error: "User does not exist" };
   }
 
-  if (user.password !== currentPassword) {
+  if (!verifyPassword(user.password, currentPassword).matches) {
     return { ok: false as const, error: "Current password is incorrect" };
   }
 
@@ -254,7 +268,9 @@ export function changePasswordForUser(
     state: {
       ...state,
       users: state.users.map((item) =>
-        item.id === userId ? { ...item, password: nextPassword } : item,
+        item.id === userId
+          ? { ...item, password: hashPassword(nextPassword) }
+          : item,
       ),
     },
   };

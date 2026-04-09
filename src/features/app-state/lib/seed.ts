@@ -8,13 +8,17 @@ import type {
 } from "@/features/app-state/types";
 
 const now = new Date().toISOString();
+const ownerSeedPassword =
+  "scrypt$2744e2699ab6015260cd55c88161699d$23ae1e8fe2e3e948291c7b5c5dafdf4160d83147e391fcee73797e099e106a9bf74268f1f08f13bd7a898a1a0d82df7a74612c0690cba47751e6fba0d60d6da7";
+const guestSeedPassword =
+  "scrypt$52518609d2bddcf83d642b9c4933a26d$82cc033245a88de8b1821ffae617b809a0479b4b9cb235cdc9594bbf9e1cf814f40cb87be31bdd397a33e8490b17aecf2073eb5408c794e64688acf304b82b72";
 
 const ownerUser: StoredUser = {
   id: "user_owner",
   email: "one@syncdown.dev",
   username: "one",
   name: "One",
-  password: "onepass123",
+  password: ownerSeedPassword,
   avatarUrl: null,
   createdAt: now,
 };
@@ -24,7 +28,7 @@ const guestUser: StoredUser = {
   email: "two@syncdown.dev",
   username: "two",
   name: "Two",
-  password: "twopass123",
+  password: guestSeedPassword,
   avatarUrl: null,
   createdAt: now,
 };

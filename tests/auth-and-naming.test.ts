@@ -3,10 +3,16 @@ import assert from "node:assert/strict";
 import type { StoredSyntextState } from "../src/features/app-state/types";
 import {
   changePasswordForUser,
+  loginUser,
   registerUser,
   resetPasswordForUser,
   updateProfileAvatarForUser,
 } from "../src/features/app-state/lib/mutations/auth";
+import {
+  isPasswordHash,
+  migrateStoredStatePasswords,
+  verifyPassword,
+} from "../src/features/app-state/lib/password";
 import {
   nextRestoredTitle,
   nextUntitledTitle,
@@ -128,7 +134,22 @@ test("register user creates a default workspace", () => {
   }
 
   assert.equal(result.state.users.at(-1)?.username, "new_user");
+  assert.equal(result.state.users.at(-1)?.password === "validpass123", false);
+  assert.equal(isPasswordHash(result.state.users.at(-1)?.password ?? ""), true);
   assert.equal(result.state.workspaces.at(-1)?.name, "Default");
+});
+
+test("login upgrades legacy plaintext password to a hash", () => {
+  const result = loginUser(createState(), "one", "onepass123");
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  const storedPassword = result.state.users[0]?.password ?? "";
+  assert.equal(isPasswordHash(storedPassword), true);
+  assert.equal(verifyPassword(storedPassword, "onepass123").matches, true);
 });
 
 test("reset password rejects invalid passwords", () => {
@@ -182,5 +203,18 @@ test("change password updates stored password", () => {
     return;
   }
 
-  assert.equal(result.state.users[0]?.password, "newvalid123");
+  const storedPassword = result.state.users[0]?.password ?? "";
+  assert.equal(isPasswordHash(storedPassword), true);
+  assert.equal(verifyPassword(storedPassword, "newvalid123").matches, true);
+});
+
+test("stored state migration hashes existing plaintext passwords", () => {
+  const result = migrateStoredStatePasswords(createState());
+
+  assert.equal(result.changed, true);
+  assert.equal(isPasswordHash(result.state.users[0]?.password ?? ""), true);
+  assert.equal(
+    verifyPassword(result.state.users[0]?.password ?? "", "onepass123").matches,
+    true,
+  );
 });
