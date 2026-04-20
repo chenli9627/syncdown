@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateSupportedMarkdown } from "../src/features/editor/lib/markdown";
+import {
+  validateStandaloneMarkdownAssets,
+  validateSupportedMarkdown,
+} from "../src/features/editor/lib/markdown";
 
 test("accepts supported markdown constructs", () => {
   const result = validateSupportedMarkdown(`# Title
@@ -44,5 +47,25 @@ test("rejects raw html blocks", () => {
   assert.deepEqual(result, {
     error: "Raw HTML blocks are not supported in markdown import",
     ok: false,
+  });
+});
+
+test("rejects local image references in standalone markdown files", () => {
+  const result = validateStandaloneMarkdownAssets(`![Local asset](assets/example.png)`);
+
+  assert.deepEqual(result, {
+    error:
+      "Markdown file contains local image references and must be imported as .zip: assets/example.png",
+    ok: false,
+  });
+});
+
+test("allows remote image references in standalone markdown files", () => {
+  const result = validateStandaloneMarkdownAssets(
+    `![Remote image](https://example.com/example.png)`,
+  );
+
+  assert.deepEqual(result, {
+    ok: true,
   });
 });

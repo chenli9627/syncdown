@@ -9,6 +9,7 @@ import {
   normalizeZipPath,
   sanitizeMarkdownFilename,
   sanitizeZipFilename,
+  validateStandaloneMarkdownAssets,
   validateSupportedMarkdown,
 } from "@/features/editor/lib/markdown";
 import type { EditorActionBaseArgs } from "@/features/editor/lib/editor-action-types";
@@ -101,6 +102,15 @@ export async function importEditorMarkdown(
   if (!validation.ok) {
     args.setOverflowMenuOpen?.(false);
     args.setActionError(translateAppError(validation.error, args.t, args.locale));
+    args.setActionNotice(null);
+    return;
+  }
+
+  const assetValidation = validateStandaloneMarkdownAssets(markdown);
+
+  if (!assetValidation.ok) {
+    args.setOverflowMenuOpen?.(false);
+    args.setActionError(translateAppError(assetValidation.error, args.t, args.locale));
     args.setActionNotice(null);
     return;
   }

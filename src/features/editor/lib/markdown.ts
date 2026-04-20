@@ -34,6 +34,7 @@ const UNSUPPORTED_MARKDOWN_PATTERNS: Array<{
 
 const DATA_IMAGE_URL_PATTERN = /^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/;
 const LOCAL_MEDIA_URL_PATTERN = /(?:https?:\/\/[^/]+)?\/api\/media\/([^/?#]+)$/i;
+const MARKDOWN_IMAGE_PATTERN = /!\[(.*?)\]\((.+?)\)/g;
 
 function escapeHtml(input: string) {
   return input
@@ -446,6 +447,31 @@ export function validateSupportedMarkdown(markdown: string) {
   };
 }
 
+export function validateStandaloneMarkdownAssets(markdown: string) {
+  const localImageSources = new Set<string>();
+
+  for (const match of markdown.matchAll(MARKDOWN_IMAGE_PATTERN)) {
+    const source = (match[2] ?? "").trim();
+
+    if (!source || /^(data:|https?:\/\/)/i.test(source)) {
+      continue;
+    }
+
+    localImageSources.add(source);
+  }
+
+  if (localImageSources.size > 0) {
+    return {
+      error: `Markdown file contains local image references and must be imported as .zip: ${Array.from(localImageSources).slice(0, 3).join(", ")}`,
+      ok: false as const,
+    };
+  }
+
+  return {
+    ok: true as const,
+  };
+}
+
 export async function markdownToEditorHtmlWithAssets(
   markdown: string,
   resolveImageSource: (src: string) => Promise<string | null>,
@@ -456,7 +482,7 @@ export async function markdownToEditorHtmlWithAssets(
     return "<p></p>";
   }
 
-  const imageMatches = Array.from(normalized.matchAll(/!\[(.*?)\]\((.+?)\)/g));
+  const imageMatches = Array.from(normalized.matchAll(MARKDOWN_IMAGE_PATTERN));
   const replacements = new Map<string, string>();
 
   for (const match of imageMatches) {
