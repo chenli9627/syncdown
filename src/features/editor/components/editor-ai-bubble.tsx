@@ -40,7 +40,7 @@ export function EditorAiBubble({
 
   return createPortal(
     <div
-      className={`fixed z-[93] flex max-h-[calc(100vh-32px)] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)] ${bubbleWidthClass}`}
+      className={`fixed z-[93] flex max-h-[calc(100dvh-24px)] max-w-[calc(100vw-24px)] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)] ${bubbleWidthClass}`}
       ref={aiBubbleRef}
       style={{
         left: `${aiBubble.left}px`,
@@ -89,16 +89,16 @@ function AiActionMenu({
   const { t } = useLocale();
 
   return (
-    <div className="space-y-2.5 overflow-y-auto">
+    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
       <div className="grid grid-cols-2 gap-1.5">
         <AiActionButton label={t("improveWriting")} onClick={() => onPreviewAction("improve_writing")} />
         <AiActionButton label={t("explain")} onClick={() => onPreviewAction("explain")} />
         <AiActionButton label={t("reformat")} onClick={() => onPreviewAction("reformat")} />
         <AiActionButton label={t("summarize")} onClick={() => onPreviewAction("summarize")} />
       </div>
-      <div className="space-y-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
         <textarea
-          className="h-24 w-full resize-none border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-2 text-[12px] outline-none transition focus:border-[var(--color-ring)]"
+          className="min-h-24 w-full flex-1 resize-none border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-2 text-[12px] outline-none transition focus:border-[var(--color-ring)]"
           onChange={(event) => {
             onPromptChange(event.target.value);
           }}
@@ -148,12 +148,16 @@ function AiResultView({
   const showSideBySide = aiBubble.candidates.length > 1;
 
   return (
-    <div className="space-y-2.5 overflow-y-auto">
-      <div className={showSideBySide ? "grid grid-cols-1 gap-2 md:grid-cols-2" : ""}>
+    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
+      <div
+        className={`min-h-0 flex-1 overflow-hidden ${
+          showSideBySide ? "grid grid-cols-1 gap-2 md:grid-cols-2" : ""
+        }`}
+      >
         {showSideBySide
           ? aiBubble.candidates.map((candidate, index) => (
               <div
-                className={`min-w-0 space-y-2 border px-2.5 py-2 transition ${
+                className={`flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden border px-2.5 py-2 transition ${
                   index === aiBubble.selectedCandidateIndex
                     ? "border-[var(--color-primary)] bg-[rgba(35,131,226,0.08)]"
                     : "border-[var(--color-border)] bg-[var(--color-sidebar-panel)]"
@@ -190,12 +194,12 @@ function AiResultView({
                   candidate={candidate}
                   error={aiBubble.error}
                   loading={aiBubble.loading}
-                  scrollClassName="max-h-[min(180px,24vh)] overflow-y-auto pr-1 select-text"
+                  scrollClassName="min-h-0 flex-1 overflow-y-auto pr-1 select-text"
                 />
               </div>
             ))
           : (
-              <div className="max-h-[min(240px,28vh)] overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+              <div className="min-h-0 flex-1 overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
                 <AiCandidateContent
                   candidate={selectedCandidate}
                   error={aiBubble.error}
