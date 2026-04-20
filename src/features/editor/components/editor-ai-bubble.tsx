@@ -147,20 +147,16 @@ function AiResultView({
   const selectedCandidate = aiBubble.candidates[aiBubble.selectedCandidateIndex] ?? null;
   const showSideBySide = aiBubble.candidates.length > 1;
   const candidateScrollClass = showSideBySide
-    ? "max-h-[calc(100dvh-220px)] overflow-y-auto pr-1 select-text"
-    : "max-h-[calc(100dvh-196px)] overflow-y-auto pr-1 select-text";
+    ? "max-h-[min(32dvh,280px)] overflow-y-auto pr-1 select-text"
+    : "max-h-[min(40dvh,320px)] overflow-y-auto pr-1 select-text";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
-      <div
-        className={`min-h-0 flex-1 overflow-hidden ${
-          showSideBySide ? "grid grid-cols-1 gap-2 md:grid-cols-2" : ""
-        }`}
-      >
+    <div className="space-y-2.5">
+      <div className={showSideBySide ? "grid items-start grid-cols-1 gap-2 md:grid-cols-2" : ""}>
         {showSideBySide
           ? aiBubble.candidates.map((candidate, index) => (
               <div
-                className={`flex min-h-0 min-w-0 max-h-[calc(100dvh-156px)] flex-col gap-2 overflow-hidden border px-2.5 py-2 transition ${
+                className={`flex min-w-0 flex-col gap-2 overflow-hidden border px-2.5 py-2 transition ${
                   index === aiBubble.selectedCandidateIndex
                     ? "border-[var(--color-primary)] bg-[rgba(35,131,226,0.08)]"
                     : "border-[var(--color-border)] bg-[var(--color-sidebar-panel)]"
@@ -202,7 +198,7 @@ function AiResultView({
               </div>
             ))
           : (
-              <div className="min-h-0 flex-1 max-h-[calc(100dvh-144px)] overflow-hidden border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+              <div className="overflow-hidden border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
                 <AiCandidateContent
                   candidate={selectedCandidate}
                   error={aiBubble.error}
