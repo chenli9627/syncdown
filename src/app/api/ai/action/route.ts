@@ -7,8 +7,6 @@ import {
 } from "@/features/editor/lib/ai";
 import type { Locale } from "@/lib/i18n/messages";
 
-const DEFAULT_SECONDARY_AI_MODEL = "doubao-seed-2-0-pro-260215";
-
 type OpenAiCompatibleResponse = {
   output?: Array<{
     content?: Array<{
@@ -50,8 +48,9 @@ export async function POST(request: Request) {
   const apiKey = process.env.AI_API_KEY?.trim() || process.env.ARK_API_KEY?.trim();
   const baseUrl = process.env.AI_BASE_URL?.trim();
   const model = process.env.AI_MODEL?.trim();
+  const secondaryModel = process.env.AI_SECONDARY_MODEL?.trim();
 
-  if (!apiKey || !baseUrl || !model) {
+  if (!apiKey || !baseUrl || !model || !secondaryModel) {
     return NextResponse.json(
       { error: "AI service is not configured", ok: false },
       { status: 503 },
@@ -63,7 +62,7 @@ export async function POST(request: Request) {
       new Set(
         [
           model,
-          process.env.AI_SECONDARY_MODEL?.trim() || DEFAULT_SECONDARY_AI_MODEL,
+          secondaryModel,
         ].filter((candidate): candidate is string => Boolean(candidate)),
       ),
     );

@@ -31,6 +31,7 @@ test("rejects AI requests when environment is not configured", async () => {
   delete process.env.ARK_API_KEY;
   delete process.env.AI_BASE_URL;
   delete process.env.AI_MODEL;
+  delete process.env.AI_SECONDARY_MODEL;
 
   const response = await POST(
     new Request("http://localhost/api/ai/action", {
@@ -56,7 +57,7 @@ test("calls remote responses endpoint when AI environment is configured", async 
   process.env.AI_API_KEY = "secret";
   process.env.AI_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3/chat/completions";
   process.env.AI_MODEL = "deepseek-v3-2-251201";
-  delete process.env.AI_SECONDARY_MODEL;
+  process.env.AI_SECONDARY_MODEL = "doubao-seed-2-0-pro-260215";
 
   const requestedUrls: string[] = [];
   const requestedModels: string[] = [];
