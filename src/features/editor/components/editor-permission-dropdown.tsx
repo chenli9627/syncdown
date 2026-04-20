@@ -71,7 +71,7 @@ export function EditorPermissionDropdown({
 
       {open ? (
         <div
-          className={`absolute top-[calc(100%+6px)] z-30 min-w-full border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] ${
+          className={`absolute top-[calc(100%+6px)] z-40 min-w-full border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] ${
             align === "right" ? "right-0" : "left-0"
           }`}
         >

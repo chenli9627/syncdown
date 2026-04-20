@@ -84,7 +84,7 @@ export function EditorPermissionPopover({
 
       {permissionMenuOpen ? (
         <div
-          className="absolute right-0 top-[calc(100%+10px)] z-20 w-[468px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
+          className="absolute right-0 top-[calc(100%+10px)] z-20 w-[468px] overflow-visible border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
           ref={permissionMenuRef}
         >
           <div className="border-b border-[var(--color-border)] px-4 py-3">
