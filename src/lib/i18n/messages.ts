@@ -250,6 +250,7 @@ export const messages = {
     zipContainsUnsupportedImages: "Zip 包包含不支持的图片资源：",
     zipContainsInvalidFiles: "Zip 包只能包含一个 Markdown 文件和被引用的图片资源：",
     zipContainsUnreferencedFiles: "Zip 包包含未被引用的多余文件：",
+    markdownLocalImagesRequireZip: "Markdown 文件包含本地图片引用，必须使用 .zip 导入：",
     editorNotReady: "编辑器尚未准备好",
     markdownLinksUnsupported: "暂不支持 Markdown 链接",
     markdownStrikeUnsupported: "暂不支持 Markdown 删除线",
@@ -506,6 +507,8 @@ export const messages = {
     zipContainsInvalidFiles:
       "Zip archive may only contain one Markdown file and referenced image assets:",
     zipContainsUnreferencedFiles: "Zip archive contains unreferenced files:",
+    markdownLocalImagesRequireZip:
+      "Markdown file contains local image references and must be imported as .zip:",
     editorNotReady: "Editor is not ready",
     markdownLinksUnsupported: "Markdown links are not supported yet",
     markdownStrikeUnsupported: "Strikethrough markdown is not supported yet",

@@ -78,6 +78,10 @@ const exactErrorKeys: Record<string, MessageKey> = {
 };
 
 const prefixErrorKeys: Array<[prefix: string, key: MessageKey]> = [
+  [
+    "Markdown file contains local image references and must be imported as .zip:",
+    "markdownLocalImagesRequireZip",
+  ],
   ["Zip archive contains unreferenced files:", "zipContainsUnreferencedFiles"],
   [
     "Zip archive may only contain one Markdown file and referenced image assets:",

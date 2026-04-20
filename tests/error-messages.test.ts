@@ -23,6 +23,19 @@ test("translates zip prefix errors and preserves file details", () => {
   assert.equal(translated, "Zip archive contains unreferenced files: assets/extra.png");
 });
 
+test("translates standalone markdown image prefix errors and preserves file details", () => {
+  const translated = translateAppError(
+    "Markdown file contains local image references and must be imported as .zip: assets/example.png",
+    (key) => getMessage("zh", key),
+    "zh",
+  );
+
+  assert.equal(
+    translated,
+    "Markdown 文件包含本地图片引用，必须使用 .zip 导入： assets/example.png",
+  );
+});
+
 test("translates zip archive structure errors", () => {
   const translated = translateAppError(
     "Zip archive must contain exactly one Markdown file",
