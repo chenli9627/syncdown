@@ -31,7 +31,7 @@ export function EditorAiBubble({
   const { t } = useLocale();
   const bubbleWidthClass =
     aiBubble.action && aiBubble.candidates.length > 1
-      ? "w-[min(560px,calc(100vw-32px))]"
+      ? "w-[min(520px,calc(100vw-24px))]"
       : "w-[304px] max-w-[calc(100vw-32px)]";
 
   if (!aiBubble.open || !globalThis.document?.body) {
@@ -40,7 +40,7 @@ export function EditorAiBubble({
 
   return createPortal(
     <div
-      className={`fixed z-[93] flex max-h-[calc(100dvh-24px)] max-w-[calc(100vw-24px)] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)] ${bubbleWidthClass}`}
+      className={`fixed z-[93] flex max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)] ${bubbleWidthClass}`}
       ref={aiBubbleRef}
       style={{
         left: `${aiBubble.left}px`,
@@ -146,6 +146,9 @@ function AiResultView({
   const { t } = useLocale();
   const selectedCandidate = aiBubble.candidates[aiBubble.selectedCandidateIndex] ?? null;
   const showSideBySide = aiBubble.candidates.length > 1;
+  const candidateScrollClass = showSideBySide
+    ? "max-h-[calc(100dvh-220px)] overflow-y-auto pr-1 select-text"
+    : "max-h-[calc(100dvh-196px)] overflow-y-auto pr-1 select-text";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
@@ -157,7 +160,7 @@ function AiResultView({
         {showSideBySide
           ? aiBubble.candidates.map((candidate, index) => (
               <div
-                className={`flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden border px-2.5 py-2 transition ${
+                className={`flex min-h-0 min-w-0 max-h-[calc(100dvh-156px)] flex-col gap-2 overflow-hidden border px-2.5 py-2 transition ${
                   index === aiBubble.selectedCandidateIndex
                     ? "border-[var(--color-primary)] bg-[rgba(35,131,226,0.08)]"
                     : "border-[var(--color-border)] bg-[var(--color-sidebar-panel)]"
@@ -194,17 +197,17 @@ function AiResultView({
                   candidate={candidate}
                   error={aiBubble.error}
                   loading={aiBubble.loading}
-                  scrollClassName="min-h-0 flex-1 overflow-y-auto pr-1 select-text"
+                  scrollClassName={candidateScrollClass}
                 />
               </div>
             ))
           : (
-              <div className="min-h-0 flex-1 overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+              <div className="min-h-0 flex-1 max-h-[calc(100dvh-144px)] overflow-hidden border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
                 <AiCandidateContent
                   candidate={selectedCandidate}
                   error={aiBubble.error}
                   loading={aiBubble.loading}
-                  scrollClassName="select-text"
+                  scrollClassName={candidateScrollClass}
                 />
               </div>
             )}
