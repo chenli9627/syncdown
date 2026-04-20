@@ -10,3 +10,9 @@ dist
 .tmp-home*.png
 .data/media/
 .data/presence.json
+.agents/
+.gemini/
+gpt-runner/
+skills/
+tmp/
+y-protocols/
