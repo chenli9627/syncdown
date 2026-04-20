@@ -143,12 +143,40 @@ export function useEditorSelectionAi({
     }
 
     const originalOverflow = document.body.style.overflow;
+    const scrollHost = editorContainerRef.current?.closest("main");
+    const originalScrollHostOverflow =
+      scrollHost instanceof HTMLElement ? scrollHost.style.overflow : "";
+
     document.body.style.overflow = "hidden";
+    if (scrollHost instanceof HTMLElement) {
+      scrollHost.style.overflow = "hidden";
+    }
+
+    const preventBackgroundScroll = (event: WheelEvent | TouchEvent) => {
+      const target = event.target;
+
+      if (
+        target instanceof Node &&
+        aiBubbleRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+    };
+
+    window.addEventListener("wheel", preventBackgroundScroll, { passive: false });
+    window.addEventListener("touchmove", preventBackgroundScroll, { passive: false });
 
     return () => {
       document.body.style.overflow = originalOverflow;
+      if (scrollHost instanceof HTMLElement) {
+        scrollHost.style.overflow = originalScrollHostOverflow;
+      }
+      window.removeEventListener("wheel", preventBackgroundScroll);
+      window.removeEventListener("touchmove", preventBackgroundScroll);
     };
-  }, [aiBubble.open]);
+  }, [aiBubble.open, editorContainerRef]);
 
   useEffect(() => {
     if (!aiBubble.open) {
