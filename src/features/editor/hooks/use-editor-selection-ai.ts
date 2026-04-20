@@ -19,7 +19,7 @@ type UseEditorSelectionAiArgs = {
 
 const AI_BUBBLE_SINGLE_WIDTH = 320;
 const AI_BUBBLE_SINGLE_HEIGHT = 360;
-const AI_BUBBLE_COMPARE_WIDTH = 560;
+const AI_BUBBLE_COMPARE_WIDTH = 620;
 const AI_BUBBLE_COMPARE_HEIGHT = 420;
 
 export function useEditorSelectionAi({
@@ -423,17 +423,25 @@ function getAiBubblePosition(
   selectionBubble: Pick<SelectionBubbleState, "from" | "left" | "to" | "top">,
   candidateCount: number,
 ) {
-  const bubbleWidth =
-    candidateCount > 1 ? AI_BUBBLE_COMPARE_WIDTH : AI_BUBBLE_SINGLE_WIDTH;
-  const bubbleHalfWidth = bubbleWidth / 2;
-  const bubbleHeight =
-    candidateCount > 1 ? AI_BUBBLE_COMPARE_HEIGHT : AI_BUBBLE_SINGLE_HEIGHT;
   const screenPadding = 16;
+  const preferredBubbleWidth =
+    candidateCount > 1 ? AI_BUBBLE_COMPARE_WIDTH : AI_BUBBLE_SINGLE_WIDTH;
+  const preferredBubbleHeight =
+    candidateCount > 1 ? AI_BUBBLE_COMPARE_HEIGHT : AI_BUBBLE_SINGLE_HEIGHT;
+  const bubbleWidth = Math.min(
+    preferredBubbleWidth,
+    Math.max(240, window.innerWidth - screenPadding * 2),
+  );
+  const bubbleHalfWidth = bubbleWidth / 2;
+  const bubbleHeight = Math.min(
+    preferredBubbleHeight,
+    Math.max(240, window.innerHeight - screenPadding * 2),
+  );
 
   if (!editor) {
     return {
-      left: selectionBubble.left,
-      top: selectionBubble.top + 72,
+      left: clampBubbleLeft(selectionBubble.left, bubbleHalfWidth, screenPadding),
+      top: clampBubbleTop(selectionBubble.top + 72, bubbleHeight, screenPadding),
     };
   }
 
