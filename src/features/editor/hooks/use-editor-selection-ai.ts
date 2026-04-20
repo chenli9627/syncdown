@@ -19,7 +19,7 @@ type UseEditorSelectionAiArgs = {
 
 const AI_BUBBLE_SINGLE_WIDTH = 320;
 const AI_BUBBLE_SINGLE_HEIGHT = 360;
-const AI_BUBBLE_COMPARE_WIDTH = 640;
+const AI_BUBBLE_COMPARE_WIDTH = 560;
 const AI_BUBBLE_COMPARE_HEIGHT = 420;
 
 export function useEditorSelectionAi({

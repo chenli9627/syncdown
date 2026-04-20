@@ -31,7 +31,7 @@ export function EditorAiBubble({
   const { t } = useLocale();
   const bubbleWidthClass =
     aiBubble.action && aiBubble.candidates.length > 1
-      ? "w-[min(640px,calc(100vw-32px))]"
+      ? "w-[min(560px,calc(100vw-32px))]"
       : "w-[304px] max-w-[calc(100vw-32px)]";
 
   if (!aiBubble.open || !globalThis.document?.body) {
@@ -152,42 +152,55 @@ function AiResultView({
       <div className={showSideBySide ? "grid grid-cols-1 gap-2 md:grid-cols-2" : ""}>
         {showSideBySide
           ? aiBubble.candidates.map((candidate, index) => (
-              <button
-                className={`min-w-0 space-y-2 border px-2.5 py-2 text-left transition ${
+              <div
+                className={`min-w-0 space-y-2 border px-2.5 py-2 transition ${
                   index === aiBubble.selectedCandidateIndex
                     ? "border-[var(--color-primary)] bg-[rgba(35,131,226,0.08)]"
-                    : "border-[var(--color-border)] bg-[var(--color-sidebar-panel)] hover:bg-[var(--color-hover)]"
+                    : "border-[var(--color-border)] bg-[var(--color-sidebar-panel)]"
                 }`}
                 key={candidate.model}
-                onMouseDown={preventBubbleBlur}
-                onClick={() => onSelectCandidate(index)}
-                type="button"
               >
-                <div
-                  className={`truncate text-[11px] font-medium ${
-                    index === aiBubble.selectedCandidateIndex
-                      ? "text-[var(--color-primary)]"
-                      : "text-[var(--color-muted-foreground)]"
-                  }`}
-                  title={candidate.model}
-                >
-                  {candidate.model}
+                <div className="flex items-center justify-between gap-2">
+                  <div
+                    className={`min-w-0 truncate text-[11px] font-medium ${
+                      index === aiBubble.selectedCandidateIndex
+                        ? "text-[var(--color-primary)]"
+                        : "text-[var(--color-muted-foreground)]"
+                    }`}
+                    title={candidate.model}
+                  >
+                    {candidate.model}
+                  </div>
+                  <button
+                    className={`shrink-0 border px-2 py-1 text-[11px] transition ${
+                      index === aiBubble.selectedCandidateIndex
+                        ? "border-[var(--color-primary)] bg-[var(--color-card)] text-[var(--color-primary)]"
+                        : "border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+                    }`}
+                    onMouseDown={preventBubbleBlur}
+                    onClick={() => onSelectCandidate(index)}
+                    type="button"
+                  >
+                    {index === aiBubble.selectedCandidateIndex
+                      ? t("aiSelectedCandidate")
+                      : t("aiChooseCandidate")}
+                  </button>
                 </div>
                 <AiCandidateContent
                   candidate={candidate}
                   error={aiBubble.error}
                   loading={aiBubble.loading}
-                  scrollClassName="max-h-[min(220px,28vh)] overflow-y-auto pr-1"
+                  scrollClassName="max-h-[min(180px,24vh)] overflow-y-auto pr-1 select-text"
                 />
-              </button>
+              </div>
             ))
           : (
-              <div className="max-h-[min(280px,32vh)] overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+              <div className="max-h-[min(240px,28vh)] overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
                 <AiCandidateContent
                   candidate={selectedCandidate}
                   error={aiBubble.error}
                   loading={aiBubble.loading}
-                  scrollClassName=""
+                  scrollClassName="select-text"
                 />
               </div>
             )}
