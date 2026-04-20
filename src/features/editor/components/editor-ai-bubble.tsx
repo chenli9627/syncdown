@@ -31,7 +31,7 @@ export function EditorAiBubble({
   const { t } = useLocale();
   const bubbleWidthClass =
     aiBubble.action && aiBubble.candidates.length > 1
-      ? "w-[min(620px,calc(100vw-24px))]"
+      ? "w-[min(700px,calc(100vw-24px))]"
       : "w-[304px] max-w-[calc(100vw-32px)]";
 
   if (!aiBubble.open || !globalThis.document?.body) {
@@ -39,36 +39,45 @@ export function EditorAiBubble({
   }
 
   return createPortal(
-    <div
-      className={`fixed z-[93] flex max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)] ${bubbleWidthClass}`}
-      ref={aiBubbleRef}
-      style={{
-        left: `${aiBubble.left}px`,
-        top: `${aiBubble.top}px`,
-        transform: "translateX(-50%)",
-      }}
-    >
-      <div className="mb-2.5 flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-foreground)]">
-        <Sparkles className="size-3.5 text-[var(--color-primary)]" />
-        <span>{t("aiPreview")}</span>
+    <>
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 z-[92] bg-transparent"
+        onMouseDown={preventBackdropInteraction}
+        onTouchMove={preventBackdropInteraction}
+        onWheel={preventBackdropInteraction}
+      />
+      <div
+        className={`fixed z-[93] flex max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)] ${bubbleWidthClass}`}
+        ref={aiBubbleRef}
+        style={{
+          left: `${aiBubble.left}px`,
+          top: `${aiBubble.top}px`,
+          transform: "translateX(-50%)",
+        }}
+      >
+        <div className="mb-2.5 flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-foreground)]">
+          <Sparkles className="size-3.5 text-[var(--color-primary)]" />
+          <span>{t("aiPreview")}</span>
+        </div>
+        {aiBubble.action ? (
+          <AiResultView
+            aiBubble={aiBubble}
+            onApply={onApply}
+            onClose={onClose}
+            onInsertBelow={onInsertBelow}
+            onSelectCandidate={onSelectCandidate}
+          />
+        ) : (
+          <AiActionMenu
+            prompt={aiBubble.prompt}
+            onClose={onClose}
+            onPreviewAction={onPreviewAction}
+            onPromptChange={onPromptChange}
+          />
+        )}
       </div>
-      {aiBubble.action ? (
-        <AiResultView
-          aiBubble={aiBubble}
-          onApply={onApply}
-          onClose={onClose}
-          onInsertBelow={onInsertBelow}
-          onSelectCandidate={onSelectCandidate}
-        />
-      ) : (
-        <AiActionMenu
-          prompt={aiBubble.prompt}
-          onClose={onClose}
-          onPreviewAction={onPreviewAction}
-          onPromptChange={onPromptChange}
-        />
-      )}
-    </div>,
+    </>,
     globalThis.document.body,
   );
 }
@@ -147,8 +156,8 @@ function AiResultView({
   const selectedCandidate = aiBubble.candidates[aiBubble.selectedCandidateIndex] ?? null;
   const showSideBySide = aiBubble.candidates.length > 1;
   const candidateScrollClass = showSideBySide
-    ? "max-h-[min(18dvh,140px)] overflow-y-auto pr-1 select-text"
-    : "max-h-[min(22dvh,160px)] overflow-y-auto pr-1 select-text";
+    ? "max-h-[min(16dvh,120px)] overflow-y-auto pr-1 select-text"
+    : "max-h-[min(20dvh,150px)] overflow-y-auto pr-1 select-text";
 
   return (
     <div className="space-y-2.5">
@@ -306,4 +315,14 @@ function AiActionButton({ label, onClick }: AiActionButtonProps) {
 
 function preventBubbleBlur(event: React.MouseEvent<HTMLButtonElement>) {
   event.preventDefault();
+}
+
+function preventBackdropInteraction(
+  event:
+    | React.MouseEvent<HTMLDivElement>
+    | React.TouchEvent<HTMLDivElement>
+    | React.WheelEvent<HTMLDivElement>,
+) {
+  event.preventDefault();
+  event.stopPropagation();
 }

@@ -137,6 +137,68 @@ export function useEditorSelectionAi({
     };
   }, [aiBubble.open, dismissAll, selectionBubble.open]);
 
+  useEffect(() => {
+    if (!aiBubble.open) {
+      return;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [aiBubble.open]);
+
+  useEffect(() => {
+    if (!aiBubble.open) {
+      return;
+    }
+
+    const updatePositionWithinViewport = () => {
+      const bubbleElement = aiBubbleRef.current;
+
+      if (!(bubbleElement instanceof HTMLElement)) {
+        return;
+      }
+
+      const rect = bubbleElement.getBoundingClientRect();
+      const screenPadding = 8;
+      let nextLeft = aiBubble.left;
+      let nextTop = aiBubble.top;
+
+      if (rect.left < screenPadding) {
+        nextLeft += screenPadding - rect.left;
+      } else if (rect.right > window.innerWidth - screenPadding) {
+        nextLeft -= rect.right - (window.innerWidth - screenPadding);
+      }
+
+      if (rect.top < screenPadding) {
+        nextTop += screenPadding - rect.top;
+      } else if (rect.bottom > window.innerHeight - screenPadding) {
+        nextTop -= rect.bottom - (window.innerHeight - screenPadding);
+      }
+
+      if (nextLeft === aiBubble.left && nextTop === aiBubble.top) {
+        return;
+      }
+
+      setAiBubble((current) => ({
+        ...current,
+        left: nextLeft,
+        top: nextTop,
+      }));
+    };
+
+    const frame = window.requestAnimationFrame(updatePositionWithinViewport);
+    window.addEventListener("resize", updatePositionWithinViewport);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updatePositionWithinViewport);
+    };
+  }, [aiBubble.left, aiBubble.open, aiBubble.top]);
+
   const actions = useMemo(
     () => ({
       applyResult() {
