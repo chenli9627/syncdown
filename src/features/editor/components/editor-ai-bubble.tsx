@@ -29,6 +29,10 @@ export function EditorAiBubble({
   onSelectCandidate,
 }: EditorAiBubbleProps) {
   const { t } = useLocale();
+  const bubbleWidthClass =
+    aiBubble.action && aiBubble.candidates.length > 1
+      ? "w-[min(720px,calc(100vw-32px))]"
+      : "w-[304px] max-w-[calc(100vw-32px)]";
 
   if (!aiBubble.open || !globalThis.document?.body) {
     return null;
@@ -36,7 +40,7 @@ export function EditorAiBubble({
 
   return createPortal(
     <div
-      className="fixed z-[93] flex max-h-[calc(100vh-32px)] w-[304px] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)]"
+      className={`fixed z-[93] flex max-h-[calc(100vh-32px)] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)] ${bubbleWidthClass}`}
       ref={aiBubbleRef}
       style={{
         left: `${aiBubble.left}px`,
@@ -141,42 +145,50 @@ function AiResultView({
 }: AiResultViewProps) {
   const { t } = useLocale();
   const selectedCandidate = aiBubble.candidates[aiBubble.selectedCandidateIndex] ?? null;
+  const showSideBySide = aiBubble.candidates.length > 1;
 
   return (
     <div className="space-y-2.5 overflow-y-auto">
-      {aiBubble.candidates.length > 1 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {aiBubble.candidates.map((candidate, index) => (
-            <button
-              className={`max-w-full truncate border px-2 py-1 text-[11px] transition ${
-                index === aiBubble.selectedCandidateIndex
-                  ? "border-[var(--color-primary)] bg-[rgba(35,131,226,0.08)] text-[var(--color-primary)]"
-                  : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-              }`}
-              key={candidate.model}
-              onMouseDown={preventBubbleBlur}
-              onClick={() => onSelectCandidate(index)}
-              title={candidate.model}
-              type="button"
-            >
-              {candidate.model}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <div className="max-h-48 overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
-        {aiBubble.loading
-          ? t("aiGenerating")
-          : aiBubble.error
-            ? t("aiGenerationFailed")
-            : selectedCandidate?.resultHtml
-              ? (
-                  <div
-                    className="syntext-editor min-h-0 pl-0 text-[12px] leading-5"
-                    dangerouslySetInnerHTML={{ __html: selectedCandidate.resultHtml }}
-                  />
-                )
-              : selectedCandidate?.result ?? ""}
+      <div className={showSideBySide ? "grid grid-cols-1 gap-2 md:grid-cols-2" : ""}>
+        {showSideBySide
+          ? aiBubble.candidates.map((candidate, index) => (
+              <button
+                className={`min-w-0 space-y-2 border px-2.5 py-2 text-left transition ${
+                  index === aiBubble.selectedCandidateIndex
+                    ? "border-[var(--color-primary)] bg-[rgba(35,131,226,0.08)]"
+                    : "border-[var(--color-border)] bg-[var(--color-sidebar-panel)] hover:bg-[var(--color-hover)]"
+                }`}
+                key={candidate.model}
+                onMouseDown={preventBubbleBlur}
+                onClick={() => onSelectCandidate(index)}
+                type="button"
+              >
+                <div
+                  className={`truncate text-[11px] font-medium ${
+                    index === aiBubble.selectedCandidateIndex
+                      ? "text-[var(--color-primary)]"
+                      : "text-[var(--color-muted-foreground)]"
+                  }`}
+                  title={candidate.model}
+                >
+                  {candidate.model}
+                </div>
+                <AiCandidateContent
+                  candidate={candidate}
+                  error={aiBubble.error}
+                  loading={aiBubble.loading}
+                />
+              </button>
+            ))
+          : (
+              <div className="max-h-48 overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+                <AiCandidateContent
+                  candidate={selectedCandidate}
+                  error={aiBubble.error}
+                  loading={aiBubble.loading}
+                />
+              </div>
+            )}
       </div>
       <div className="flex items-center justify-between gap-2">
         <button
@@ -208,6 +220,46 @@ function AiResultView({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function AiCandidateContent({
+  candidate,
+  error,
+  loading,
+}: {
+  candidate:
+    | {
+        result: string;
+        resultHtml: string;
+      }
+    | null;
+    error: string | null;
+    loading: boolean;
+}) {
+  const { t } = useLocale();
+
+  if (loading) {
+    return <div className="text-[12px] leading-5 text-[var(--color-foreground)]">{t("aiGenerating")}</div>;
+  }
+
+  if (error) {
+    return <div className="text-[12px] leading-5 text-[var(--color-foreground)]">{t("aiGenerationFailed")}</div>;
+  }
+
+  if (candidate?.resultHtml) {
+    return (
+      <div
+        className="syntext-editor min-h-0 text-[12px] leading-5"
+        dangerouslySetInnerHTML={{ __html: candidate.resultHtml }}
+      />
+    );
+  }
+
+  return (
+    <div className="text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+      {candidate?.result ?? ""}
     </div>
   );
 }
