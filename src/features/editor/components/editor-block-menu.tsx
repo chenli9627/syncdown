@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightLeft, ChevronRight, Copy, Download, Sparkles, Trash2 } from "lucide-react";
+import { ArrowRightLeft, ChevronRight, Copy, Download, Trash2 } from "lucide-react";
 import type { RefObject } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { BlockTransformItem } from "@/features/editor/lib/types";
@@ -182,18 +182,7 @@ export function EditorBlockMenu({
             </span>
           </button>
         </>
-      ) : (
-        <button
-          className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-          disabled
-          type="button"
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <Sparkles className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>{t("aiActions")}</span>
-            </span>
-        </button>
-      )}
+      ) : null}
       <button
         className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[#b44c07] transition hover:bg-[var(--color-hover)]"
         onClick={handleDeleteBlock}
