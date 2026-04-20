@@ -7,6 +7,8 @@ import {
 } from "@/features/editor/lib/ai";
 import type { Locale } from "@/lib/i18n/messages";
 
+const DEFAULT_SECONDARY_AI_MODEL = "doubao-seed-2-0-pro-260215";
+
 type OpenAiCompatibleResponse = {
   output?: Array<{
     content?: Array<{
@@ -57,6 +59,63 @@ export async function POST(request: Request) {
   }
 
   try {
+    const models = Array.from(
+      new Set(
+        [
+          model,
+          process.env.AI_SECONDARY_MODEL?.trim() || DEFAULT_SECONDARY_AI_MODEL,
+        ].filter((candidate): candidate is string => Boolean(candidate)),
+      ),
+    );
+    const candidates = (
+      await Promise.all(
+        models.map((candidateModel) =>
+          requestAiCandidate({
+            apiKey,
+            baseUrl,
+            locale: body.locale,
+            model: candidateModel,
+            payload: body,
+          }),
+        ),
+      )
+    ).filter((candidate): candidate is { model: string; result: string } => candidate !== null);
+
+    if (candidates.length === 0) {
+      return NextResponse.json(
+        { error: "AI request failed", ok: false },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({
+      candidates,
+      ok: true,
+      source: "remote",
+      viewOnly,
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "AI request failed", ok: false },
+      { status: 502 },
+    );
+  }
+}
+
+async function requestAiCandidate({
+  apiKey,
+  baseUrl,
+  locale,
+  model,
+  payload,
+}: {
+  apiKey: string;
+  baseUrl: string;
+  locale: Locale;
+  model: string;
+  payload: AiRequestPayload;
+}) {
+  try {
     const response = await fetch(resolveResponsesEndpoint(baseUrl), {
       body: JSON.stringify({
         input: [
@@ -64,7 +123,7 @@ export async function POST(request: Request) {
             content: [
               {
                 text:
-                  body.locale === "zh"
+                  locale === "zh"
                     ? "你是 Syncdown 的写作助手。只返回最终结果，不要加寒暄，不要用 markdown 代码块包裹。"
                     : "You are Syncdown's writing assistant. Return only the final result, no preamble, and do not wrap the answer in markdown code fences.",
                 type: "input_text",
@@ -75,7 +134,7 @@ export async function POST(request: Request) {
           {
             content: [
               {
-                text: buildAiUserPrompt(body),
+                text: buildAiUserPrompt(payload),
                 type: "input_text",
               },
             ],
@@ -93,34 +152,22 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      return NextResponse.json(
-        { error: errorText || "AI request failed", ok: false },
-        { status: 502 },
-      );
+      return null;
     }
 
     const data = (await response.json()) as OpenAiCompatibleResponse;
     const content = extractResponseText(data).trim();
 
     if (!content) {
-      return NextResponse.json(
-        { error: "AI returned empty content", ok: false },
-        { status: 502 },
-      );
+      return null;
     }
 
-    return NextResponse.json({
-      ok: true,
+    return {
+      model,
       result: content,
-      source: "remote",
-      viewOnly,
-    });
+    };
   } catch {
-    return NextResponse.json(
-      { error: "AI request failed", ok: false },
-      { status: 502 },
-    );
+    return null;
   }
 }
 

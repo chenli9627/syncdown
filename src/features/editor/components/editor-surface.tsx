@@ -141,6 +141,7 @@ export function EditorSurface({
         onAiInsertBelow={model.selectionAi.actions.insertBelow}
         onAiPreviewAction={model.selectionAi.actions.previewAction}
         onAiPromptChange={model.selectionAi.actions.setPrompt}
+        onAiSelectCandidate={model.selectionAi.actions.selectCandidate}
         onFormatSelection={model.selectionAi.actions.formatSelection}
         onOpenAiMenu={model.selectionAi.actions.openAiMenu}
         selectionBubble={model.selectionAi.selectionBubble}

@@ -56,17 +56,22 @@ test("calls remote responses endpoint when AI environment is configured", async 
   process.env.AI_API_KEY = "secret";
   process.env.AI_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3/chat/completions";
   process.env.AI_MODEL = "deepseek-v3-2-251201";
+  delete process.env.AI_SECONDARY_MODEL;
 
-  let requestedUrl = "";
+  const requestedUrls: string[] = [];
+  const requestedModels: string[] = [];
   global.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
-    requestedUrl = typeof input === "string" ? input : input.toString();
+    const url = typeof input === "string" ? input : input.toString();
+    const body = JSON.parse(String(init?.body ?? "{}")) as { model?: string };
+    requestedUrls.push(url);
+    requestedModels.push(body.model ?? "");
 
     assert.equal(init?.method, "POST");
     assert.match(String(init?.headers && (init.headers as Record<string, string>).Authorization), /^Bearer /);
 
     return new Response(
       JSON.stringify({
-        output_text: "Remote answer",
+        output_text: `Remote answer from ${body.model}`,
       }),
       {
         headers: { "Content-Type": "application/json" },
@@ -88,11 +93,27 @@ test("calls remote responses endpoint when AI environment is configured", async 
   );
   const payload = await response.json();
 
-  assert.equal(requestedUrl, "https://ark.cn-beijing.volces.com/api/v3/responses");
+  assert.deepEqual(requestedUrls, [
+    "https://ark.cn-beijing.volces.com/api/v3/responses",
+    "https://ark.cn-beijing.volces.com/api/v3/responses",
+  ]);
+  assert.deepEqual(requestedModels, [
+    "deepseek-v3-2-251201",
+    "doubao-seed-2-0-pro-260215",
+  ]);
   assert.equal(response.status, 200);
   assert.deepEqual(payload, {
+    candidates: [
+      {
+        model: "deepseek-v3-2-251201",
+        result: "Remote answer from deepseek-v3-2-251201",
+      },
+      {
+        model: "doubao-seed-2-0-pro-260215",
+        result: "Remote answer from doubao-seed-2-0-pro-260215",
+      },
+    ],
     ok: true,
-    result: "Remote answer",
     source: "remote",
     viewOnly: false,
   });

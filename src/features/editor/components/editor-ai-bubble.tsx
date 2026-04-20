@@ -15,6 +15,7 @@ type EditorAiBubbleProps = {
   onInsertBelow: () => void;
   onPreviewAction: (action: AiActionKind) => void;
   onPromptChange: (value: string) => void;
+  onSelectCandidate: (index: number) => void;
 };
 
 export function EditorAiBubble({
@@ -25,6 +26,7 @@ export function EditorAiBubble({
   onInsertBelow,
   onPreviewAction,
   onPromptChange,
+  onSelectCandidate,
 }: EditorAiBubbleProps) {
   const { t } = useLocale();
 
@@ -52,6 +54,7 @@ export function EditorAiBubble({
           onApply={onApply}
           onClose={onClose}
           onInsertBelow={onInsertBelow}
+          onSelectCandidate={onSelectCandidate}
         />
       ) : (
         <AiActionMenu
@@ -126,26 +129,54 @@ type AiResultViewProps = {
   onApply: () => void;
   onClose: () => void;
   onInsertBelow: () => void;
+  onSelectCandidate: (index: number) => void;
 };
 
-function AiResultView({ aiBubble, onApply, onClose, onInsertBelow }: AiResultViewProps) {
+function AiResultView({
+  aiBubble,
+  onApply,
+  onClose,
+  onInsertBelow,
+  onSelectCandidate,
+}: AiResultViewProps) {
   const { t } = useLocale();
+  const selectedCandidate = aiBubble.candidates[aiBubble.selectedCandidateIndex] ?? null;
 
   return (
     <div className="space-y-2.5 overflow-y-auto">
+      {aiBubble.candidates.length > 1 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {aiBubble.candidates.map((candidate, index) => (
+            <button
+              className={`max-w-full truncate border px-2 py-1 text-[11px] transition ${
+                index === aiBubble.selectedCandidateIndex
+                  ? "border-[var(--color-primary)] bg-[rgba(35,131,226,0.08)] text-[var(--color-primary)]"
+                  : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+              }`}
+              key={candidate.model}
+              onMouseDown={preventBubbleBlur}
+              onClick={() => onSelectCandidate(index)}
+              title={candidate.model}
+              type="button"
+            >
+              {candidate.model}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="max-h-48 overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
         {aiBubble.loading
           ? t("aiGenerating")
           : aiBubble.error
             ? t("aiGenerationFailed")
-            : aiBubble.resultHtml
+            : selectedCandidate?.resultHtml
               ? (
                   <div
                     className="syntext-editor min-h-0 pl-0 text-[12px] leading-5"
-                    dangerouslySetInnerHTML={{ __html: aiBubble.resultHtml }}
+                    dangerouslySetInnerHTML={{ __html: selectedCandidate.resultHtml }}
                   />
                 )
-              : aiBubble.result}
+              : selectedCandidate?.result ?? ""}
       </div>
       <div className="flex items-center justify-between gap-2">
         <button

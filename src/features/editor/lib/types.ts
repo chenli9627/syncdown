@@ -55,6 +55,11 @@ export type SelectionBubbleState = {
 
 export type AiBubbleState = {
   action: import("@/features/editor/lib/ai").AiActionKind | null;
+  candidates: Array<{
+    model: string;
+    result: string;
+    resultHtml: string;
+  }>;
   error: string | null;
   from: number;
   highlightRects: Array<{
@@ -67,8 +72,7 @@ export type AiBubbleState = {
   loading: boolean;
   open: boolean;
   prompt: string;
-  result: string;
-  resultHtml: string;
+  selectedCandidateIndex: number;
   text: string;
   to: number;
   top: number;

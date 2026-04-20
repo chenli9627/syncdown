@@ -28,7 +28,8 @@ export function useEditorSelectionAi({
   const dismissedSelectionRef = useRef<{ from: number; to: number } | null>(null);
   const [selectionBubble, setSelectionBubble] = useState<SelectionBubbleState>(closedSelectionBubble);
   const [aiBubble, setAiBubble] = useState<AiBubbleState>(closedAiBubble);
-  const hasWritableResult = !aiBubble.viewOnly && Boolean(aiBubble.result.trim());
+  const selectedCandidate = aiBubble.candidates[aiBubble.selectedCandidateIndex] ?? null;
+  const hasWritableResult = !aiBubble.viewOnly && Boolean(selectedCandidate?.result.trim());
   const visibleSelectionBubble = canEditBody ? selectionBubble : closedSelectionBubble();
   const visibleAiBubble = canEditBody ? aiBubble : closedAiBubble();
   const dismissAll = useCallback(() => {
@@ -134,7 +135,7 @@ export function useEditorSelectionAi({
   const actions = useMemo(
     () => ({
       applyResult() {
-        if (!editor || !hasWritableResult) {
+        if (!editor || !hasWritableResult || !selectedCandidate) {
           return;
         }
 
@@ -143,21 +144,24 @@ export function useEditorSelectionAi({
           .focus()
           .insertContentAt(
             { from: aiBubble.from, to: aiBubble.to },
-            aiBubble.resultHtml || toAiInsertHtml(aiBubble.result),
+            selectedCandidate.resultHtml || toAiInsertHtml(selectedCandidate.result),
           )
           .run();
         setAiBubble(closedAiBubble());
         setSelectionBubble(closedSelectionBubble());
       },
       insertBelow() {
-        if (!editor || !hasWritableResult) {
+        if (!editor || !hasWritableResult || !selectedCandidate) {
           return;
         }
 
         editor
           .chain()
           .focus()
-          .insertContentAt(aiBubble.to, aiBubble.resultHtml || toAiInsertHtml(aiBubble.result))
+          .insertContentAt(
+            aiBubble.to,
+            selectedCandidate.resultHtml || toAiInsertHtml(selectedCandidate.result),
+          )
           .run();
         setAiBubble(closedAiBubble());
         setSelectionBubble(closedSelectionBubble());
@@ -183,8 +187,8 @@ export function useEditorSelectionAi({
           loading: false,
           open: true,
           prompt: "",
-          result: "",
-          resultHtml: "",
+          candidates: [],
+          selectedCandidateIndex: 0,
           text: visibleSelectionBubble.text,
           to: visibleSelectionBubble.to,
           top: bubblePosition.top,
@@ -195,9 +199,10 @@ export function useEditorSelectionAi({
         setAiBubble((current) => ({
           ...current,
           action,
+          candidates: [],
           error: null,
           loading: true,
-          result: "",
+          selectedCandidateIndex: 0,
           viewOnly: getAiViewOnly(action),
         }));
 
@@ -216,16 +221,37 @@ export function useEditorSelectionAi({
           });
 
           const data = (await response.json().catch(() => null)) as
-            | { error?: string; ok?: boolean; result?: string; viewOnly?: boolean }
+            | {
+                candidates?: Array<{ model?: string; result?: string }>;
+                error?: string;
+                ok?: boolean;
+                viewOnly?: boolean;
+              }
             | null;
 
-          if (!response.ok || !data?.ok || !data.result) {
+          const candidates = (data?.candidates ?? [])
+            .filter(
+              (
+                candidate,
+              ): candidate is {
+                model: string;
+                result: string;
+              } => Boolean(candidate?.model && candidate?.result),
+            )
+            .map((candidate) => ({
+              model: candidate.model,
+              result: candidate.result,
+              resultHtml: toAiInsertHtml(candidate.result),
+            }));
+
+          if (!response.ok || !data?.ok || candidates.length === 0) {
             throw new Error(data?.error || "AI request failed");
           }
 
           setAiBubble((current) => ({
             ...current,
             action,
+            candidates,
             error: null,
             highlightRects:
               current.highlightRects.length > 0
@@ -237,21 +263,29 @@ export function useEditorSelectionAi({
                     current.to,
                   ),
             loading: false,
-            result: data.result ?? "",
-            resultHtml: toAiInsertHtml(data.result ?? ""),
+            selectedCandidateIndex: 0,
             viewOnly: data.viewOnly ?? getAiViewOnly(action),
           }));
         } catch {
           setAiBubble((current) => ({
             ...current,
             action,
+            candidates: [],
             error: "generation_failed",
             loading: false,
-            result: "",
-            resultHtml: "",
+            selectedCandidateIndex: 0,
             viewOnly: getAiViewOnly(action),
           }));
         }
+      },
+      selectCandidate(index: number) {
+        setAiBubble((current) => ({
+          ...current,
+          selectedCandidateIndex: Math.max(
+            0,
+            Math.min(index, Math.max(0, current.candidates.length - 1)),
+          ),
+        }));
       },
       setPrompt(value: string) {
         setAiBubble((current) => ({
@@ -290,7 +324,16 @@ export function useEditorSelectionAi({
         chain.run();
       },
     }),
-    [aiBubble, dismissAll, editor, editorContainerRef, hasWritableResult, locale, visibleSelectionBubble],
+    [
+      aiBubble,
+      dismissAll,
+      editor,
+      editorContainerRef,
+      hasWritableResult,
+      locale,
+      selectedCandidate,
+      visibleSelectionBubble,
+    ],
   );
 
   return {
@@ -450,8 +493,8 @@ function closedAiBubble(): AiBubbleState {
     loading: false,
     open: false,
     prompt: "",
-    result: "",
-    resultHtml: "",
+    candidates: [],
+    selectedCandidateIndex: 0,
     text: "",
     to: 0,
     top: 0,
