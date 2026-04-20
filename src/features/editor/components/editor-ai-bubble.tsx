@@ -31,7 +31,7 @@ export function EditorAiBubble({
   const { t } = useLocale();
   const bubbleWidthClass =
     aiBubble.action && aiBubble.candidates.length > 1
-      ? "w-[min(520px,calc(100vw-24px))]"
+      ? "w-[min(620px,calc(100vw-24px))]"
       : "w-[304px] max-w-[calc(100vw-32px)]";
 
   if (!aiBubble.open || !globalThis.document?.body) {
@@ -147,8 +147,8 @@ function AiResultView({
   const selectedCandidate = aiBubble.candidates[aiBubble.selectedCandidateIndex] ?? null;
   const showSideBySide = aiBubble.candidates.length > 1;
   const candidateScrollClass = showSideBySide
-    ? "max-h-[min(32dvh,280px)] overflow-y-auto pr-1 select-text"
-    : "max-h-[min(40dvh,320px)] overflow-y-auto pr-1 select-text";
+    ? "max-h-[min(18dvh,140px)] overflow-y-auto pr-1 select-text"
+    : "max-h-[min(22dvh,160px)] overflow-y-auto pr-1 select-text";
 
   return (
     <div className="space-y-2.5">
