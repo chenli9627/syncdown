@@ -957,6 +957,14 @@ export function EditorCanvas({
             return;
           }
 
+          // ProseMirror may already handle image-file drops inside the editor.
+          // When that happens, avoid running the outer canvas drop handler again,
+          // or the same uploaded image gets inserted twice.
+          if (event.defaultPrevented) {
+            setImageDropIndicatorTop(null);
+            return;
+          }
+
           const file = Array.from(event.dataTransfer?.files ?? []).find((item) =>
             item.type.startsWith("image/"),
           );
