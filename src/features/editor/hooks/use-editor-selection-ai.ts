@@ -17,6 +17,11 @@ type UseEditorSelectionAiArgs = {
   editorContainerRef: React.RefObject<HTMLDivElement | null>;
 };
 
+const AI_BUBBLE_SINGLE_WIDTH = 320;
+const AI_BUBBLE_SINGLE_HEIGHT = 360;
+const AI_BUBBLE_COMPARE_WIDTH = 640;
+const AI_BUBBLE_COMPARE_HEIGHT = 420;
+
 export function useEditorSelectionAi({
   canEditBody,
   editor,
@@ -171,7 +176,7 @@ export function useEditorSelectionAi({
           return;
         }
 
-        const bubblePosition = getAiBubblePosition(editor, visibleSelectionBubble);
+        const bubblePosition = getAiBubblePosition(editor, visibleSelectionBubble, 1);
         setSelectionBubble(closedSelectionBubble());
         setAiBubble({
           action: null,
@@ -248,24 +253,30 @@ export function useEditorSelectionAi({
             throw new Error(data?.error || "AI request failed");
           }
 
-          setAiBubble((current) => ({
-            ...current,
-            action,
-            candidates,
-            error: null,
-            highlightRects:
-              current.highlightRects.length > 0
-                ? current.highlightRects
-                : getSelectionHighlightRects(
-                    editor,
-                    editorContainerRef.current,
-                    current.from,
-                    current.to,
-                  ),
-            loading: false,
-            selectedCandidateIndex: 0,
-            viewOnly: data.viewOnly ?? getAiViewOnly(action),
-          }));
+          setAiBubble((current) => {
+            const bubblePosition = getAiBubblePosition(editor, current, candidates.length);
+
+            return {
+              ...current,
+              action,
+              candidates,
+              error: null,
+              highlightRects:
+                current.highlightRects.length > 0
+                  ? current.highlightRects
+                  : getSelectionHighlightRects(
+                      editor,
+                      editorContainerRef.current,
+                      current.from,
+                      current.to,
+                    ),
+              left: bubblePosition.left,
+              loading: false,
+              selectedCandidateIndex: 0,
+              top: bubblePosition.top,
+              viewOnly: data.viewOnly ?? getAiViewOnly(action),
+            };
+          });
         } catch {
           setAiBubble((current) => ({
             ...current,
@@ -407,10 +418,16 @@ function getSelectionBubbleFromEditor(editor: Editor): SelectionBubbleState {
   };
 }
 
-function getAiBubblePosition(editor: Editor | null, selectionBubble: SelectionBubbleState) {
-  const bubbleWidth = 320;
+function getAiBubblePosition(
+  editor: Editor | null,
+  selectionBubble: Pick<SelectionBubbleState, "from" | "left" | "to" | "top">,
+  candidateCount: number,
+) {
+  const bubbleWidth =
+    candidateCount > 1 ? AI_BUBBLE_COMPARE_WIDTH : AI_BUBBLE_SINGLE_WIDTH;
   const bubbleHalfWidth = bubbleWidth / 2;
-  const bubbleHeight = 360;
+  const bubbleHeight =
+    candidateCount > 1 ? AI_BUBBLE_COMPARE_HEIGHT : AI_BUBBLE_SINGLE_HEIGHT;
   const screenPadding = 16;
 
   if (!editor) {

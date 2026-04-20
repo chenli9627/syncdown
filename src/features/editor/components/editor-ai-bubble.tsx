@@ -31,7 +31,7 @@ export function EditorAiBubble({
   const { t } = useLocale();
   const bubbleWidthClass =
     aiBubble.action && aiBubble.candidates.length > 1
-      ? "w-[min(720px,calc(100vw-32px))]"
+      ? "w-[min(640px,calc(100vw-32px))]"
       : "w-[304px] max-w-[calc(100vw-32px)]";
 
   if (!aiBubble.open || !globalThis.document?.body) {
@@ -177,15 +177,17 @@ function AiResultView({
                   candidate={candidate}
                   error={aiBubble.error}
                   loading={aiBubble.loading}
+                  scrollClassName="max-h-[min(220px,28vh)] overflow-y-auto pr-1"
                 />
               </button>
             ))
           : (
-              <div className="max-h-48 overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+              <div className="max-h-[min(280px,32vh)] overflow-y-auto border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
                 <AiCandidateContent
                   candidate={selectedCandidate}
                   error={aiBubble.error}
                   loading={aiBubble.loading}
+                  scrollClassName=""
                 />
               </div>
             )}
@@ -228,6 +230,7 @@ function AiCandidateContent({
   candidate,
   error,
   loading,
+  scrollClassName,
 }: {
   candidate:
     | {
@@ -235,8 +238,9 @@ function AiCandidateContent({
         resultHtml: string;
       }
     | null;
-    error: string | null;
-    loading: boolean;
+  error: string | null;
+  loading: boolean;
+  scrollClassName: string;
 }) {
   const { t } = useLocale();
 
@@ -251,14 +255,16 @@ function AiCandidateContent({
   if (candidate?.resultHtml) {
     return (
       <div
-        className="syntext-editor min-h-0 text-[12px] leading-5"
+        className={`syntext-editor min-h-0 text-[12px] leading-5 ${scrollClassName}`.trim()}
         dangerouslySetInnerHTML={{ __html: candidate.resultHtml }}
       />
     );
   }
 
   return (
-    <div className="text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+    <div
+      className={`text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap ${scrollClassName}`.trim()}
+    >
       {candidate?.result ?? ""}
     </div>
   );
