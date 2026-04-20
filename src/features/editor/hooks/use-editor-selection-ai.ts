@@ -402,15 +402,14 @@ export function useEditorSelectionAi({
           return;
         }
 
+        dismissedSelectionRef.current = null;
         editor
           .chain()
           .focus()
-          .setTextSelection({ from: aiBubble.from, to: aiBubble.to })
+          .setTextSelection(aiBubble.to)
           .run();
         setAiBubble(closedAiBubble());
-        window.requestAnimationFrame(() => {
-          setSelectionBubble(getSelectionBubbleFromEditor(editor));
-        });
+        setSelectionBubble(closedSelectionBubble());
       },
       formatSelection(command: "bold" | "italic" | "strike" | "code") {
         if (!editor) {
