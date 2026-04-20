@@ -8,10 +8,6 @@ This directory is the primary Syncdown Git repository root.
 
 Main directories:
 
-- `y-protocols/`
-  - Yjs protocol reference / local dependency source
-  - nested Git repo kept here for local reference
-
 Unless the user says otherwise, assume work should happen in this repository root, not inside the nested projects.
 
 ## 2. Primary Project: Syncdown
