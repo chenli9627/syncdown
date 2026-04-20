@@ -8,9 +8,6 @@ This directory is the primary Syncdown Git repository root.
 
 Main directories:
 
-- `gpt-runner/`
-  - separate AI tooling project with CLI / web / editor integrations
-  - nested Git repo kept here for local reference
 - `y-protocols/`
   - Yjs protocol reference / local dependency source
   - nested Git repo kept here for local reference

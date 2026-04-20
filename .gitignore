@@ -12,7 +12,6 @@ dist
 .data/presence.json
 .agents/
 .gemini/
-gpt-runner/
 skills/
 tmp/
 y-protocols/
