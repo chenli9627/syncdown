@@ -291,6 +291,9 @@ function SelectionActionButton({
           : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
       }`}
       onClick={onClick}
+      onMouseDown={(event) => {
+        event.preventDefault();
+      }}
       title={label}
       type="button"
     >
