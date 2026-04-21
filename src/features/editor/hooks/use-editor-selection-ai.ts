@@ -219,13 +219,31 @@ export function useEditorSelectionAi({
     };
 
     const frame = window.requestAnimationFrame(updatePositionWithinViewport);
+    const bubbleElement = aiBubbleRef.current;
+    const resizeObserver =
+      bubbleElement && "ResizeObserver" in window
+        ? new ResizeObserver(() => {
+            updatePositionWithinViewport();
+          })
+        : null;
+
+    resizeObserver?.observe(bubbleElement);
     window.addEventListener("resize", updatePositionWithinViewport);
 
     return () => {
       window.cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
       window.removeEventListener("resize", updatePositionWithinViewport);
     };
-  }, [aiBubble.left, aiBubble.open, aiBubble.top]);
+  }, [
+    aiBubble.candidates,
+    aiBubble.error,
+    aiBubble.left,
+    aiBubble.loading,
+    aiBubble.open,
+    aiBubble.selectedCandidateIndex,
+    aiBubble.top,
+  ]);
 
   const actions = useMemo(
     () => ({
