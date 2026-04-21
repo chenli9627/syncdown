@@ -3,7 +3,7 @@
 import type { Editor } from "@tiptap/react";
 import { Link2, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export type LinkPopoverMode = "edit" | "hover" | "insert";
@@ -41,9 +41,9 @@ export function LinkPopover({
   return (
     <div
       className="fixed z-[94] w-[min(360px,calc(100vw-24px))] border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)]"
-      onMouseDown={preventContainerMouseDown}
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
+      onPointerDown={stopPopoverPointerDown}
       style={{
         left: `${linkPopover.left}px`,
         top: `${linkPopover.top}px`,
@@ -266,6 +266,6 @@ function getAnchorTextNodes(anchor: HTMLAnchorElement) {
   return textNodes;
 }
 
-function preventContainerMouseDown(event: ReactMouseEvent<HTMLDivElement>) {
-  event.preventDefault();
+function stopPopoverPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+  event.stopPropagation();
 }
