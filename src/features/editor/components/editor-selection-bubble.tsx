@@ -14,6 +14,12 @@ import {
   normalizeHref,
 } from "@/features/editor/components/editor-link-popover";
 import type { SelectionBubbleState } from "@/features/editor/lib/types";
+
+const LINK_HOVER_CLOSE_DELAY_MS = 420;
+const LINK_HOVER_GAP_PX = 8;
+const LINK_HOVER_BRIDGE_HEIGHT_PX = 20;
+const LINK_HOVER_BRIDGE_MIN_WIDTH_PX = 96;
+
 type EditorSelectionBubbleProps = {
   editor: Editor | null;
   onFormat: (command: "bold" | "italic" | "strike" | "code") => void;
@@ -53,7 +59,7 @@ export function EditorSelectionBubble({
         setLinkPopover((current) =>
           current.mode === "hover" ? closedLinkPopover() : current,
         );
-      }, 140);
+      }, LINK_HOVER_CLOSE_DELAY_MS);
     };
 
     const handleMouseMove = (event: MouseEvent) => {
@@ -84,13 +90,21 @@ export function EditorSelectionBubble({
 
       clearHoverCloseTimeout();
       const bounds = anchor.getBoundingClientRect();
-      const hoverPopoverOverlap = Math.min(Math.max(bounds.height, 0), 8);
       setLinkPopover((current) => {
         if (current.mode === "edit") {
           return current;
         }
 
         return {
+          hoverBridge: {
+            height: LINK_HOVER_BRIDGE_HEIGHT_PX,
+            left: bounds.left + bounds.width / 2,
+            top: Math.max(
+              12,
+              bounds.top - LINK_HOVER_GAP_PX - LINK_HOVER_BRIDGE_HEIGHT_PX,
+            ),
+            width: Math.max(bounds.width + 40, LINK_HOVER_BRIDGE_MIN_WIDTH_PX),
+          },
           from: linkRange.from,
           href: anchor.getAttribute("href") ?? anchor.href,
           left: bounds.left + bounds.width / 2,
@@ -98,12 +112,16 @@ export function EditorSelectionBubble({
           open: true,
           text: anchor.textContent ?? "",
           to: linkRange.to,
-          top: Math.max(12 + hoverPopoverOverlap, bounds.top + hoverPopoverOverlap),
+          top: Math.max(12, bounds.top - LINK_HOVER_GAP_PX),
         };
       });
     };
 
-    const handleMouseLeave = () => {
+    const handleMouseLeave = (event: MouseEvent) => {
+      if (isLinkHoverUiTarget(event.relatedTarget)) {
+        return;
+      }
+
       scheduleHoverClose();
     };
 
@@ -190,6 +208,35 @@ export function EditorSelectionBubble({
           />
         </div>
       ) : null}
+      {linkPopover.open && linkPopover.mode === "hover" && linkPopover.hoverBridge ? (
+        <div
+          className="fixed z-[93]"
+          data-link-hover-bridge="true"
+          data-link-hover-ui="true"
+          onMouseEnter={() => {
+            if (hoverCloseTimeoutRef.current == null) {
+              return;
+            }
+
+            window.clearTimeout(hoverCloseTimeoutRef.current);
+            hoverCloseTimeoutRef.current = null;
+          }}
+          onMouseLeave={() => {
+            hoverCloseTimeoutRef.current = window.setTimeout(() => {
+              setLinkPopover((current) =>
+                current.mode === "hover" ? closedLinkPopover() : current,
+              );
+            }, LINK_HOVER_CLOSE_DELAY_MS);
+          }}
+          style={{
+            height: `${linkPopover.hoverBridge.height}px`,
+            left: `${linkPopover.hoverBridge.left}px`,
+            top: `${linkPopover.hoverBridge.top}px`,
+            transform: "translateX(-50%)",
+            width: `${linkPopover.hoverBridge.width}px`,
+          }}
+        />
+      ) : null}
       {linkPopover.open ? (
         <LinkPopover
           linkPopover={linkPopover}
@@ -210,7 +257,7 @@ export function EditorSelectionBubble({
 
             hoverCloseTimeoutRef.current = window.setTimeout(() => {
               setLinkPopover(closedLinkPopover());
-            }, 120);
+            }, LINK_HOVER_CLOSE_DELAY_MS);
           }}
           onOpenEdit={() => {
             setLinkPopover((current) => ({
@@ -270,6 +317,10 @@ export function EditorSelectionBubble({
     </>,
     globalThis.document.body,
   );
+}
+
+function isLinkHoverUiTarget(target: EventTarget | null) {
+  return target instanceof Element && target.closest("[data-link-hover-ui='true']");
 }
 
 function SelectionActionButton({

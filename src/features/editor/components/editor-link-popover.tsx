@@ -9,6 +9,14 @@ import { useLocale } from "@/components/providers/locale-provider";
 export type LinkPopoverMode = "edit" | "hover" | "insert";
 
 export type LinkPopoverState = {
+  hoverBridge:
+    | {
+        height: number;
+        left: number;
+        top: number;
+        width: number;
+      }
+    | null;
   from: number;
   href: string;
   left: number;
@@ -41,6 +49,7 @@ export function LinkPopover({
   return (
     <div
       className="fixed z-[94] w-[min(360px,calc(100vw-24px))] border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)]"
+      data-link-hover-ui="true"
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
       onPointerDown={stopPopoverPointerDown}
@@ -202,6 +211,7 @@ function EditLinkPopoverContent({
 
 export function closedLinkPopover(): LinkPopoverState {
   return {
+    hoverBridge: null,
     from: 0,
     href: "",
     left: 0,
