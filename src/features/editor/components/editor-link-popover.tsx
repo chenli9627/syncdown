@@ -1,7 +1,6 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
-import { Link2, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -46,9 +45,15 @@ export function LinkPopover({
   onRemove,
   onSave,
 }: LinkPopoverProps) {
+  const hoverCard = linkPopover.mode === "hover";
+
   return (
     <div
-      className="fixed z-[94] w-[min(360px,calc(100vw-24px))] border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-[var(--shadow-soft-card)]"
+      className={`fixed z-[94] border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] ${
+        hoverCard
+          ? "w-[min(560px,calc(100vw-20px))] px-2 py-1.5"
+          : "w-[min(360px,calc(100vw-24px))] p-2.5"
+      }`}
       data-link-hover-ui="true"
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
@@ -93,41 +98,44 @@ function HoverLinkPopoverContent({
   const { t } = useLocale();
 
   return (
-    <div className="space-y-2">
-      <div className="truncate text-[12px] text-[var(--color-foreground)]" title={href}>
+    <div className="flex items-center gap-1.5">
+      <button
+        className="min-w-0 flex-1 truncate border border-[var(--color-border)] px-2 py-1 text-left text-[12px] text-[var(--color-primary)] transition hover:bg-[var(--color-hover)]"
+        onClick={() => {
+          window.open(href, "_blank", "noopener,noreferrer");
+        }}
+        title={href}
+        type="button"
+      >
         {href}
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <button
-          className="flex items-center gap-1 border border-[var(--color-border)] px-2 py-1 text-[12px] transition hover:bg-[var(--color-hover)]"
-          onClick={() => {
-            window.open(href, "_blank", "noopener,noreferrer");
-          }}
-          type="button"
-        >
-          <Link2 className="size-3.5" />
-          {t("openLink")}
-        </button>
-        <div className="flex items-center gap-2">
-          <button
-            className="flex items-center gap-1 border border-[var(--color-border)] px-2 py-1 text-[12px] transition hover:bg-[var(--color-hover)]"
-            onClick={onOpenEdit}
-            type="button"
-          >
-            <Pencil className="size-3.5" />
-            {t("editLink")}
-          </button>
-          <button
-            className="flex items-center gap-1 border border-[var(--color-border)] px-2 py-1 text-[12px] transition hover:bg-[var(--color-hover)]"
-            onClick={onRemove}
-            type="button"
-          >
-            <Trash2 className="size-3.5" />
-            {t("removeLink")}
-          </button>
-        </div>
-      </div>
+      </button>
+      <HoverLinkActionButton
+        label={t("copyLink")}
+        onClick={() => {
+          void navigator.clipboard.writeText(href);
+        }}
+      />
+      <HoverLinkActionButton label={t("editLink")} onClick={onOpenEdit} />
+      <HoverLinkActionButton label={t("removeLink")} onClick={onRemove} />
     </div>
+  );
+}
+
+function HoverLinkActionButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="shrink-0 border border-[var(--color-border)] px-2 py-1 text-[12px] transition hover:bg-[var(--color-hover)]"
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
   );
 }
 
