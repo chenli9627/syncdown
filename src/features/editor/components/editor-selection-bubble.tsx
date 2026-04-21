@@ -38,6 +38,17 @@ export function EditorSelectionBubble({
   const hoverCloseTimeoutRef = useRef<number | null>(null);
   const [linkPopover, setLinkPopover] = useState<LinkPopoverState>(closedLinkPopover);
 
+  const closeHoverPopover = () => {
+    if (hoverCloseTimeoutRef.current != null) {
+      window.clearTimeout(hoverCloseTimeoutRef.current);
+      hoverCloseTimeoutRef.current = null;
+    }
+
+    setLinkPopover((current) =>
+      current.mode === "hover" ? closedLinkPopover() : current,
+    );
+  };
+
   useEffect(() => {
     if (!editor) {
       return;
@@ -52,7 +63,7 @@ export function EditorSelectionBubble({
       hoverCloseTimeoutRef.current = null;
     };
 
-    const closeHoverPopover = () => {
+    const closeEffectHoverPopover = () => {
       clearHoverCloseTimeout();
       setLinkPopover((current) =>
         current.mode === "hover" ? closedLinkPopover() : current,
@@ -60,7 +71,7 @@ export function EditorSelectionBubble({
     };
 
     const scheduleHoverClose = () => {
-      closeHoverPopover();
+      closeEffectHoverPopover();
     };
 
     const handleMouseMove = (event: MouseEvent) => {
@@ -220,7 +231,7 @@ export function EditorSelectionBubble({
             hoverCloseTimeoutRef.current = null;
           }}
           onMouseLeave={() => {
-            scheduleHoverClose();
+            closeHoverPopover();
           }}
           style={{
             height: `${linkPopover.hoverBridge.height}px`,
@@ -249,7 +260,7 @@ export function EditorSelectionBubble({
               return;
             }
 
-            scheduleHoverClose();
+            closeHoverPopover();
           }}
           onOpenEdit={() => {
             setLinkPopover((current) => ({
