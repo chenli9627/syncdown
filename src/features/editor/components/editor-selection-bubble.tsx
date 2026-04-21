@@ -15,8 +15,8 @@ import {
 } from "@/features/editor/components/editor-link-popover";
 import type { SelectionBubbleState } from "@/features/editor/lib/types";
 
-const LINK_HOVER_GAP_PX = 8;
-const LINK_HOVER_BRIDGE_HEIGHT_PX = 32;
+const LINK_HOVER_GAP_PX = 4;
+const LINK_HOVER_BRIDGE_HEIGHT_PX = 36;
 const LINK_HOVER_BRIDGE_MIN_WIDTH_PX = 440;
 
 type EditorSelectionBubbleProps = {
@@ -100,10 +100,7 @@ export function EditorSelectionBubble({
           hoverBridge: {
             height: LINK_HOVER_BRIDGE_HEIGHT_PX,
             left: bounds.left + bounds.width / 2,
-            top: Math.max(
-              12,
-              bounds.top - LINK_HOVER_GAP_PX - LINK_HOVER_BRIDGE_HEIGHT_PX,
-            ),
+            top: Math.max(12, bounds.top - LINK_HOVER_BRIDGE_HEIGHT_PX),
             width: Math.max(bounds.width + 40, LINK_HOVER_BRIDGE_MIN_WIDTH_PX),
           },
           from: linkRange.from,
