@@ -6,6 +6,7 @@ import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
 import {
   Table,
   TableCell,
@@ -105,6 +106,16 @@ export function useSyntextEditor({
         allowBase64: true,
         inline: false,
       }),
+      Link.configure({
+        autolink: true,
+        defaultProtocol: "https",
+        HTMLAttributes: {
+          rel: "noopener noreferrer nofollow",
+          target: "_blank",
+        },
+        linkOnPaste: true,
+        openOnClick: false,
+      }),
       CodeBlockLowlight.configure({
         defaultLanguage: null,
         lowlight: syntextLowlight,
@@ -150,6 +161,17 @@ export function useSyntextEditor({
         const transaction = currentEditor.state.tr.setSelection(selection);
         currentEditor.view.dispatch(transaction);
         currentEditor.commands.focus();
+        return true;
+      },
+      handleClick: (_view, _pos, event) => {
+        const link = (event.target as HTMLElement | null)?.closest("a[href]");
+
+        if (!(link instanceof HTMLAnchorElement)) {
+          return false;
+        }
+
+        event.preventDefault();
+        window.open(link.href, "_blank", "noopener,noreferrer");
         return true;
       },
       handleKeyDown: (_view, event) => {

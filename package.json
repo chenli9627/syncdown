@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "node ./scripts/run-with-collab.mjs dev",
     "dev:app": "next dev --hostname 0.0.0.0 --port 3000",
+    "dev:reset-state": "node ./scripts/reset-dev-state.mjs",
+    "dev:sync-media": "node ./scripts/sync-local-media-to-s3.mjs",
     "build": "next build",
     "start": "node ./scripts/run-with-collab.mjs start",
     "start:app": "next start --hostname 0.0.0.0 --port 3000",
@@ -21,6 +23,7 @@
     "@tiptap/extension-collaboration": "^3.22.3",
     "@tiptap/extension-collaboration-caret": "3.22.3",
     "@tiptap/extension-image": "^3.22.3",
+    "@tiptap/extension-link": "^3.22.3",
     "@tiptap/extension-table": "^3.22.3",
     "@tiptap/extension-task-item": "^3.22.3",
     "@tiptap/extension-task-list": "^3.22.3",
