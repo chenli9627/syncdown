@@ -84,6 +84,7 @@ export function EditorSelectionBubble({
 
       clearHoverCloseTimeout();
       const bounds = anchor.getBoundingClientRect();
+      const hoverPopoverOverlap = Math.min(Math.max(bounds.height, 0), 8);
       setLinkPopover((current) => {
         if (current.mode === "edit") {
           return current;
@@ -97,7 +98,7 @@ export function EditorSelectionBubble({
           open: true,
           text: anchor.textContent ?? "",
           to: linkRange.to,
-          top: Math.max(12, bounds.top - 10),
+          top: Math.max(12 + hoverPopoverOverlap, bounds.top + hoverPopoverOverlap),
         };
       });
     };
