@@ -15,7 +15,7 @@ import {
 } from "@/features/editor/components/editor-link-popover";
 import type { SelectionBubbleState } from "@/features/editor/lib/types";
 
-const LINK_HOVER_CLOSE_DELAY_MS = 420;
+const LINK_HOVER_CLOSE_DELAY_MS = 120;
 const LINK_HOVER_GAP_PX = 8;
 const LINK_HOVER_BRIDGE_HEIGHT_PX = 20;
 const LINK_HOVER_BRIDGE_MIN_WIDTH_PX = 96;

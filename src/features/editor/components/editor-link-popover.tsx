@@ -51,7 +51,7 @@ export function LinkPopover({
     <div
       className={`fixed z-[94] border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] ${
         hoverCard
-          ? "w-[min(560px,calc(100vw-20px))] px-2 py-1.5"
+          ? "w-[400px] max-w-[calc(100vw-20px)] px-2 py-1.5"
           : "w-[min(360px,calc(100vw-24px))] p-2.5"
       }`}
       data-link-hover-ui="true"
