@@ -78,11 +78,8 @@ function TableOfContentsNodeView({ editor, selected }: NodeViewProps) {
         <div className="space-y-[1px]">
           {outline.headings.map((heading) => (
             <button
-              className={`block w-full truncate px-1 py-[1px] text-left text-[15px] leading-7 underline decoration-[color-mix(in_srgb,var(--color-muted-foreground)_38%,transparent)] underline-offset-[3px] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] ${
-                outline.activeId === heading.id
-                  ? "text-[var(--color-foreground)]"
-                  : "text-[var(--color-muted-foreground)]"
-              }`}
+              aria-current={outline.activeId === heading.id ? "location" : undefined}
+              className="block w-full truncate py-[1px] pr-1 text-left text-[15px] leading-7 text-[var(--color-muted-foreground)] underline decoration-[color-mix(in_srgb,var(--color-muted-foreground)_38%,transparent)] underline-offset-[3px] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
               key={heading.id}
               onClick={(event) => {
                 event.preventDefault();
@@ -92,7 +89,7 @@ function TableOfContentsNodeView({ editor, selected }: NodeViewProps) {
                 event.preventDefault();
               }}
               style={{
-                paddingLeft: `${4 + (heading.level - 1) * 18}px`,
+                paddingLeft: `${(heading.level - 1) * 18}px`,
               }}
               type="button"
             >
@@ -101,7 +98,7 @@ function TableOfContentsNodeView({ editor, selected }: NodeViewProps) {
           ))}
         </div>
       ) : (
-        <p className="m-0 px-1 text-[15px] leading-7 text-[var(--color-muted-foreground)]">
+        <p className="m-0 text-[15px] leading-7 text-[var(--color-muted-foreground)]">
           {t("tableOfContentsEmpty")}
         </p>
       )}
