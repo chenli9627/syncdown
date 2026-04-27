@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   diffVersionText,
   getVersionComparison,
+  htmlToVersionText,
 } from "../src/features/editor/lib/version-history";
 
 test("diffs chinese text at character granularity", () => {
@@ -119,4 +120,63 @@ test("diffs empty previous text as fully added", () => {
   assert.deepEqual(diffVersionText("", "first version"), [
     { text: "first version", type: "added" },
   ]);
+});
+
+test("htmlToVersionText represents single image with placeholder", () => {
+  if (typeof DOMParser === "undefined") {
+    return;
+  }
+  const labels = { single: "[Image]", plural: (n: number) => `[${n} Images]` };
+  assert.equal(htmlToVersionText('<p><img src="/api/media/test.png"></p>', labels), "[Image]");
+});
+
+test("htmlToVersionText represents multiple images with count", () => {
+  if (typeof DOMParser === "undefined") {
+    return;
+  }
+  const labels = { single: "[Image]", plural: (n: number) => `[${n} Images]` };
+  assert.equal(
+    htmlToVersionText('<p><img src="/api/media/a.png"><img src="/api/media/b.png"></p>', labels),
+    "[2 Images]",
+  );
+});
+
+test("htmlToVersionText combines image placeholder with text", () => {
+  if (typeof DOMParser === "undefined") {
+    return;
+  }
+  const labels = { single: "[Image]", plural: (n: number) => `[${n} Images]` };
+  assert.equal(
+    htmlToVersionText('<p>Some text <img src="/api/media/test.png"></p>', labels),
+    "Some text [Image]",
+  );
+});
+
+test("htmlToVersionText falls back to default English placeholders without labels", () => {
+  if (typeof DOMParser === "undefined") {
+    return;
+  }
+  assert.equal(
+    htmlToVersionText('<p><img src="/api/media/test.png"></p>'),
+    "[Image]",
+  );
+  assert.equal(
+    htmlToVersionText('<p><img src="/api/media/a.png"><img src="/api/media/b.png"></p>'),
+    "[2 Images]",
+  );
+});
+
+test("htmlToVersionText extracts text from paragraphs", () => {
+  if (typeof DOMParser === "undefined") {
+    return;
+  }
+  assert.equal(htmlToVersionText("<p>Hello</p><p>World</p>"), "Hello\n\nWorld");
+});
+
+test("htmlToVersionText returns empty string for empty content", () => {
+  if (typeof DOMParser === "undefined") {
+    return;
+  }
+  assert.equal(htmlToVersionText(""), "");
+  assert.equal(htmlToVersionText("   "), "");
 });

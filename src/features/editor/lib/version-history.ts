@@ -34,7 +34,7 @@ export function getVersionComparison(
   };
 }
 
-export function htmlToVersionText(html: string) {
+export function htmlToVersionText(html: string, imageLabels?: { single: string; plural: (count: number) => string }) {
   if (!html.trim()) {
     return "";
   }
@@ -44,13 +44,33 @@ export function htmlToVersionText(html: string) {
   const blocks = Array.from(doc.body.children);
 
   if (!blocks.length) {
-    return doc.body.textContent?.trim() ?? "";
+    return blockToVersionText(doc.body, imageLabels);
   }
 
   return blocks
-    .map((block) => block.textContent?.trim() ?? "")
+    .map((block) => blockToVersionText(block, imageLabels))
     .filter(Boolean)
     .join("\n\n");
+}
+
+function blockToVersionText(block: Element, imageLabels?: { single: string; plural: (count: number) => string }): string {
+  const images = block.querySelectorAll("img");
+  const hasImage = images.length > 0;
+  const text = block.textContent?.trim() ?? "";
+
+  if (!hasImage) {
+    return text;
+  }
+
+  const imageLabel = imageLabels
+    ? (images.length === 1 ? imageLabels.single : imageLabels.plural(images.length))
+    : (images.length === 1 ? "[Image]" : `[${images.length} Images]`);
+
+  if (!text) {
+    return imageLabel;
+  }
+
+  return `${text} ${imageLabel}`;
 }
 
 export function diffVersionText(previousText: string, currentText: string): VersionDiffPart[] {
