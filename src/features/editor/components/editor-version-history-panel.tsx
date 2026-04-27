@@ -31,13 +31,13 @@ export function EditorVersionHistoryPanel({
     versions.find((version) => version.id === activeVersionId) ?? null;
 
   return (
-    <aside className="absolute inset-4 z-[45] flex overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
+    <aside className="fixed bottom-4 left-4 right-4 top-4 z-[45] flex min-h-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] md:left-[288px]">
       <EditorVersionHistoryPreview
         document={document}
         selectedVersion={selectedVersion}
       />
 
-      <div className="flex w-[min(340px,34vw)] min-w-[280px] shrink-0 flex-col border-l border-[var(--color-border)] bg-[var(--color-card)]">
+      <div className="flex min-h-0 w-[min(340px,34vw)] min-w-[280px] shrink-0 flex-col border-l border-[var(--color-border)] bg-[var(--color-card)]">
         <div className="shrink-0 flex items-center justify-between px-5 py-4">
           <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
             {t("versionHistory")}

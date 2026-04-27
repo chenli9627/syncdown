@@ -24,7 +24,7 @@ export function EditorVersionHistoryPreview({
     : [{ text: currentText, type: "unchanged" as const }];
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--color-card)]">
+    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--color-card)]">
       <div className="syntext-editor mx-auto min-h-full max-w-4xl px-12 py-10 text-base leading-8 text-[var(--color-foreground)]">
         <div className="whitespace-pre-wrap">
           {parts.length > 0 ? (
