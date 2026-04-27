@@ -60,9 +60,6 @@ export function EditorVersionHistoryPreview({
   return (
     <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--color-card)]">
       <div className="mx-auto min-h-full max-w-4xl px-12 py-10 text-sm leading-6">
-        <div className="mb-6 border-b border-[var(--color-border)] pb-4 text-xs text-[var(--color-muted-foreground)]">
-          {t("versionDiffLabel")}
-        </div>
         <div className="whitespace-pre-wrap text-[var(--color-foreground)]">
           {parts.length > 0 ? (
             parts.map((part, index) => (
@@ -82,12 +79,6 @@ export function EditorVersionHistoryPreview({
           ) : (
             <span className="text-[var(--color-muted-foreground)]">{emptyLabel}</span>
           )}
-        </div>
-        <div className="mt-6 border-t border-[var(--color-border)] pt-4 text-xs text-[var(--color-muted-foreground)]">
-          {t("versionPreviewLabel")}
-        </div>
-        <div className="syntext-editor mt-2">
-          <VersionHtmlContent html={currentContent} emptyLabel={emptyLabel} />
         </div>
       </div>
     </div>
