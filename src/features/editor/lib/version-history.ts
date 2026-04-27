@@ -12,6 +12,30 @@ export type VersionComparison = {
   previousContent: string | null;
 };
 
+type VersionImageLabels = { single: string; plural: (count: number) => string };
+
+type CurrentVersionTokenEntry =
+  | {
+      kind: "image";
+      token: string;
+      node: HTMLImageElement;
+    }
+  | {
+      kind: "separator";
+      token: string;
+    }
+  | {
+      kind: "text";
+      token: string;
+      node: Text;
+    };
+
+type AnnotatedTextToken = {
+  beforeRemoved: string;
+  text: string;
+  type: "added" | "unchanged";
+};
+
 export function getVersionComparison(
   document: Pick<DocumentRecord, "content" | "versionHistory">,
   selectedVersion: DocumentVersion | null,
@@ -34,7 +58,88 @@ export function getVersionComparison(
   };
 }
 
-export function htmlToVersionText(html: string, imageLabels?: { single: string; plural: (count: number) => string }) {
+export function buildVersionDiffHtml(
+  currentHtml: string,
+  previousHtml: string,
+  imageLabels?: VersionImageLabels,
+) {
+  const parser = new DOMParser();
+  const currentDoc = parser.parseFromString(currentHtml, "text/html");
+  const previousDoc = parser.parseFromString(previousHtml, "text/html");
+  const currentEntries = getCurrentVersionTokenEntries(currentDoc.body, imageLabels);
+  const previousTokens = getVersionTextTokens(previousDoc.body, imageLabels);
+  const currentTokens = currentEntries.map((entry) => entry.token);
+  const parts = diffVersionTokens(previousTokens, currentTokens);
+  const statusTokens = parts.flatMap((part) =>
+    tokenizeVersionText(part.text).map((token) => ({
+      text: token,
+      type: part.type,
+    })),
+  );
+  const textNodeAnnotations = new Map<Text, AnnotatedTextToken[]>();
+  let statusIndex = 0;
+  let pendingRemovedText = "";
+
+  for (const entry of currentEntries) {
+    while (statusTokens[statusIndex]?.type === "removed") {
+      pendingRemovedText += statusTokens[statusIndex]?.text ?? "";
+      statusIndex += 1;
+    }
+
+    const status = statusTokens[statusIndex];
+    const entryType = status?.type === "added" ? "added" : "unchanged";
+
+    if (status && status.type !== "removed") {
+      statusIndex += 1;
+    }
+
+    if (entry.kind === "separator") {
+      continue;
+    }
+
+    const beforeRemoved = pendingRemovedText;
+    pendingRemovedText = "";
+
+    if (entry.kind === "image") {
+      insertRemovedTextBefore(entry.node, beforeRemoved);
+
+      if (entryType === "added") {
+        entry.node.style.outline = "2px solid var(--color-primary)";
+        entry.node.style.outlineOffset = "2px";
+      }
+      continue;
+    }
+
+    const annotations = textNodeAnnotations.get(entry.node) ?? [];
+    annotations.push({
+      beforeRemoved,
+      text: entry.token,
+      type: entryType,
+    });
+    textNodeAnnotations.set(entry.node, annotations);
+  }
+
+  while (statusIndex < statusTokens.length) {
+    const status = statusTokens[statusIndex];
+
+    if (status?.type === "removed") {
+      pendingRemovedText += status.text;
+    }
+    statusIndex += 1;
+  }
+
+  for (const [textNode, annotations] of textNodeAnnotations.entries()) {
+    replaceTextNodeWithAnnotations(currentDoc, textNode, annotations);
+  }
+
+  if (pendingRemovedText) {
+    currentDoc.body.append(createRemovedTextElement(currentDoc, pendingRemovedText));
+  }
+
+  return currentDoc.body.innerHTML;
+}
+
+export function htmlToVersionText(html: string, imageLabels?: VersionImageLabels) {
   if (!html.trim()) {
     return "";
   }
@@ -53,7 +158,7 @@ export function htmlToVersionText(html: string, imageLabels?: { single: string; 
     .join("\n\n");
 }
 
-function blockToVersionText(block: Element, imageLabels?: { single: string; plural: (count: number) => string }): string {
+function blockToVersionText(block: Element, imageLabels?: VersionImageLabels): string {
   const images = block.querySelectorAll("img");
   const hasImage = images.length > 0;
   const text = block.textContent?.trim() ?? "";
@@ -74,8 +179,10 @@ function blockToVersionText(block: Element, imageLabels?: { single: string; plur
 }
 
 export function diffVersionText(previousText: string, currentText: string): VersionDiffPart[] {
-  const previousTokens = tokenizeVersionText(previousText);
-  const currentTokens = tokenizeVersionText(currentText);
+  return diffVersionTokens(tokenizeVersionText(previousText), tokenizeVersionText(currentText));
+}
+
+function diffVersionTokens(previousTokens: string[], currentTokens: string[]): VersionDiffPart[] {
   const lengths = buildLcsLengths(previousTokens, currentTokens);
   const parts: VersionDiffPart[] = [];
   let previousIndex = 0;
@@ -113,6 +220,104 @@ export function diffVersionText(previousText: string, currentText: string): Vers
   }
 
   return parts;
+}
+
+function getCurrentVersionTokenEntries(
+  body: HTMLElement,
+  imageLabels?: VersionImageLabels,
+): CurrentVersionTokenEntry[] {
+  const entries: CurrentVersionTokenEntry[] = [];
+  const blocks = Array.from(body.children);
+
+  if (!blocks.length) {
+    collectCurrentTokenEntries(body, entries, imageLabels);
+    return entries;
+  }
+
+  blocks.forEach((block, index) => {
+    if (index > 0) {
+      entries.push({ kind: "separator", token: "\n\n" });
+    }
+    collectCurrentTokenEntries(block, entries, imageLabels);
+  });
+
+  return entries;
+}
+
+function getVersionTextTokens(body: HTMLElement, imageLabels?: VersionImageLabels) {
+  return getCurrentVersionTokenEntries(body, imageLabels).map((entry) => entry.token);
+}
+
+function collectCurrentTokenEntries(
+  node: Node,
+  entries: CurrentVersionTokenEntry[],
+  imageLabels?: VersionImageLabels,
+) {
+  if (node instanceof Text) {
+    for (const token of tokenizeVersionText(node.textContent ?? "")) {
+      entries.push({ kind: "text", node, token });
+    }
+    return;
+  }
+
+  if (node instanceof HTMLImageElement) {
+    entries.push({ kind: "image", node, token: getImageLabel(1, imageLabels) });
+    return;
+  }
+
+  for (const child of Array.from(node.childNodes)) {
+    collectCurrentTokenEntries(child, entries, imageLabels);
+  }
+}
+
+function getImageLabel(count: number, imageLabels?: VersionImageLabels) {
+  if (imageLabels) {
+    return count === 1 ? imageLabels.single : imageLabels.plural(count);
+  }
+
+  return count === 1 ? "[Image]" : `[${count} Images]`;
+}
+
+function replaceTextNodeWithAnnotations(
+  doc: Document,
+  textNode: Text,
+  annotations: AnnotatedTextToken[],
+) {
+  const fragment = doc.createDocumentFragment();
+
+  for (const annotation of annotations) {
+    if (annotation.beforeRemoved) {
+      fragment.append(createRemovedTextElement(doc, annotation.beforeRemoved));
+    }
+
+    if (annotation.type === "added") {
+      const added = doc.createElement("span");
+      added.style.color = "var(--color-primary)";
+      added.textContent = annotation.text;
+      fragment.append(added);
+      continue;
+    }
+
+    fragment.append(doc.createTextNode(annotation.text));
+  }
+
+  textNode.replaceWith(fragment);
+}
+
+function insertRemovedTextBefore(node: Node, text: string) {
+  if (!text) {
+    return;
+  }
+
+  node.parentNode?.insertBefore(createRemovedTextElement(node.ownerDocument, text), node);
+}
+
+function createRemovedTextElement(doc: Document, text: string) {
+  const removed = doc.createElement("span");
+  removed.style.color = "var(--color-muted-foreground)";
+  removed.style.textDecoration = "line-through";
+  removed.textContent = text;
+  return removed;
 }
 
 function tokenizeVersionText(text: string) {

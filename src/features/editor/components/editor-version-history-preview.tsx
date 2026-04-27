@@ -3,7 +3,7 @@
 import type { DocumentVersion } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
-  diffVersionText,
+  buildVersionDiffHtml,
   htmlToVersionText,
 } from "@/features/editor/lib/version-history";
 
@@ -55,32 +55,11 @@ export function EditorVersionHistoryPreview({
     );
   }
 
-  const parts = diffVersionText(previousText, currentText);
+  const diffHtml = buildVersionDiffHtml(currentContent, previousContent, imageLabels);
 
   return (
     <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--color-card)]">
-      <div className="mx-auto min-h-full max-w-4xl px-12 py-10 text-sm leading-6">
-        <div className="whitespace-pre-wrap text-[var(--color-foreground)]">
-          {parts.length > 0 ? (
-            parts.map((part, index) => (
-              <span
-                className={
-                  part.type === "added"
-                    ? "text-[var(--color-primary)]"
-                    : part.type === "removed"
-                      ? "text-[var(--color-muted-foreground)] line-through"
-                      : undefined
-                }
-                key={`${part.type}-${index}`}
-              >
-                {part.text}
-              </span>
-            ))
-          ) : (
-            <span className="text-[var(--color-muted-foreground)]">{emptyLabel}</span>
-          )}
-        </div>
-      </div>
+      <VersionHtmlRenderer html={diffHtml} emptyLabel={emptyLabel} />
     </div>
   );
 }
