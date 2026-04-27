@@ -68,17 +68,18 @@ export function EditorVersionHistoryPreview({
 }
 
 function VersionHtmlRenderer({ html, emptyLabel }: { html: string; emptyLabel: string }) {
-  return (
-    <div className={`${versionPreviewClassName} text-[var(--color-foreground)]`}>
-      <VersionHtmlContent html={html} emptyLabel={emptyLabel} />
-    </div>
-  );
-}
-
-function VersionHtmlContent({ html, emptyLabel }: { html: string; emptyLabel: string }) {
   if (!html.trim()) {
-    return <p className="text-[var(--color-muted-foreground)]">{emptyLabel}</p>;
+    return (
+      <div className={`${versionPreviewClassName} text-[var(--color-foreground)]`}>
+        <p className="text-[var(--color-muted-foreground)]">{emptyLabel}</p>
+      </div>
+    );
   }
 
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  return (
+    <div
+      className={`${versionPreviewClassName} text-[var(--color-foreground)]`}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildVersionDiffHtml,
   diffVersionText,
   getVersionComparison,
   htmlToVersionText,
@@ -171,6 +172,21 @@ test("htmlToVersionText extracts text from paragraphs", () => {
     return;
   }
   assert.equal(htmlToVersionText("<p>Hello</p><p>World</p>"), "Hello\n\nWorld");
+});
+
+test("version diff keeps added blank blocks without added styling", () => {
+  if (typeof DOMParser === "undefined") {
+    return;
+  }
+
+  const html = buildVersionDiffHtml(
+    "<p>Hello</p><p><br></p><p>World</p>",
+    "<p>Hello</p><p>World</p>",
+  );
+
+  assert.match(html, /<p><br><\/p>/);
+  assert.doesNotMatch(html, /color:\s*var\(--color-primary\)/);
+  assert.doesNotMatch(html, /border-left:\s*3px solid var\(--color-primary\)/);
 });
 
 test("htmlToVersionText returns empty string for empty content", () => {
