@@ -31,7 +31,7 @@ export function getVersionComparison(
   if (selectedIndex === 0 && selectedVersion.content === document.content) {
     return {
       currentContent: selectedVersion.content,
-      previousContent: versions[1]?.content ?? null,
+      previousContent: versions[1]?.content ?? "",
     };
   }
 

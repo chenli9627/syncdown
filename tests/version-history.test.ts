@@ -91,3 +91,32 @@ test("compares a current snapshot against the previous fixed version", () => {
     },
   );
 });
+
+test("compares the first snapshot against empty content", () => {
+  const document = {
+    content: "<p>first version</p>",
+    versionHistory: [
+      {
+        content: "<p>first version</p>",
+        createdAt: "2026-04-28T00:10:00.000Z",
+        id: "version_1",
+        title: "Doc",
+        userId: "user_one",
+      },
+    ],
+  };
+
+  assert.deepEqual(
+    getVersionComparison(document, document.versionHistory[0] ?? null),
+    {
+      currentContent: "<p>first version</p>",
+      previousContent: "",
+    },
+  );
+});
+
+test("diffs first snapshot text as fully added", () => {
+  assert.deepEqual(diffVersionText("", "first version"), [
+    { text: "first version", type: "added" },
+  ]);
+});
