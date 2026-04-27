@@ -119,3 +119,100 @@ test("calls remote responses endpoint when AI environment is configured", async 
     viewOnly: false,
   });
 });
+
+test("falls back to chat completions when responses endpoint does not return content", async () => {
+  process.env.AI_API_KEY = "secret";
+  process.env.AI_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+  process.env.AI_MODEL = "qwen3.6-flash";
+  process.env.AI_SECONDARY_MODEL = "deepseek-v4-flash";
+
+  const requestedUrls: string[] = [];
+  const requestedModels: string[] = [];
+  global.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input.toString();
+    const body = JSON.parse(String(init?.body ?? "{}")) as { model?: string };
+    requestedUrls.push(url);
+    requestedModels.push(body.model ?? "");
+
+    if (url.endsWith("/responses") && body.model === "qwen3.6-flash") {
+      return new Response(
+        JSON.stringify({
+          output_text: "Qwen response answer",
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        },
+      );
+    }
+
+    if (url.endsWith("/responses")) {
+      return new Response(
+        JSON.stringify({
+          code: "InvalidParameter",
+          message: "Unsupported model",
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+          status: 400,
+        },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              content: "DeepSeek chat answer",
+            },
+          },
+        ],
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      },
+    );
+  }) as typeof fetch;
+
+  const response = await POST(
+    new Request("http://localhost/api/ai/action", {
+      body: JSON.stringify({
+        action: "summarize",
+        locale: "zh",
+        selectedText: "需要总结的文字",
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    }),
+  );
+  const payload = await response.json();
+
+  assert.deepEqual(requestedUrls, [
+    "https://dashscope.aliyuncs.com/compatible-mode/v1/responses",
+    "https://dashscope.aliyuncs.com/compatible-mode/v1/responses",
+    "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+  ]);
+  assert.deepEqual(requestedModels, [
+    "qwen3.6-flash",
+    "deepseek-v4-flash",
+    "deepseek-v4-flash",
+  ]);
+  assert.equal(response.status, 200);
+  assert.deepEqual(payload, {
+    candidates: [
+      {
+        model: "qwen3.6-flash",
+        result: "Qwen response answer",
+      },
+      {
+        model: "deepseek-v4-flash",
+        result: "DeepSeek chat answer",
+      },
+    ],
+    ok: true,
+    source: "remote",
+    viewOnly: true,
+  });
+});

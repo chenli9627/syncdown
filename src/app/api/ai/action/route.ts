@@ -114,6 +114,37 @@ async function requestAiCandidate({
   model: string;
   payload: AiRequestPayload;
 }) {
+  return (
+    (await requestResponsesCandidate({
+      apiKey,
+      baseUrl,
+      locale,
+      model,
+      payload,
+    })) ??
+    (await requestChatCandidate({
+      apiKey,
+      baseUrl,
+      locale,
+      model,
+      payload,
+    }))
+  );
+}
+
+async function requestResponsesCandidate({
+  apiKey,
+  baseUrl,
+  locale,
+  model,
+  payload,
+}: {
+  apiKey: string;
+  baseUrl: string;
+  locale: Locale;
+  model: string;
+  payload: AiRequestPayload;
+}) {
   try {
     const response = await fetch(resolveResponsesEndpoint(baseUrl), {
       body: JSON.stringify({
@@ -121,10 +152,7 @@ async function requestAiCandidate({
           {
             content: [
               {
-                text:
-                  locale === "zh"
-                    ? "你是 Syncdown 的写作助手。只返回最终结果，不要加寒暄，不要用 markdown 代码块包裹。"
-                    : "You are Syncdown's writing assistant. Return only the final result, no preamble, and do not wrap the answer in markdown code fences.",
+                text: getAiSystemPrompt(locale),
                 type: "input_text",
               },
             ],
@@ -170,6 +198,68 @@ async function requestAiCandidate({
   }
 }
 
+async function requestChatCandidate({
+  apiKey,
+  baseUrl,
+  locale,
+  model,
+  payload,
+}: {
+  apiKey: string;
+  baseUrl: string;
+  locale: Locale;
+  model: string;
+  payload: AiRequestPayload;
+}) {
+  try {
+    const response = await fetch(resolveChatCompletionsEndpoint(baseUrl), {
+      body: JSON.stringify({
+        messages: [
+          {
+            content: getAiSystemPrompt(locale),
+            role: "system",
+          },
+          {
+            content: buildAiUserPrompt(payload),
+            role: "user",
+          },
+        ],
+        model,
+        temperature: 0.3,
+      }),
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as OpenAiCompatibleResponse;
+    const content = extractResponseText(data).trim();
+
+    if (!content) {
+      return null;
+    }
+
+    return {
+      model,
+      result: content,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getAiSystemPrompt(locale: Locale) {
+  return locale === "zh"
+    ? "你是 Syncdown 的写作助手。只返回最终结果，不要加寒暄，不要用 markdown 代码块包裹。"
+    : "You are Syncdown's writing assistant. Return only the final result, no preamble, and do not wrap the answer in markdown code fences.";
+}
+
 function extractResponseText(data: OpenAiCompatibleResponse) {
   if (typeof data.output_text === "string") {
     return data.output_text;
@@ -212,4 +302,18 @@ function resolveResponsesEndpoint(baseUrl: string) {
   }
 
   return `${trimmed}/responses`;
+}
+
+function resolveChatCompletionsEndpoint(baseUrl: string) {
+  const trimmed = baseUrl.replace(/\/+$/, "");
+
+  if (trimmed.endsWith("/chat/completions")) {
+    return trimmed;
+  }
+
+  if (trimmed.endsWith("/responses")) {
+    return trimmed.replace(/\/responses$/, "/chat/completions");
+  }
+
+  return `${trimmed}/chat/completions`;
 }
