@@ -20,6 +20,7 @@ type EditorBlockMenuProps = {
   handleTurnInto: (item: BlockTransformItem) => void;
   isImageBlock: boolean;
   isTableBlock: boolean;
+  isTableOfContentsBlock: boolean;
   setBlockMenu: (
     value:
       | {
@@ -65,6 +66,7 @@ export function EditorBlockMenu({
   handleTurnInto,
   isImageBlock,
   isTableBlock,
+  isTableOfContentsBlock,
   setBlockMenu,
   showTurnInto,
   turnIntoAlign,
@@ -83,7 +85,7 @@ export function EditorBlockMenu({
         top: `${blockMenuTop}px`,
       }}
     >
-      {!isImageBlock && !isTableBlock ? (
+      {!isImageBlock && !isTableBlock && !isTableOfContentsBlock ? (
         <div
           className="relative"
           onMouseEnter={() => {
@@ -146,16 +148,18 @@ export function EditorBlockMenu({
           ) : null}
         </div>
       ) : null}
-      <button
-        className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
-        onClick={handleDuplicateBlock}
-        type="button"
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          <Copy className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
-              <span>{t("duplicate")}</span>
-            </span>
-      </button>
+      {!isTableOfContentsBlock ? (
+        <button
+          className="flex w-full items-center justify-between gap-2.5 px-2 py-1.5 text-left text-[12px] text-[var(--color-foreground)] transition hover:bg-[var(--color-hover)]"
+          onClick={handleDuplicateBlock}
+          type="button"
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <Copy className="size-3.5 shrink-0 text-[var(--color-muted-foreground)]" />
+            <span>{t("duplicate")}</span>
+          </span>
+        </button>
+      ) : null}
       {isTableBlock ? (
         <>
           <button

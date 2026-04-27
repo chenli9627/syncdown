@@ -164,5 +164,52 @@ function collectOutline(editor: Editor): OutlineState {
 function jumpToHeading(editor: Editor, pos: number) {
   const targetPos = Math.min(pos + 1, editor.state.doc.content.size);
 
-  editor.chain().focus().setTextSelection(targetPos).scrollIntoView().run();
+  editor.chain().focus().setTextSelection(targetPos).run();
+
+  window.requestAnimationFrame(() => {
+    const domNode = editor.view.nodeDOM(pos);
+    const element = domNode instanceof HTMLElement ? domNode : domNode?.parentElement;
+
+    if (element) {
+      scrollElementToCenter(element);
+    }
+  });
+}
+
+function scrollElementToCenter(element: HTMLElement) {
+  const scroller = getScrollContainer(element);
+  const elementRect = element.getBoundingClientRect();
+
+  if (!scroller) {
+    const delta = elementRect.top + elementRect.height / 2 - window.innerHeight / 2;
+    window.scrollBy({
+      top: delta,
+    });
+    return;
+  }
+
+  const scrollerRect = scroller.getBoundingClientRect();
+  const delta =
+    elementRect.top +
+    elementRect.height / 2 -
+    (scrollerRect.top + scrollerRect.height / 2);
+
+  scroller.scrollTop += delta;
+}
+
+function getScrollContainer(element: HTMLElement) {
+  let current = element.parentElement;
+
+  while (current) {
+    const style = window.getComputedStyle(current);
+    const canScroll = /(auto|scroll)/.test(`${style.overflowY}${style.overflow}`);
+
+    if (canScroll && current.scrollHeight > current.clientHeight) {
+      return current;
+    }
+
+    current = current.parentElement;
+  }
+
+  return null;
 }

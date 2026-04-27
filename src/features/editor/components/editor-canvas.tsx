@@ -1190,6 +1190,7 @@ export function EditorCanvas({
                 handleTurnInto={handleTurnInto}
                 isImageBlock={currentTransformActiveId === "image"}
                 isTableBlock={currentTransformActiveId === "table"}
+                isTableOfContentsBlock={currentTransformActiveId === "table-of-contents"}
                 setBlockMenu={setBlockMenu}
                 showTurnInto={blockMenu.showTurnInto}
                 turnIntoAlign={blockMenu.turnIntoAlign}
