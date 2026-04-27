@@ -1,0 +1,5 @@
+ignoredBuiltDependencies:
+  - '@ast-grep/cli'
+  - '@code-yeongyu/comment-checker'
+  - msgpackr-extract
+  - oh-my-opencode
