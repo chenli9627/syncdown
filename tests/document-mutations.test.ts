@@ -346,6 +346,58 @@ test("forced document saves keep the previous content restorable inside the merg
   assert.equal(document?.versionHistory?.[1]?.content, "<p>Shared content</p>");
 });
 
+test("restoring a version preserves supported rich text html", () => {
+  const richVersionContent = [
+    "<h1>Heading</h1>",
+    "<p><strong>Bold</strong> <em>Italic</em> <s>Deleted</s> <code>inline()</code> <a href=\"https://example.com\">Link</a></p>",
+    "<ul><li><p>Bullet item</p></li></ul>",
+    "<ol><li><p>Number item</p></li></ol>",
+    "<pre><code>const value = 1;</code></pre>",
+    "<table><tbody><tr><th><p>Name</p></th><th><p>Value</p></th></tr><tr><td><p>A</p></td><td><p>1</p></td></tr></tbody></table>",
+    "<p><img src=\"/api/media/rich-image.png\" alt=\"Rich image\"></p>",
+  ].join("");
+  const editedRichContent = [
+    "<h2>Edited heading</h2>",
+    "<p>Edited body</p>",
+    "<table><tbody><tr><td><p>Changed</p></td></tr></tbody></table>",
+  ].join("");
+  const state = {
+    ...createState(),
+    documents: createState().documents.map((document) =>
+      document.id === "doc_shared"
+        ? {
+            ...document,
+            content: richVersionContent,
+          }
+        : document,
+    ),
+  };
+  const edited = updateDocumentForUser(state, "user_one", "doc_shared", {
+    content: editedRichContent,
+  });
+
+  assert.equal(edited.ok, true);
+  if (!edited.ok) {
+    return;
+  }
+
+  const restored = updateDocumentForUser(edited.state, "user_one", "doc_shared", {
+    content: richVersionContent,
+    versionHistoryMode: "force",
+  });
+
+  assert.equal(restored.ok, true);
+  if (!restored.ok) {
+    return;
+  }
+
+  const document = restored.state.documents.find((entry) => entry.id === "doc_shared");
+  assert.equal(document?.content, richVersionContent);
+  assert.equal(document?.versionHistory?.length, 2);
+  assert.equal(document?.versionHistory?.[0]?.content, editedRichContent);
+  assert.equal(document?.versionHistory?.[1]?.content, richVersionContent);
+});
+
 test("snapshot saves fix the current content as a version without duplicating it", () => {
   const edited = updateDocumentForUser(createState(), "user_one", "doc_shared", {
     content: "<p>First edit</p>",
