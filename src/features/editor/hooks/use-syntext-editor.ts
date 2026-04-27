@@ -62,6 +62,7 @@ export function useSyntextEditor({
   const saveTimeoutRef = useRef<number | null>(null);
   const versionFinalizeTimeoutRef = useRef<number | null>(null);
   const seededInitialContentRef = useRef(false);
+  const hasEditorChangesSinceSnapshotRef = useRef(false);
   const [editorReadyVersion, setEditorReadyVersion] = useState(0);
 
   function clearVersionFinalizeTimer() {
@@ -89,14 +90,21 @@ export function useSyntextEditor({
 
       if (!result.ok) {
         setStatus("error");
+        return;
       }
+
+      hasEditorChangesSinceSnapshotRef.current = false;
     }, 2 * 60 * 1000);
   }
 
-  async function saveEditorContentNow(currentEditor: Editor, options?: { finalizeVersion?: boolean }) {
+  async function saveEditorContentNow(
+    currentEditor: Editor,
+    options?: { finalizeVersion?: boolean; snapshotVersion?: boolean },
+  ) {
     setStatus("saving");
+    const currentContent = currentEditor.getHTML();
     const result = await saveDocument(documentId, {
-      content: currentEditor.getHTML(),
+      content: currentContent,
     });
 
     if (!result.ok) {
@@ -104,12 +112,26 @@ export function useSyntextEditor({
       return;
     }
 
+    if (options?.snapshotVersion) {
+      const snapshotResult = await saveDocument(documentId, {
+        content: currentContent,
+        versionHistoryMode: "snapshot",
+      });
+
+      if (!snapshotResult.ok) {
+        setStatus("error");
+        return;
+      }
+
+      hasEditorChangesSinceSnapshotRef.current = false;
+    }
+
     setStatus("saved");
     window.setTimeout(() => {
       setStatus("idle");
     }, 1200);
 
-    if (options?.finalizeVersion ?? true) {
+    if ((options?.finalizeVersion ?? true) && !options?.snapshotVersion) {
       scheduleVersionFinalize(currentEditor);
     }
   }
@@ -244,7 +266,10 @@ export function useSyntextEditor({
           }
           clearVersionFinalizeTimer();
 
-          void saveEditorContentNow(currentEditor);
+          void saveEditorContentNow(currentEditor, {
+            finalizeVersion: false,
+            snapshotVersion: hasEditorChangesSinceSnapshotRef.current,
+          });
           return true;
         }
 
@@ -329,6 +354,7 @@ export function useSyntextEditor({
         window.clearTimeout(saveTimeoutRef.current);
       }
       clearVersionFinalizeTimer();
+      hasEditorChangesSinceSnapshotRef.current = true;
 
       setStatus("saving");
       saveTimeoutRef.current = window.setTimeout(async () => {
