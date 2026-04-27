@@ -7,6 +7,9 @@ import {
   htmlToVersionText,
 } from "@/features/editor/lib/version-history";
 
+const versionPreviewClassName =
+  "syntext-editor mx-auto min-h-full max-w-4xl px-10 py-8 pl-16 text-base leading-8";
+
 type EditorVersionHistoryPreviewProps = {
   currentContent: string;
   previousContent: string | null;
@@ -23,7 +26,7 @@ export function EditorVersionHistoryPreview({
   if (!selectedVersion) {
     return (
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--color-card)]">
-        <div className="syntext-editor mx-auto min-h-full max-w-4xl px-12 py-10 text-sm leading-6 text-[var(--color-muted-foreground)]">
+        <div className={`${versionPreviewClassName} text-[var(--color-muted-foreground)]`}>
           <p>{t("noVersionHistoryDescription")}</p>
         </div>
       </div>
@@ -66,7 +69,7 @@ export function EditorVersionHistoryPreview({
 
 function VersionHtmlRenderer({ html, emptyLabel }: { html: string; emptyLabel: string }) {
   return (
-    <div className="syntext-editor mx-auto min-h-full max-w-4xl px-12 py-10 text-sm leading-6 text-[var(--color-foreground)]">
+    <div className={`${versionPreviewClassName} text-[var(--color-foreground)]`}>
       <VersionHtmlContent html={html} emptyLabel={emptyLabel} />
     </div>
   );

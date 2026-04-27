@@ -323,7 +323,14 @@ function insertRemovedTextBefore(node: Node, text: string) {
     return;
   }
 
-  node.parentNode?.insertBefore(createRemovedTextElement(node.ownerDocument, text), node);
+  const doc = node.ownerDocument;
+  const parent = node.parentNode;
+
+  if (!doc || !parent) {
+    return;
+  }
+
+  parent.insertBefore(createRemovedTextElement(doc, text), node);
 }
 
 function createRemovedTextElement(doc: Document, text: string) {

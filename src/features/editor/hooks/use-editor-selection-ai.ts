@@ -227,7 +227,9 @@ export function useEditorSelectionAi({
           })
         : null;
 
-    resizeObserver?.observe(bubbleElement);
+    if (resizeObserver && bubbleElement) {
+      resizeObserver.observe(bubbleElement);
+    }
     window.addEventListener("resize", updatePositionWithinViewport);
 
     return () => {

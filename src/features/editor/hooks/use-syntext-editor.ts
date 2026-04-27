@@ -285,6 +285,22 @@ export function useSyntextEditor({
 
         return onEditorKeyDown(event);
       },
+      handleTextInput: () => {
+        const currentEditor = editorRef.current;
+
+        if (!currentEditor || !canEditBody || !isCursorAtLinkEnd(currentEditor)) {
+          return false;
+        }
+
+        const linkType = currentEditor.state.schema.marks.link;
+
+        if (!linkType) {
+          return false;
+        }
+
+        currentEditor.view.dispatch(currentEditor.state.tr.removeStoredMark(linkType));
+        return false;
+      },
       handlePaste: (_view, event) => {
         if (!canEditBody) {
           return false;
@@ -475,4 +491,31 @@ function isCursorInEmptyListItem(editor: Editor) {
   }
 
   return true;
+}
+
+function isCursorAtLinkEnd(editor: Editor) {
+  const { selection } = editor.state;
+
+  if (!selection.empty || !editor.isActive("link")) {
+    return false;
+  }
+
+  const linkType = editor.state.schema.marks.link;
+
+  if (!linkType) {
+    return false;
+  }
+
+  const { $from } = selection;
+  const beforeLink = $from.nodeBefore?.marks.find((mark) => mark.type === linkType);
+
+  if (!beforeLink) {
+    return false;
+  }
+
+  const afterLink = $from.nodeAfter?.marks.find(
+    (mark) => mark.type === linkType && mark.eq(beforeLink),
+  );
+
+  return !afterLink;
 }

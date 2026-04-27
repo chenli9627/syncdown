@@ -201,6 +201,7 @@ export function EditorSelectionBubble({
               setLinkPopover({
                 from: selectionBubble.from,
                 href: currentHref ?? "",
+                hoverBridge: null,
                 left: selectionBubble.left,
                 mode: "insert",
                 open: true,
@@ -287,6 +288,7 @@ export function EditorSelectionBubble({
             }
 
             const normalizedHref = normalizeHref(href);
+            const linkText = text || linkPopover.text || normalizedHref;
 
             if (!normalizedHref) {
               return;
@@ -308,10 +310,12 @@ export function EditorSelectionBubble({
                       type: "link",
                     },
                   ],
-                  text: text || linkPopover.text || normalizedHref,
+                  text: linkText,
                   type: "text",
                 },
               )
+              .setTextSelection(linkPopover.from + linkText.length)
+              .unsetMark("link")
               .run();
             setLinkPopover(closedLinkPopover());
           }}
