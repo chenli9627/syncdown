@@ -302,10 +302,30 @@ export function useSyntextEditor({
     }
 
     seededInitialContentRef.current = true;
-    config.set("initialContentLoaded", true);
-    editor.commands.setContent(toEditorContent(content), {
-      emitUpdate: false,
-    });
+    let seedAttempted = false;
+    const seedTimeoutId = window.setTimeout(() => {
+      seedAttempted = true;
+
+      if (editor.isDestroyed) {
+        return;
+      }
+
+      if (config.get("initialContentLoaded") || fragment.length > 0) {
+        return;
+      }
+
+      config.set("initialContentLoaded", true);
+      editor.commands.setContent(toEditorContent(content), {
+        emitUpdate: false,
+      });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(seedTimeoutId);
+      if (!seedAttempted) {
+        seededInitialContentRef.current = false;
+      }
+    };
   }, [collaborationDocument, collaborationSynced, content, editor]);
 
   useEffect(() => {
