@@ -80,7 +80,7 @@ function TableOfContentsNodeView({ editor, selected }: NodeViewProps) {
             <button
               className={`block w-full truncate px-1 py-[1px] text-left text-[15px] leading-7 underline decoration-[color-mix(in_srgb,var(--color-muted-foreground)_38%,transparent)] underline-offset-[3px] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] ${
                 outline.activeId === heading.id
-                  ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
+                  ? "text-[var(--color-foreground)]"
                   : "text-[var(--color-muted-foreground)]"
               }`}
               key={heading.id}
