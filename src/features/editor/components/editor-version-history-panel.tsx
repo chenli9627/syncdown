@@ -43,7 +43,7 @@ export function EditorVersionHistoryPanel({
 
       <div className="flex min-h-0 w-[min(340px,34vw)] min-w-[280px] shrink-0 flex-col border-l border-[var(--color-border)] bg-[var(--color-card)]">
         <div className="shrink-0 flex items-center justify-between px-5 py-4">
-          <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
+          <h2 className="text-[15px] font-semibold text-[var(--color-foreground)]">
             {t("versionHistory")}
           </h2>
           <button
@@ -72,10 +72,10 @@ export function EditorVersionHistoryPanel({
                   onClick={() => onSelectVersion(entry.id)}
                   type="button"
                 >
-                  <span className="block text-[15px] leading-5 tracking-[-0.005em] text-[var(--color-foreground)]">
+                  <span className="block text-sm leading-5 text-[var(--color-foreground)]">
                     {formatVersionTime(entry.createdAt, locale)}
                   </span>
-                  <span className="mt-0.5 block text-[13px] leading-5 text-[var(--color-muted-foreground)]">
+                  <span className="mt-0.5 block text-xs leading-5 text-[var(--color-muted-foreground)]">
                     {getUserName(users, entry.userId) ?? t("unknownUser")}
                   </span>
                 </button>
@@ -84,10 +84,10 @@ export function EditorVersionHistoryPanel({
           ) : (
             <div className="flex min-h-[220px] flex-col items-center justify-center px-5 text-center text-[var(--color-muted-foreground)]">
               <Clock3 className="mb-3 size-7 opacity-55" />
-              <p className="text-[15px] leading-6 text-[var(--color-foreground)]">
+              <p className="text-sm leading-6 text-[var(--color-foreground)]">
                 {t("noVersionHistory")}
               </p>
-              <p className="mt-1 text-[13px] leading-5">
+              <p className="mt-1 text-xs leading-5">
                 {t("noVersionHistoryDescription")}
               </p>
             </div>
@@ -96,7 +96,7 @@ export function EditorVersionHistoryPanel({
 
         <div className="shrink-0 flex justify-end border-t border-[var(--color-border)] px-5 py-3.5">
           <button
-            className="bg-[var(--color-primary)] px-3.5 py-2 text-[14px] font-medium text-[var(--color-primary-foreground)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+            className="bg-[var(--color-primary)] px-3.5 py-2 text-sm font-medium text-[var(--color-primary-foreground)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
             disabled={!canRestore || !selectedVersion || selectedVersionIsCurrent}
             onClick={() => {
               if (selectedVersion && !selectedVersionIsCurrent) {
