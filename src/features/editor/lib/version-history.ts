@@ -28,17 +28,9 @@ export function getVersionComparison(
     };
   }
 
-  if (selectedIndex === 0 && selectedVersion.content === document.content) {
-    return {
-      currentContent: selectedVersion.content,
-      previousContent: versions[1]?.content ?? "",
-    };
-  }
-
   return {
-    currentContent:
-      selectedIndex === 0 ? document.content : (versions[selectedIndex - 1]?.content ?? document.content),
-    previousContent: selectedVersion.content,
+    currentContent: selectedVersion.content,
+    previousContent: versions[selectedIndex + 1]?.content ?? null,
   };
 }
 

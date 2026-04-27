@@ -25,7 +25,7 @@ test("marks removed text separately from unchanged text", () => {
   ]);
 });
 
-test("compares a selected version against the next newer version", () => {
+test("compares a selected version against the previous older version", () => {
   const document = {
     content: "<p>current</p>",
     versionHistory: [
@@ -49,15 +49,15 @@ test("compares a selected version against the next newer version", () => {
   assert.deepEqual(
     getVersionComparison(document, document.versionHistory[0] ?? null),
     {
-      currentContent: "<p>current</p>",
-      previousContent: "<p>version 2</p>",
+      currentContent: "<p>version 2</p>",
+      previousContent: "<p>version 1</p>",
     },
   );
   assert.deepEqual(
     getVersionComparison(document, document.versionHistory[1] ?? null),
     {
-      currentContent: "<p>version 2</p>",
-      previousContent: "<p>version 1</p>",
+      currentContent: "<p>version 1</p>",
+      previousContent: null,
     },
   );
 });
@@ -92,7 +92,7 @@ test("compares a current snapshot against the previous fixed version", () => {
   );
 });
 
-test("compares the first snapshot against empty content", () => {
+test("does not compare the first snapshot against empty content", () => {
   const document = {
     content: "<p>first version</p>",
     versionHistory: [
@@ -110,12 +110,12 @@ test("compares the first snapshot against empty content", () => {
     getVersionComparison(document, document.versionHistory[0] ?? null),
     {
       currentContent: "<p>first version</p>",
-      previousContent: "",
+      previousContent: null,
     },
   );
 });
 
-test("diffs first snapshot text as fully added", () => {
+test("diffs empty previous text as fully added", () => {
   assert.deepEqual(diffVersionText("", "first version"), [
     { text: "first version", type: "added" },
   ]);
