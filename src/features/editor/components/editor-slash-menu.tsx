@@ -1,6 +1,7 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
+import { useEffect, useRef } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { SlashContext, SlashItem } from "@/features/editor/lib/types";
 
@@ -29,6 +30,16 @@ export function EditorSlashMenu({
   slashContext,
 }: EditorSlashMenuProps) {
   const { t } = useLocale();
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const activeItem = listRef.current?.querySelector<HTMLElement>(
+      `[data-slash-index="${activeIndex}"]`,
+    );
+
+    activeItem?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
   if (!open || !filteredItems.length) {
     return null;
   }
@@ -41,9 +52,11 @@ export function EditorSlashMenu({
         top: `${position.top}px`,
       }}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {filteredItems.map((item) => {
-          const itemIndex = filteredItems.findIndex((candidate) => candidate.id === item.id);
+      <div
+        className="max-h-[216px] min-h-0 overflow-y-auto overscroll-contain pr-0.5"
+        ref={listRef}
+      >
+        {filteredItems.map((item, itemIndex) => {
           const isActive = itemIndex === activeIndex;
 
           return (
@@ -53,6 +66,7 @@ export function EditorSlashMenu({
                   ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
                   : "text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
               }`}
+              data-slash-index={itemIndex}
               key={item.id}
               onMouseDown={(event) => {
                 event.preventDefault();
