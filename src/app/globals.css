@@ -141,6 +141,11 @@ button:disabled {
   margin-top: 0.85rem;
 }
 
+.syntext-version-preview p:empty,
+.syntext-version-preview p:has(> br:only-child) {
+  min-height: 1lh;
+}
+
 .syntext-editor a,
 .syntext-editor a:visited {
   color: color-mix(in srgb, var(--color-primary) 92%, #1f4fbf 8%);

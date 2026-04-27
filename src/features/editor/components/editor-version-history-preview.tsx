@@ -8,7 +8,7 @@ import {
 } from "@/features/editor/lib/version-history";
 
 const versionPreviewClassName =
-  "syntext-editor mx-auto min-h-full max-w-4xl px-10 py-8 pl-16 text-base leading-8";
+  "syntext-editor syntext-version-preview mx-auto min-h-full max-w-4xl px-10 py-8 pl-16 text-base leading-8";
 
 type EditorVersionHistoryPreviewProps = {
   currentContent: string;
