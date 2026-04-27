@@ -50,8 +50,8 @@ export function EditorVersionHistoryPanel({
     versions.find((version) => version.id === activeVersionId) ?? null;
 
   return (
-    <aside className="absolute inset-y-0 right-0 z-[45] flex w-[384px] flex-col border-l border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
-      <div className="flex items-center justify-between px-6 py-5">
+    <aside className="fixed bottom-3 right-3 top-3 z-[45] flex max-h-[calc(100dvh-1.5rem)] w-[min(384px,calc(100vw-1.5rem))] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
+      <div className="shrink-0 flex items-center justify-between px-6 py-5">
         <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--color-foreground)]">
           {t("versionHistory")}
         </h2>
@@ -65,7 +65,7 @@ export function EditorVersionHistoryPanel({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
         {entries.map((entry) => {
           const active = entry.id === activeVersionId;
 
@@ -91,7 +91,7 @@ export function EditorVersionHistoryPanel({
         })}
       </div>
 
-      <div className="flex items-center gap-3 border-t border-[var(--color-border)] px-6 py-4">
+      <div className="shrink-0 flex items-center gap-3 border-t border-[var(--color-border)] px-6 py-4">
         <div className="flex min-w-0 flex-1 items-center gap-2 text-[16px] text-[var(--color-muted-foreground)]">
           <CircleHelp className="size-4 shrink-0" />
           <span>{t("learnMore")}</span>
