@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock3, CircleHelp, X } from "lucide-react";
+import { Clock3, X } from "lucide-react";
 import type { DocumentRecord, DocumentVersion, User } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
 import { EditorVersionHistoryPreview } from "@/features/editor/components/editor-version-history-preview";
@@ -90,11 +90,7 @@ export function EditorVersionHistoryPanel({
           )}
         </div>
 
-        <div className="shrink-0 flex items-center gap-3 border-t border-[var(--color-border)] px-5 py-3.5">
-          <div className="flex min-w-0 flex-1 items-center gap-2 text-[14px] text-[var(--color-muted-foreground)]">
-            <CircleHelp className="size-4 shrink-0" />
-            <span>{t("learnMore")}</span>
-          </div>
+        <div className="shrink-0 flex justify-end border-t border-[var(--color-border)] px-5 py-3.5">
           <button
             className="bg-[var(--color-primary)] px-3.5 py-2 text-[14px] font-medium text-[var(--color-primary-foreground)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
             disabled={!canRestore || !selectedVersion}
