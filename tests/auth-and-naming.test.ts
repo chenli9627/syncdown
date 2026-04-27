@@ -13,6 +13,7 @@ import {
   migrateStoredStatePasswords,
   verifyPassword,
 } from "../src/features/app-state/lib/password";
+import { migrateStoredStateVersionHistory } from "../src/features/app-state/lib/version-history";
 import {
   nextRestoredTitle,
   nextUntitledTitle,
@@ -216,5 +217,44 @@ test("stored state migration hashes existing plaintext passwords", () => {
   assert.equal(
     verifyPassword(result.state.users[0]?.password ?? "", "onepass123").matches,
     true,
+  );
+});
+
+test("stored state migration deduplicates visible version snapshots", () => {
+  const state = createState();
+  state.documents[0] = {
+    ...state.documents[0],
+    content: "<p>Current</p>",
+    versionHistory: [
+      {
+        content: "<p>Alpha</p>",
+        createdAt: "2026-04-01T00:20:00.000Z",
+        id: "version_alpha_new",
+        title: "Untitled",
+        userId: "user_one",
+      },
+      {
+        content: "<p>Beta</p>",
+        createdAt: "2026-04-01T00:10:00.000Z",
+        id: "version_beta",
+        title: "Untitled",
+        userId: "user_one",
+      },
+      {
+        content: "<p>  Alpha&nbsp;</p><p><br></p>",
+        createdAt: "2026-04-01T00:00:00.000Z",
+        id: "version_alpha_old",
+        title: "Untitled",
+        userId: "user_one",
+      },
+    ],
+  };
+
+  const result = migrateStoredStateVersionHistory(state);
+
+  assert.equal(result.changed, true);
+  assert.deepEqual(
+    result.state.documents[0]?.versionHistory?.map((version) => version.id),
+    ["version_alpha_new", "version_beta"],
   );
 });

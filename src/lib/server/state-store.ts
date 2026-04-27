@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createSeedState } from "@/features/app-state/lib/seed";
 import { migrateStoredStatePasswords } from "@/features/app-state/lib/password";
+import { migrateStoredStateVersionHistory } from "@/features/app-state/lib/version-history";
 import type {
   StoredSyntextState,
   SyntextState,
@@ -69,13 +70,14 @@ async function persistMigratedState(state: StoredSyntextState) {
 
 async function readAndMigrateState(readState: () => Promise<StoredSyntextState>) {
   const state = await readState();
-  const migrated = migrateStoredStatePasswords(state);
+  const passwordMigration = migrateStoredStatePasswords(state);
+  const versionHistoryMigration = migrateStoredStateVersionHistory(passwordMigration.state);
 
-  if (migrated.changed) {
-    await persistMigratedState(migrated.state);
+  if (passwordMigration.changed || versionHistoryMigration.changed) {
+    await persistMigratedState(versionHistoryMigration.state);
   }
 
-  return migrated.state;
+  return versionHistoryMigration.state;
 }
 
 export async function readStoredState() {
