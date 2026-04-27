@@ -69,13 +69,7 @@ export function buildVersionDiffHtml(
   const currentEntries = getCurrentVersionTokenEntries(currentDoc.body, imageLabels);
   const previousTokens = getVersionTextTokens(previousDoc.body, imageLabels);
   const currentTokens = currentEntries.map((entry) => entry.token);
-  const parts = diffVersionTokens(previousTokens, currentTokens);
-  const statusTokens = parts.flatMap((part) =>
-    tokenizeVersionText(part.text).map((token) => ({
-      text: token,
-      type: part.type,
-    })),
-  );
+  const statusTokens = diffVersionTokenStatuses(previousTokens, currentTokens);
   const textNodeAnnotations = new Map<Text, AnnotatedTextToken[]>();
   let statusIndex = 0;
   let pendingRemovedText = "";
@@ -188,6 +182,20 @@ export function diffVersionText(previousText: string, currentText: string): Vers
 }
 
 function diffVersionTokens(previousTokens: string[], currentTokens: string[]): VersionDiffPart[] {
+  const statusTokens = diffVersionTokenStatuses(previousTokens, currentTokens);
+  const parts: VersionDiffPart[] = [];
+
+  for (const status of statusTokens) {
+    appendPart(parts, status.type, status.text);
+  }
+
+  return parts;
+}
+
+function diffVersionTokenStatuses(
+  previousTokens: string[],
+  currentTokens: string[],
+): VersionDiffPart[] {
   const lengths = buildLcsLengths(previousTokens, currentTokens);
   const parts: VersionDiffPart[] = [];
   let previousIndex = 0;
@@ -195,7 +203,7 @@ function diffVersionTokens(previousTokens: string[], currentTokens: string[]): V
 
   while (previousIndex < previousTokens.length && currentIndex < currentTokens.length) {
     if (previousTokens[previousIndex] === currentTokens[currentIndex]) {
-      appendPart(parts, "unchanged", previousTokens[previousIndex] ?? "");
+      appendStatus(parts, "unchanged", previousTokens[previousIndex] ?? "");
       previousIndex += 1;
       currentIndex += 1;
       continue;
@@ -205,22 +213,22 @@ function diffVersionTokens(previousTokens: string[], currentTokens: string[]): V
       (lengths[previousIndex + 1]?.[currentIndex] ?? 0) >=
       (lengths[previousIndex]?.[currentIndex + 1] ?? 0)
     ) {
-      appendPart(parts, "removed", previousTokens[previousIndex] ?? "");
+      appendStatus(parts, "removed", previousTokens[previousIndex] ?? "");
       previousIndex += 1;
       continue;
     }
 
-    appendPart(parts, "added", currentTokens[currentIndex] ?? "");
+    appendStatus(parts, "added", currentTokens[currentIndex] ?? "");
     currentIndex += 1;
   }
 
   while (previousIndex < previousTokens.length) {
-    appendPart(parts, "removed", previousTokens[previousIndex] ?? "");
+    appendStatus(parts, "removed", previousTokens[previousIndex] ?? "");
     previousIndex += 1;
   }
 
   while (currentIndex < currentTokens.length) {
-    appendPart(parts, "added", currentTokens[currentIndex] ?? "");
+    appendStatus(parts, "added", currentTokens[currentIndex] ?? "");
     currentIndex += 1;
   }
 
@@ -369,6 +377,14 @@ function appendPart(parts: VersionDiffPart[], type: VersionDiffPart["type"], tex
 
   if (previous?.type === type) {
     previous.text += text;
+    return;
+  }
+
+  parts.push({ text, type });
+}
+
+function appendStatus(parts: VersionDiffPart[], type: VersionDiffPart["type"], text: string) {
+  if (!text) {
     return;
   }
 

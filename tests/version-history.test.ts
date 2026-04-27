@@ -205,6 +205,22 @@ test("version diff marks added text without styling the whole block", () => {
   assert.doesNotMatch(html, /padding-left:\s*12px/);
 });
 
+test("version diff marks all added text across inline node boundaries", () => {
+  if (typeof DOMParser === "undefined") {
+    return;
+  }
+
+  const html = buildVersionDiffHtml(
+    "<p>Hello</p><p><strong>New</strong>paragraph</p>",
+    "<p>Hello</p>",
+  );
+
+  assert.match(
+    html,
+    /<p><strong><span style="color: var\(--color-primary\);">New<\/span><\/strong><span style="color: var\(--color-primary\);">paragraph<\/span><\/p>/,
+  );
+});
+
 test("htmlToVersionText returns empty string for empty content", () => {
   if (typeof DOMParser === "undefined") {
     return;
