@@ -15,12 +15,10 @@ import { EditorAiBubble } from "@/features/editor/components/editor-ai-bubble";
 import { EditorSelectionBubble } from "@/features/editor/components/editor-selection-bubble";
 import { EditorSlashMenu } from "@/features/editor/components/editor-slash-menu";
 import { EditorTableAxisMenu } from "@/features/editor/components/editor-table-axis-menu";
-import { EditorVersionHistoryPreview } from "@/features/editor/components/editor-version-history-preview";
 import {
   CollaboratorAvatarStack,
   getCollaboratorAvatarStackWidth,
 } from "@/features/editor/components/editor-collaborator-avatar-stack";
-import type { DocumentRecord, DocumentVersion } from "@/features/app-state/types";
 import { useEditorBlockDrag } from "@/features/editor/hooks/use-editor-block-drag";
 import type { RemoteAwarenessEntry } from "@/features/editor/hooks/use-editor-collaboration";
 import type { AiActionKind } from "@/features/editor/lib/ai";
@@ -144,11 +142,6 @@ type EditorCanvasProps = {
   ) => void;
   slashContextState: SlashContext | null;
   slashMenu: SlashMenuState;
-  versionHistoryPreview: {
-    document: DocumentRecord;
-    open: boolean;
-    selectedVersion: DocumentVersion | null;
-  };
 };
 
 export function EditorCanvas({
@@ -200,7 +193,6 @@ export function EditorCanvas({
   setSlashMenu,
   slashContextState,
   slashMenu,
-  versionHistoryPreview,
 }: EditorCanvasProps) {
   const { t } = useLocale();
   const activeBlockHighlightRef = useRef<HTMLSpanElement | null>(null);
@@ -1162,12 +1154,6 @@ export function EditorCanvas({
         <div className="relative z-[2]">
           <EditorContent editor={editor} />
         </div>
-        {versionHistoryPreview.open ? (
-          <EditorVersionHistoryPreview
-            document={versionHistoryPreview.document}
-            selectedVersion={versionHistoryPreview.selectedVersion}
-          />
-        ) : null}
         <EditorSelectionBubble
           editor={editor}
           onFormat={onFormatSelection}

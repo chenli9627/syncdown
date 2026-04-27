@@ -3,6 +3,7 @@
 import { Clock3, CircleHelp, X } from "lucide-react";
 import type { DocumentRecord, DocumentVersion, User } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
+import { EditorVersionHistoryPreview } from "@/features/editor/components/editor-version-history-preview";
 
 type EditorVersionHistoryPanelProps = {
   canRestore: boolean;
@@ -30,76 +31,83 @@ export function EditorVersionHistoryPanel({
     versions.find((version) => version.id === activeVersionId) ?? null;
 
   return (
-    <aside className="fixed bottom-3 right-3 top-3 z-[45] flex max-h-[calc(100dvh-1.5rem)] w-[min(384px,calc(100vw-1.5rem))] flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
-      <div className="shrink-0 flex items-center justify-between px-6 py-5">
-        <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--color-foreground)]">
-          {t("versionHistory")}
-        </h2>
-        <button
-          aria-label={t("close")}
-          className="flex size-8 items-center justify-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-          onClick={onClose}
-          type="button"
-        >
-          <X className="size-5" />
-        </button>
-      </div>
+    <aside className="fixed inset-3 z-[45] flex max-h-[calc(100dvh-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
+      <EditorVersionHistoryPreview
+        document={document}
+        selectedVersion={selectedVersion}
+      />
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
-        {versions.length > 0 ? (
-          versions.map((entry) => {
-            const active = entry.id === activeVersionId;
-
-            return (
-              <button
-                className={`block w-full px-5 py-2.5 text-left transition ${
-                  active
-                    ? "bg-[var(--color-hover)]"
-                    : "hover:bg-[color-mix(in_srgb,var(--color-hover)_65%,transparent)]"
-                }`}
-                key={entry.id}
-                onClick={() => onSelectVersion(entry.id)}
-                type="button"
-              >
-                <span className="block text-[20px] leading-7 tracking-[-0.01em] text-[var(--color-foreground)]">
-                  {formatVersionTime(entry.createdAt, locale)}
-                </span>
-                <span className="mt-0.5 block text-[16px] leading-6 text-[var(--color-muted-foreground)]">
-                  {getUserName(users, entry.userId) ?? t("unknownUser")}
-                </span>
-              </button>
-            );
-          })
-        ) : (
-          <div className="flex min-h-[220px] flex-col items-center justify-center px-6 text-center text-[var(--color-muted-foreground)]">
-            <Clock3 className="mb-3 size-8 opacity-55" />
-            <p className="text-[16px] leading-6 text-[var(--color-foreground)]">
-              {t("noVersionHistory")}
-            </p>
-            <p className="mt-1 text-[14px] leading-5">
-              {t("noVersionHistoryDescription")}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="shrink-0 flex items-center gap-3 border-t border-[var(--color-border)] px-6 py-4">
-        <div className="flex min-w-0 flex-1 items-center gap-2 text-[16px] text-[var(--color-muted-foreground)]">
-          <CircleHelp className="size-4 shrink-0" />
-          <span>{t("learnMore")}</span>
+      <div className="flex w-[min(340px,34vw)] min-w-[280px] shrink-0 flex-col border-l border-[var(--color-border)] bg-[var(--color-card)]">
+        <div className="shrink-0 flex items-center justify-between px-5 py-4">
+          <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
+            {t("versionHistory")}
+          </h2>
+          <button
+            aria-label={t("close")}
+            className="flex size-7 items-center justify-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="size-4" />
+          </button>
         </div>
-        <button
-          className="bg-[var(--color-primary)] px-4 py-2 text-[16px] font-medium text-[var(--color-primary-foreground)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
-          disabled={!canRestore || !selectedVersion}
-          onClick={() => {
-            if (selectedVersion) {
-              onRestore(selectedVersion);
-            }
-          }}
-          type="button"
-        >
-          {t("restore")}
-        </button>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+          {versions.length > 0 ? (
+            versions.map((entry) => {
+              const active = entry.id === activeVersionId;
+
+              return (
+                <button
+                  className={`block w-full px-4 py-2.5 text-left transition ${
+                    active
+                      ? "bg-[var(--color-hover)]"
+                      : "hover:bg-[color-mix(in_srgb,var(--color-hover)_65%,transparent)]"
+                  }`}
+                  key={entry.id}
+                  onClick={() => onSelectVersion(entry.id)}
+                  type="button"
+                >
+                  <span className="block text-[15px] leading-5 tracking-[-0.005em] text-[var(--color-foreground)]">
+                    {formatVersionTime(entry.createdAt, locale)}
+                  </span>
+                  <span className="mt-0.5 block text-[13px] leading-5 text-[var(--color-muted-foreground)]">
+                    {getUserName(users, entry.userId) ?? t("unknownUser")}
+                  </span>
+                </button>
+              );
+            })
+          ) : (
+            <div className="flex min-h-[220px] flex-col items-center justify-center px-5 text-center text-[var(--color-muted-foreground)]">
+              <Clock3 className="mb-3 size-7 opacity-55" />
+              <p className="text-[15px] leading-6 text-[var(--color-foreground)]">
+                {t("noVersionHistory")}
+              </p>
+              <p className="mt-1 text-[13px] leading-5">
+                {t("noVersionHistoryDescription")}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="shrink-0 flex items-center gap-3 border-t border-[var(--color-border)] px-5 py-3.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2 text-[14px] text-[var(--color-muted-foreground)]">
+            <CircleHelp className="size-4 shrink-0" />
+            <span>{t("learnMore")}</span>
+          </div>
+          <button
+            className="bg-[var(--color-primary)] px-3.5 py-2 text-[14px] font-medium text-[var(--color-primary-foreground)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={!canRestore || !selectedVersion}
+            onClick={() => {
+              if (selectedVersion) {
+                onRestore(selectedVersion);
+              }
+            }}
+            type="button"
+          >
+            {t("restore")}
+          </button>
+        </div>
       </div>
     </aside>
   );

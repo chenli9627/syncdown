@@ -4,13 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import { EditorActionErrorDialog } from "@/features/editor/components/editor-action-error-dialog";
-import type { DocumentRecord } from "@/features/app-state/types";
+import type { DocumentRecord, DocumentVersion } from "@/features/app-state/types";
 import { EditorCanvas } from "@/features/editor/components/editor-canvas";
 import { EditorHeader } from "@/features/editor/components/editor-header";
-import {
-  EditorVersionHistoryPanel,
-  getSelectedDocumentVersion,
-} from "@/features/editor/components/editor-version-history-panel";
+import { EditorVersionHistoryPanel } from "@/features/editor/components/editor-version-history-panel";
 import { useEditorSurfaceModel } from "@/features/editor/hooks/use-editor-surface-model";
 import { toEditorContent } from "@/features/editor/lib/content";
 
@@ -39,10 +36,6 @@ export function EditorSurface({
     setVersionHistoryOpen,
     versionHistoryOpen,
   } = model.ui.versionHistoryBody;
-  const selectedVersion = getSelectedDocumentVersion(
-    document,
-    selectedVersionId,
-  );
 
   useEffect(() => {
     if (!versionHistoryOpen) {
@@ -60,7 +53,7 @@ export function EditorSurface({
     }
   }, [document.versionHistory, selectedVersionId, setSelectedVersionId, versionHistoryOpen]);
 
-  function handleRestoreVersion(version: NonNullable<typeof selectedVersion>) {
+  function handleRestoreVersion(version: DocumentVersion) {
     if (!model.canEditBody) {
       return;
     }
@@ -203,11 +196,6 @@ export function EditorSurface({
         setSlashMenu={model.slash.setSlashMenu}
         slashContextState={model.slash.slashContextState}
         slashMenu={model.slash.slashMenu}
-        versionHistoryPreview={{
-          document,
-          open: versionHistoryOpen && Boolean(selectedVersion),
-          selectedVersion,
-        }}
       />
       {versionHistoryOpen ? (
         <EditorVersionHistoryPanel
