@@ -12,6 +12,7 @@ dist
 .data/media/
 .data/presence.json
 .agents/
+.codex
 .gemini/
 skills/
 tmp/
