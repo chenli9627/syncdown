@@ -3,7 +3,6 @@
 import { mergeAttributes, Node } from "@tiptap/core";
 import type { Editor, NodeViewProps } from "@tiptap/react";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
-import { ListTree } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -69,26 +68,20 @@ function TableOfContentsNodeView({ editor, selected }: NodeViewProps) {
 
   return (
     <NodeViewWrapper
-      className={`table-of-contents-block border bg-[var(--color-muted)] px-3.5 py-3 text-sm transition ${
-        selected
-          ? "border-[var(--color-primary)] shadow-[0_0_0_1px_var(--color-primary)]"
-          : "border-[var(--color-border)]"
+      className={`table-of-contents-block py-1 text-base leading-7 transition ${
+        selected ? "bg-[color-mix(in_srgb,var(--color-muted)_58%,transparent)]" : ""
       }`}
       contentEditable={false}
       data-type="table-of-contents"
     >
-      <div className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-[var(--color-muted-foreground)]">
-        <ListTree className="size-3.5" />
-        <span>{t("tableOfContents")}</span>
-      </div>
       {outline.headings.length > 0 ? (
-        <div className="space-y-0.5">
+        <div className="space-y-[1px]">
           {outline.headings.map((heading) => (
             <button
-              className={`block w-full truncate py-0.5 pr-1 text-left leading-6 transition hover:text-[var(--color-primary)] ${
+              className={`block w-full truncate px-1 py-[1px] text-left text-[15px] leading-7 underline decoration-[color-mix(in_srgb,var(--color-muted-foreground)_38%,transparent)] underline-offset-[3px] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] ${
                 outline.activeId === heading.id
-                  ? "font-medium text-[var(--color-primary)]"
-                  : "text-[var(--color-foreground)]"
+                  ? "bg-[var(--color-hover)] text-[var(--color-foreground)]"
+                  : "text-[var(--color-muted-foreground)]"
               }`}
               key={heading.id}
               onClick={(event) => {
@@ -99,7 +92,7 @@ function TableOfContentsNodeView({ editor, selected }: NodeViewProps) {
                 event.preventDefault();
               }}
               style={{
-                paddingLeft: `${(heading.level - 1) * 14}px`,
+                paddingLeft: `${4 + (heading.level - 1) * 18}px`,
               }}
               type="button"
             >
@@ -108,7 +101,7 @@ function TableOfContentsNodeView({ editor, selected }: NodeViewProps) {
           ))}
         </div>
       ) : (
-        <p className="m-0 text-[12px] leading-6 text-[var(--color-muted-foreground)]">
+        <p className="m-0 px-1 text-[15px] leading-7 text-[var(--color-muted-foreground)]">
           {t("tableOfContentsEmpty")}
         </p>
       )}
