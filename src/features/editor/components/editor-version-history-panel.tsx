@@ -31,7 +31,7 @@ export function EditorVersionHistoryPanel({
     versions.find((version) => version.id === activeVersionId) ?? null;
 
   return (
-    <aside className="fixed inset-3 z-[45] flex max-h-[calc(100dvh-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
+    <aside className="absolute inset-4 z-[45] flex overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
       <EditorVersionHistoryPreview
         document={document}
         selectedVersion={selectedVersion}
