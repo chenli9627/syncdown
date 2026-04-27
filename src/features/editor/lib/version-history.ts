@@ -1,9 +1,39 @@
 "use client";
 
+import type { DocumentRecord, DocumentVersion } from "@/features/app-state/types";
+
 export type VersionDiffPart = {
   text: string;
   type: "added" | "removed" | "unchanged";
 };
+
+export type VersionComparison = {
+  currentContent: string;
+  previousContent: string | null;
+};
+
+export function getVersionComparison(
+  document: Pick<DocumentRecord, "content" | "versionHistory">,
+  selectedVersion: DocumentVersion | null,
+): VersionComparison {
+  const versions = document.versionHistory ?? [];
+  const selectedIndex = selectedVersion
+    ? versions.findIndex((version) => version.id === selectedVersion.id)
+    : -1;
+
+  if (!selectedVersion || selectedIndex === -1) {
+    return {
+      currentContent: document.content,
+      previousContent: null,
+    };
+  }
+
+  return {
+    currentContent:
+      selectedIndex === 0 ? document.content : (versions[selectedIndex - 1]?.content ?? document.content),
+    previousContent: selectedVersion.content,
+  };
+}
 
 export function htmlToVersionText(html: string) {
   if (!html.trim()) {

@@ -4,6 +4,7 @@ import { Clock3, X } from "lucide-react";
 import type { DocumentRecord, DocumentVersion, User } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
 import { EditorVersionHistoryPreview } from "@/features/editor/components/editor-version-history-preview";
+import { getVersionComparison } from "@/features/editor/lib/version-history";
 
 type EditorVersionHistoryPanelProps = {
   canRestore: boolean;
@@ -29,11 +30,13 @@ export function EditorVersionHistoryPanel({
   const activeVersionId = selectedVersionId ?? versions[0]?.id ?? null;
   const selectedVersion =
     versions.find((version) => version.id === activeVersionId) ?? null;
+  const versionComparison = getVersionComparison(document, selectedVersion);
 
   return (
     <aside className="fixed bottom-4 left-4 right-4 top-4 z-[45] flex min-h-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] md:left-[288px]">
       <EditorVersionHistoryPreview
-        document={document}
+        currentContent={versionComparison.currentContent}
+        previousContent={versionComparison.previousContent}
         selectedVersion={selectedVersion}
       />
 

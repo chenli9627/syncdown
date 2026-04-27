@@ -1,6 +1,6 @@
 "use client";
 
-import type { DocumentRecord, DocumentVersion } from "@/features/app-state/types";
+import type { DocumentVersion } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   diffVersionText,
@@ -8,20 +8,23 @@ import {
 } from "@/features/editor/lib/version-history";
 
 type EditorVersionHistoryPreviewProps = {
-  document: DocumentRecord;
+  currentContent: string;
+  previousContent: string | null;
   selectedVersion: DocumentVersion | null;
 };
 
 export function EditorVersionHistoryPreview({
-  document,
+  currentContent,
+  previousContent,
   selectedVersion,
 }: EditorVersionHistoryPreviewProps) {
   const { t } = useLocale();
-  const previousText = htmlToVersionText(selectedVersion?.content ?? document.content);
-  const currentText = htmlToVersionText(document.content);
-  const parts = selectedVersion
-    ? diffVersionText(previousText, currentText)
-    : [{ text: currentText, type: "unchanged" as const }];
+  const currentText = htmlToVersionText(currentContent);
+  const previousText = previousContent === null ? null : htmlToVersionText(previousContent);
+  const parts =
+    selectedVersion && previousText !== null
+      ? diffVersionText(previousText, currentText)
+      : [{ text: currentText, type: "unchanged" as const }];
 
   return (
     <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--color-card)]">
