@@ -61,6 +61,10 @@ export function EditorHeaderOverflowAction(props: EditorHeaderOverflowActionProp
       }}
       onMoveToTrash={() => moveToTrash(props)}
       onOpenVersionHistory={() => {
+        if (props.permission === "can_view") {
+          return;
+        }
+
         props.setOverflowMenuOpen(false);
         props.setActionError(null);
         props.setActionNotice(null);

@@ -210,7 +210,7 @@ export function EditorSurface({
         slashContextState={model.slash.slashContextState}
         slashMenu={model.slash.slashMenu}
       />
-      {versionHistoryOpen ? (
+      {versionHistoryOpen && permission !== "can_view" ? (
         <EditorVersionHistoryPanel
           canRestore={model.canEditBody && Boolean(model.editor) && !restoreBusy}
           document={document}

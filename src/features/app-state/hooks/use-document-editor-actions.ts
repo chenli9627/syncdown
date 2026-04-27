@@ -55,7 +55,7 @@ export function useDocumentEditorActions({
       },
       saveDocument: async (
         documentId: string,
-        input: { title?: string; content?: string; versionHistoryMode?: "force" | "merge" },
+        input: { title?: string; content?: string; versionHistoryMode?: "force" | "merge" | "snapshot" },
       ) => {
         if (!currentUser) {
           return { ok: false as const, error: "You must be logged in" };

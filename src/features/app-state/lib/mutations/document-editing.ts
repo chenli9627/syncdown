@@ -17,6 +17,7 @@ import {
 
 const VERSION_HISTORY_MERGE_WINDOW_MS = 10 * 60 * 1000;
 const MAX_DOCUMENT_VERSION_HISTORY = 50;
+export type VersionHistoryMode = "force" | "merge" | "snapshot";
 
 export function createDocumentForWorkspace(
   state: StoredSyntextState,
@@ -91,7 +92,7 @@ export function updateDocumentForUser(
   input: {
     title?: string;
     content?: string;
-    versionHistoryMode?: "force" | "merge";
+    versionHistoryMode?: VersionHistoryMode;
   },
 ) {
   const document = getDocumentById(state, documentId);
@@ -144,9 +145,15 @@ export function updateDocumentForUser(
   const contentChanged =
     typeof input.content === "string" &&
     hasVersionWorthyContentChange(document.content, input.content);
-  const versionHistory = contentChanged
-    ? updateVersionHistory(document, userId, editedAt, input.versionHistoryMode ?? "merge")
-    : document.versionHistory;
+  const versionHistory = resolveVersionHistory({
+    contentChanged,
+    document,
+    editedAt,
+    mode: input.versionHistoryMode ?? "merge",
+    nextContent,
+    nextTitle,
+    userId,
+  });
 
   return {
     ok: true as const,
@@ -168,12 +175,64 @@ export function updateDocumentForUser(
   };
 }
 
+function resolveVersionHistory({
+  contentChanged,
+  document,
+  editedAt,
+  mode,
+  nextContent,
+  nextTitle,
+  userId,
+}: {
+  contentChanged: boolean;
+  document: DocumentRecord;
+  editedAt: string;
+  mode: VersionHistoryMode;
+  nextContent: string;
+  nextTitle: string;
+  userId: string;
+}) {
+  if (mode === "snapshot") {
+    return appendVersionSnapshot(
+      {
+        ...document,
+        content: nextContent,
+        title: nextTitle,
+      },
+      userId,
+      editedAt,
+      document.versionHistory,
+    );
+  }
+
+  return contentChanged
+    ? updateVersionHistory(document, userId, editedAt, mode)
+    : document.versionHistory;
+}
+
 function updateVersionHistory(
   document: DocumentRecord,
   userId: string,
   editedAt: string,
-  mode: "force" | "merge",
+  mode: Exclude<VersionHistoryMode, "snapshot">,
 ): DocumentVersion[] {
+  const currentHistory = document.versionHistory ?? [];
+  const latest = currentHistory[0] ?? null;
+
+  if (latest && mode === "merge" && isRecentVersion(latest.createdAt, editedAt)) {
+    return currentHistory;
+  }
+
+  return appendVersionSnapshot(document, userId, editedAt, document.versionHistory);
+}
+
+function appendVersionSnapshot(
+  document: Pick<DocumentRecord, "content" | "title">,
+  userId: string,
+  editedAt: string,
+  currentHistoryInput: DocumentVersion[] | undefined,
+): DocumentVersion[] {
+  const currentHistory = currentHistoryInput ?? [];
   const snapshot: DocumentVersion = {
     id: `version_${crypto.randomUUID()}`,
     title: document.title,
@@ -181,14 +240,13 @@ function updateVersionHistory(
     createdAt: editedAt,
     userId,
   };
-  const currentHistory = document.versionHistory ?? [];
   const latest = currentHistory[0] ?? null;
 
   if (latest?.content === snapshot.content && latest.title === snapshot.title) {
     return currentHistory;
   }
 
-  if (mode === "merge" && latest && isRecentVersion(latest.createdAt, editedAt)) {
+  if (isEmptyEditorContent(snapshot.content)) {
     return currentHistory;
   }
 

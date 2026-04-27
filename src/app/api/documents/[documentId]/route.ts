@@ -24,7 +24,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     userId?: string;
     title?: string;
     content?: string;
-    versionHistoryMode?: "force" | "merge";
+    versionHistoryMode?: "force" | "merge" | "snapshot";
   };
 
   if (!body.userId) {

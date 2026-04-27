@@ -28,7 +28,7 @@ import { insertImageFile } from "@/features/editor/lib/image";
 
 type SaveDocument = (
   documentId: string,
-  patch: { content?: string; title?: string; versionHistoryMode?: "force" | "merge" },
+  patch: { content?: string; title?: string; versionHistoryMode?: "force" | "merge" | "snapshot" },
 ) => Promise<
   { error: string; ok: false } | { ok: true; document: { title: string } | null }
 >;
@@ -60,10 +60,40 @@ export function useSyntextEditor({
 }: UseSyntextEditorArgs) {
   const editorRef = useRef<Editor | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
+  const versionFinalizeTimeoutRef = useRef<number | null>(null);
   const seededInitialContentRef = useRef(false);
   const [editorReadyVersion, setEditorReadyVersion] = useState(0);
 
-  async function saveEditorContentNow(currentEditor: Editor) {
+  function clearVersionFinalizeTimer() {
+    if (!versionFinalizeTimeoutRef.current) {
+      return;
+    }
+
+    window.clearTimeout(versionFinalizeTimeoutRef.current);
+    versionFinalizeTimeoutRef.current = null;
+  }
+
+  function scheduleVersionFinalize(currentEditor: Editor) {
+    clearVersionFinalizeTimer();
+    versionFinalizeTimeoutRef.current = window.setTimeout(async () => {
+      versionFinalizeTimeoutRef.current = null;
+
+      if (currentEditor.isDestroyed || !canEditBody) {
+        return;
+      }
+
+      const result = await saveDocument(documentId, {
+        content: currentEditor.getHTML(),
+        versionHistoryMode: "snapshot",
+      });
+
+      if (!result.ok) {
+        setStatus("error");
+      }
+    }, 2 * 60 * 1000);
+  }
+
+  async function saveEditorContentNow(currentEditor: Editor, options?: { finalizeVersion?: boolean }) {
     setStatus("saving");
     const result = await saveDocument(documentId, {
       content: currentEditor.getHTML(),
@@ -78,6 +108,10 @@ export function useSyntextEditor({
     window.setTimeout(() => {
       setStatus("idle");
     }, 1200);
+
+    if (options?.finalizeVersion ?? true) {
+      scheduleVersionFinalize(currentEditor);
+    }
   }
 
   const editor = useEditor({
@@ -208,6 +242,7 @@ export function useSyntextEditor({
             window.clearTimeout(saveTimeoutRef.current);
             saveTimeoutRef.current = null;
           }
+          clearVersionFinalizeTimer();
 
           void saveEditorContentNow(currentEditor);
           return true;
@@ -293,6 +328,7 @@ export function useSyntextEditor({
       if (saveTimeoutRef.current) {
         window.clearTimeout(saveTimeoutRef.current);
       }
+      clearVersionFinalizeTimer();
 
       setStatus("saving");
       saveTimeoutRef.current = window.setTimeout(async () => {
@@ -363,6 +399,7 @@ export function useSyntextEditor({
       if (saveTimeoutRef.current) {
         window.clearTimeout(saveTimeoutRef.current);
       }
+      clearVersionFinalizeTimer();
     };
   }, []);
 

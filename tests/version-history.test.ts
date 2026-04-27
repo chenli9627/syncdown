@@ -61,3 +61,33 @@ test("compares a selected version against the next newer version", () => {
     },
   );
 });
+
+test("compares a current snapshot against the previous fixed version", () => {
+  const document = {
+    content: "<p>current</p>",
+    versionHistory: [
+      {
+        content: "<p>current</p>",
+        createdAt: "2026-04-28T00:20:00.000Z",
+        id: "version_2",
+        title: "Doc",
+        userId: "user_one",
+      },
+      {
+        content: "<p>version 1</p>",
+        createdAt: "2026-04-28T00:10:00.000Z",
+        id: "version_1",
+        title: "Doc",
+        userId: "user_one",
+      },
+    ],
+  };
+
+  assert.deepEqual(
+    getVersionComparison(document, document.versionHistory[0] ?? null),
+    {
+      currentContent: "<p>current</p>",
+      previousContent: "<p>version 1</p>",
+    },
+  );
+});

@@ -251,6 +251,42 @@ test("forced document saves keep the previous content restorable inside the merg
   assert.equal(document?.versionHistory?.[1]?.content, "<p>Shared content</p>");
 });
 
+test("snapshot saves fix the current content as a version without duplicating it", () => {
+  const edited = updateDocumentForUser(createState(), "user_one", "doc_shared", {
+    content: "<p>First edit</p>",
+  });
+
+  assert.equal(edited.ok, true);
+  if (!edited.ok) {
+    return;
+  }
+
+  const snapshotted = updateDocumentForUser(edited.state, "user_one", "doc_shared", {
+    content: "<p>First edit</p>",
+    versionHistoryMode: "snapshot",
+  });
+
+  assert.equal(snapshotted.ok, true);
+  if (!snapshotted.ok) {
+    return;
+  }
+
+  const duplicated = updateDocumentForUser(snapshotted.state, "user_one", "doc_shared", {
+    content: "<p>First edit</p>",
+    versionHistoryMode: "snapshot",
+  });
+
+  assert.equal(duplicated.ok, true);
+  if (!duplicated.ok) {
+    return;
+  }
+
+  const document = duplicated.state.documents.find((entry) => entry.id === "doc_shared");
+  assert.equal(document?.versionHistory?.length, 2);
+  assert.equal(document?.versionHistory?.[0]?.content, "<p>First edit</p>");
+  assert.equal(document?.versionHistory?.[1]?.content, "<p>Shared content</p>");
+});
+
 test("sharing with yourself is rejected", () => {
   const result = shareDocumentWithUser(
     createState(),

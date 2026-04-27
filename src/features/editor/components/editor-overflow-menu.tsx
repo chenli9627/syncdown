@@ -101,14 +101,16 @@ export function EditorOverflowMenu({
               <span>{t("export")}</span>
               <Download className="ml-auto size-4" />
             </button>
-            <button
-              className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
-              onClick={onOpenVersionHistory}
-              type="button"
-            >
-              <span>{t("openVersionHistory")}</span>
-              <History className="ml-auto size-4" />
-            </button>
+            {permission !== "can_view" ? (
+              <button
+                className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
+                onClick={onOpenVersionHistory}
+                type="button"
+              >
+                <span>{t("openVersionHistory")}</span>
+                <History className="ml-auto size-4" />
+              </button>
+            ) : null}
             {permission === "owner" ? (
               <button
                 className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[#b44c07] transition hover:bg-[var(--color-hover)]"
