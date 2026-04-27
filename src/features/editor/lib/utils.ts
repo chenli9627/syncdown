@@ -8,7 +8,7 @@ import type {
 } from "@/features/editor/lib/types";
 
 export const BLOCK_ELEMENT_SELECTOR =
-  "p, h1, h2, h3, h4, blockquote, pre, ul, ol, hr, img, table";
+  'p, h1, h2, h3, h4, blockquote, pre, ul, ol, hr, img, table, div[data-type="table-of-contents"]';
 
 export function getBlockTransformActiveId(editor: Editor, pos: number) {
   const node = editor.state.doc.nodeAt(pos);
@@ -51,6 +51,10 @@ export function getBlockTransformActiveId(editor: Editor, pos: number) {
 
   if (node.type.name === "table") {
     return "table";
+  }
+
+  if (node.type.name === "tableOfContents") {
+    return "table-of-contents";
   }
 
   return "paragraph";

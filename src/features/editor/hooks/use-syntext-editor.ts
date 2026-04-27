@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import { NodeSelection } from "@tiptap/pm/state";
 import type { User } from "@/features/app-state/types";
+import { TableOfContents } from "@/features/editor/extensions/table-of-contents";
 import { syntextLowlight } from "@/features/editor/lib/code-highlighting";
 import { toEditorContent } from "@/features/editor/lib/content";
 import { insertImageFile } from "@/features/editor/lib/image";
@@ -130,11 +131,13 @@ export function useSyntextEditor({
       TableRow,
       TableHeader,
       TableCell,
+      TableOfContents,
       StarterKit.configure({
         codeBlock: false,
         heading: {
           levels: [1, 2, 3, 4],
         },
+        link: false,
         undoRedo: collaborationDocument ? false : undefined,
       }),
     ],

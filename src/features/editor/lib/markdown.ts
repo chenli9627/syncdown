@@ -6,6 +6,11 @@ export type MarkdownAsset = {
   path: string;
 };
 
+type MarkdownHeading = {
+  level: number;
+  text: string;
+};
+
 const UNSUPPORTED_MARKDOWN_PATTERNS: Array<{
   error: string;
   pattern: RegExp;
@@ -87,8 +92,12 @@ function htmlInlineToMarkdown(node: Node): string {
   }
 }
 
-function htmlBlockToMarkdown(node: Element): string[] {
+function htmlBlockToMarkdown(node: Element, headings: MarkdownHeading[] = []): string[] {
   const tag = node.tagName;
+
+  if (node.getAttribute("data-type") === "table-of-contents") {
+    return tableOfContentsBlockToMarkdown(headings);
+  }
 
   if (tag === "P") {
     return [Array.from(node.childNodes).map(htmlInlineToMarkdown).join("")];
@@ -179,8 +188,9 @@ function htmlBlockToMarkdown(node: Element): string[] {
 
 export function editorHtmlToMarkdown(html: string) {
   const doc = new DOMParser().parseFromString(html, "text/html");
+  const headings = collectMarkdownHeadings(doc.body.children);
   const blocks = Array.from(doc.body.children)
-    .flatMap((node) => htmlBlockToMarkdown(node))
+    .flatMap((node) => htmlBlockToMarkdown(node, headings))
     .map((line) => line.trimEnd());
 
   return blocks.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
@@ -678,4 +688,40 @@ function markdownTableToHtml(headerCells: string[], bodyRows: string[][]) {
     .join("")}</tbody>`;
 
   return `<table>${header}${body}</table>`;
+}
+
+function collectMarkdownHeadings(nodes: HTMLCollection) {
+  return Array.from(nodes).flatMap((node): MarkdownHeading[] => {
+    if (!["H1", "H2", "H3", "H4"].includes(node.tagName)) {
+      return [];
+    }
+
+    const text = (node.textContent ?? "").trim();
+
+    if (!text) {
+      return [];
+    }
+
+    return [
+      {
+        level: Number.parseInt(node.tagName[1] ?? "1", 10),
+        text,
+      },
+    ];
+  });
+}
+
+function tableOfContentsBlockToMarkdown(headings: MarkdownHeading[]) {
+  if (!headings.length) {
+    return ["## Table of Contents"];
+  }
+
+  return [
+    "## Table of Contents",
+    "",
+    ...headings.map((heading) => {
+      const indent = "  ".repeat(Math.max(0, heading.level - 1));
+      return `${indent}- ${escapeMarkdown(heading.text)}`;
+    }),
+  ];
 }

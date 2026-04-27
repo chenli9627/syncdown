@@ -47,6 +47,7 @@ const slashItemConfigs: SlashItemConfig[] = [
   { id: "todo-list", labelKey: "todoList", shortcut: "[]", run: runTaskList },
   { id: "quote", labelKey: "quote", shortcut: "\"", run: runQuote },
   { id: "table", labelKey: "table", shortcut: "||", run: runTable },
+  { id: "table-of-contents", labelKey: "tableOfContents", shortcut: "toc", run: runTableOfContents },
   { id: "divider", labelKey: "divider", shortcut: "--", run: runDivider },
   { id: "code", labelKey: "code", shortcut: "```", run: runCodeBlock },
 ];
@@ -210,6 +211,11 @@ function runTable(editor: Editor, pos?: number) {
   tr.setSelection(TextSelection.near(tr.doc.resolve(selectionPos)));
   editor.view.dispatch(tr);
   editor.view.focus();
+}
+
+function runTableOfContents(editor: Editor) {
+  normalizeParagraphTransform(editor);
+  editor.chain().focus().insertContent({ type: "tableOfContents" }).run();
 }
 
 function replaceTableWithBlock(
