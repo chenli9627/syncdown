@@ -18,6 +18,12 @@ export function collectReferencedMediaFileNames(state: StoredSyntextState) {
     for (const fileName of extractManagedMediaFileNames(document.content)) {
       references.add(fileName);
     }
+
+    for (const version of document.versionHistory ?? []) {
+      for (const fileName of extractManagedMediaFileNames(version.content)) {
+        references.add(fileName);
+      }
+    }
   }
 
   return references;

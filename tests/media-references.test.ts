@@ -92,3 +92,53 @@ test("removes only media that is no longer referenced", async () => {
 
   assert.deepEqual(deleted, ["drop.png"]);
 });
+
+test("keeps media referenced by version history", async () => {
+  const previousState: StoredSyntextState = {
+    ...BASE_STATE,
+    documents: [
+      {
+        id: "doc_1",
+        workspaceId: "ws_1",
+        ownerUserId: "user_1",
+        title: "Doc",
+        content: '<p><img src="/api/media/history-image.png" /></p>',
+        status: "private",
+        trashedFromStatus: null,
+        deletedAt: null,
+        lastEditedAt: "2026-01-01T00:00:00.000Z",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ],
+  };
+  const nextState: StoredSyntextState = {
+    ...previousState,
+    documents: [
+      {
+        ...previousState.documents[0],
+        content: "<p>Current text</p>",
+        versionHistory: [
+          {
+            id: "version_1",
+            title: "Doc",
+            content: '<p><img src="/api/media/history-image.png" /></p>',
+            createdAt: "2026-01-01T00:01:00.000Z",
+            userId: "user_1",
+          },
+        ],
+      },
+    ],
+  };
+  const deleted: string[] = [];
+
+  await removeUnreferencedMediaFiles(
+    previousState,
+    nextState,
+    ["history-image.png"],
+    async (fileName) => {
+      deleted.push(fileName);
+    },
+  );
+
+  assert.deepEqual(deleted, []);
+});
