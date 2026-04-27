@@ -28,7 +28,7 @@ import { insertImageFile } from "@/features/editor/lib/image";
 
 type SaveDocument = (
   documentId: string,
-  patch: { content?: string; title?: string },
+  patch: { content?: string; title?: string; versionHistoryMode?: "force" | "merge" },
 ) => Promise<
   { error: string; ok: false } | { ok: true; document: { title: string } | null }
 >;

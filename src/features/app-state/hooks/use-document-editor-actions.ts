@@ -53,14 +53,22 @@ export function useDocumentEditorActions({
         }
         return { ok: true };
       },
-      saveDocument: async (documentId: string, input: { title?: string; content?: string }) => {
+      saveDocument: async (
+        documentId: string,
+        input: { title?: string; content?: string; versionHistoryMode?: "force" | "merge" },
+      ) => {
         if (!currentUser) {
           return { ok: false as const, error: "You must be logged in" };
         }
         const response = await fetch(`/api/documents/${documentId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: currentUser.id, title: input.title, content: input.content }),
+          body: JSON.stringify({
+            userId: currentUser.id,
+            title: input.title,
+            content: input.content,
+            versionHistoryMode: input.versionHistoryMode,
+          }),
         });
         const data = await readJson<{ error?: string; state?: SyntextState }>(response);
         if (!response.ok || !data.state) {

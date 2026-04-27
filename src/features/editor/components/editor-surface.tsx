@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import { EditorActionErrorDialog } from "@/features/editor/components/editor-action-error-dialog";
 import type { DocumentRecord, DocumentVersion } from "@/features/app-state/types";
@@ -24,6 +24,7 @@ export function EditorSurface({
 }: EditorSurfaceProps) {
   const router = useRouter();
   const blockMenuWidth = 168;
+  const [restoreBusy, setRestoreBusy] = useState(false);
   const model = useEditorSurfaceModel({
     document,
     permission,
@@ -54,21 +55,33 @@ export function EditorSurface({
   }, [document.versionHistory, selectedVersionId, setSelectedVersionId, versionHistoryOpen]);
 
   function handleRestoreVersion(version: DocumentVersion) {
-    if (!model.canEditBody) {
+    if (!model.canEditBody || !model.editor || restoreBusy || version.content === document.content) {
       return;
     }
 
-    model.editor?.commands.setContent(toEditorContent(version.content), {
-      emitUpdate: true,
+    setRestoreBusy(true);
+    model.ui.setStatus("saving");
+    model.editor.commands.setContent(toEditorContent(version.content), {
+      emitUpdate: false,
     });
-    void saveDocument(document.id, { content: version.content }).then((result) => {
+    void saveDocument(document.id, {
+      content: version.content,
+      versionHistoryMode: "force",
+    }).then((result) => {
       if (!result.ok) {
+        model.ui.setStatus("error");
         model.ui.setActionError(result.error);
         return;
       }
 
+      model.ui.setStatus("saved");
+      window.setTimeout(() => {
+        model.ui.setStatus("idle");
+      }, 1200);
       setVersionHistoryOpen(false);
       setSelectedVersionId(null);
+    }).finally(() => {
+      setRestoreBusy(false);
     });
   }
 
@@ -199,7 +212,7 @@ export function EditorSurface({
       />
       {versionHistoryOpen ? (
         <EditorVersionHistoryPanel
-          canRestore={model.canEditBody}
+          canRestore={model.canEditBody && Boolean(model.editor) && !restoreBusy}
           document={document}
           onClose={() => {
             setVersionHistoryOpen(false);

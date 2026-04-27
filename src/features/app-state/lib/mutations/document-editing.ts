@@ -91,6 +91,7 @@ export function updateDocumentForUser(
   input: {
     title?: string;
     content?: string;
+    versionHistoryMode?: "force" | "merge";
   },
 ) {
   const document = getDocumentById(state, documentId);
@@ -144,7 +145,7 @@ export function updateDocumentForUser(
     typeof input.content === "string" &&
     hasVersionWorthyContentChange(document.content, input.content);
   const versionHistory = contentChanged
-    ? updateVersionHistory(document, userId, editedAt)
+    ? updateVersionHistory(document, userId, editedAt, input.versionHistoryMode ?? "merge")
     : document.versionHistory;
 
   return {
@@ -171,6 +172,7 @@ function updateVersionHistory(
   document: DocumentRecord,
   userId: string,
   editedAt: string,
+  mode: "force" | "merge",
 ): DocumentVersion[] {
   const snapshot: DocumentVersion = {
     id: `version_${crypto.randomUUID()}`,
@@ -186,7 +188,7 @@ function updateVersionHistory(
     return currentHistory;
   }
 
-  if (latest && isRecentVersion(latest.createdAt, editedAt)) {
+  if (mode === "merge" && latest && isRecentVersion(latest.createdAt, editedAt)) {
     return currentHistory;
   }
 

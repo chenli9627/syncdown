@@ -31,6 +31,7 @@ export function EditorVersionHistoryPanel({
   const selectedVersion =
     versions.find((version) => version.id === activeVersionId) ?? null;
   const versionComparison = getVersionComparison(document, selectedVersion);
+  const selectedVersionIsCurrent = selectedVersion?.content === document.content;
 
   return (
     <aside className="fixed bottom-4 left-4 right-4 top-4 z-[45] flex min-h-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] md:left-[288px]">
@@ -96,9 +97,9 @@ export function EditorVersionHistoryPanel({
         <div className="shrink-0 flex justify-end border-t border-[var(--color-border)] px-5 py-3.5">
           <button
             className="bg-[var(--color-primary)] px-3.5 py-2 text-[14px] font-medium text-[var(--color-primary-foreground)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
-            disabled={!canRestore || !selectedVersion}
+            disabled={!canRestore || !selectedVersion || selectedVersionIsCurrent}
             onClick={() => {
-              if (selectedVersion) {
+              if (selectedVersion && !selectedVersionIsCurrent) {
                 onRestore(selectedVersion);
               }
             }}

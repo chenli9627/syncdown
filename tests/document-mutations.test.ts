@@ -224,6 +224,33 @@ test("nearby autosaves merge into one stable version history entry", () => {
   assert.equal(document?.versionHistory?.[0]?.content, "<p>Shared content</p>");
 });
 
+test("forced document saves keep the previous content restorable inside the merge window", () => {
+  const first = updateDocumentForUser(createState(), "user_one", "doc_shared", {
+    content: "<p>First edit</p>",
+  });
+
+  assert.equal(first.ok, true);
+  if (!first.ok) {
+    return;
+  }
+
+  const restored = updateDocumentForUser(first.state, "user_one", "doc_shared", {
+    content: "<p>Shared content</p>",
+    versionHistoryMode: "force",
+  });
+
+  assert.equal(restored.ok, true);
+  if (!restored.ok) {
+    return;
+  }
+
+  const document = restored.state.documents.find((entry) => entry.id === "doc_shared");
+  assert.equal(document?.content, "<p>Shared content</p>");
+  assert.equal(document?.versionHistory?.length, 2);
+  assert.equal(document?.versionHistory?.[0]?.content, "<p>First edit</p>");
+  assert.equal(document?.versionHistory?.[1]?.content, "<p>Shared content</p>");
+});
+
 test("sharing with yourself is rejected", () => {
   const result = shareDocumentWithUser(
     createState(),

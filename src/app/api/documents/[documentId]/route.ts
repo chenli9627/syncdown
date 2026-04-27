@@ -24,6 +24,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     userId?: string;
     title?: string;
     content?: string;
+    versionHistoryMode?: "force" | "merge";
   };
 
   if (!body.userId) {
@@ -35,6 +36,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const result = updateDocumentForUser(state, body.userId, documentId, {
     title: body.title,
     content: body.content,
+    versionHistoryMode: body.versionHistoryMode,
   });
 
   if (!result.ok) {

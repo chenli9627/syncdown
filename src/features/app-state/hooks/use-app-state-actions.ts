@@ -37,7 +37,7 @@ export type AppStateActions = {
   openDocument: (documentId: string) => Promise<Result>;
   saveDocument: (
     documentId: string,
-    input: { title?: string; content?: string },
+    input: { title?: string; content?: string; versionHistoryMode?: "force" | "merge" },
   ) => Promise<
     | {
         ok: true;
