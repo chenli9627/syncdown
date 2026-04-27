@@ -37,6 +37,10 @@ export function toPublicState(state: StoredSyntextState): SyntextState {
     documents: state.documents.map((document) => ({
       ...document,
       content: normalizeManagedMediaContent(document.content),
+      versionHistory: document.versionHistory?.map((version) => ({
+        ...version,
+        content: normalizeManagedMediaContent(version.content),
+      })),
     })),
     accesses: state.accesses,
     recentVisits: state.recentVisits,

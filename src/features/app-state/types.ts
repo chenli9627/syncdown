@@ -21,6 +21,14 @@ export type Workspace = {
   createdAt: string;
 };
 
+export type DocumentVersion = {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  userId: string;
+};
+
 export type DocumentRecord = {
   id: string;
   workspaceId: string;
@@ -32,6 +40,7 @@ export type DocumentRecord = {
   deletedAt?: string | null;
   lastEditedAt: string;
   createdAt: string;
+  versionHistory?: DocumentVersion[];
 };
 
 export type DocumentAccess = {

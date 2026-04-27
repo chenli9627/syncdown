@@ -25,6 +25,7 @@ type EditorHeaderOverflowActionProps = {
   setOverflowMenuOpen: (value: boolean | ((current: boolean) => boolean)) => void;
   setPermissionMenuOpen: (value: boolean | ((current: boolean) => boolean)) => void;
   setSearchMenuOpen: (value: boolean | ((current: boolean) => boolean)) => void;
+  setVersionHistoryOpen: (value: boolean | ((current: boolean) => boolean)) => void;
 };
 
 async function moveToTrash(props: EditorHeaderOverflowActionProps) {
@@ -59,6 +60,12 @@ export function EditorHeaderOverflowAction(props: EditorHeaderOverflowActionProp
         props.importInputRef.current?.click();
       }}
       onMoveToTrash={() => moveToTrash(props)}
+      onOpenVersionHistory={() => {
+        props.setOverflowMenuOpen(false);
+        props.setActionError(null);
+        props.setActionNotice(null);
+        props.setVersionHistoryOpen(true);
+      }}
       onOpenChange={(next) => {
         props.setOverflowMenuOpen(next);
         props.setSearchMenuOpen(false);

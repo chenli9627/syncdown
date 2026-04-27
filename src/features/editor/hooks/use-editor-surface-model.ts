@@ -283,6 +283,7 @@ export function useEditorSurfaceModel({
     searchHeaderLabel,
     selectionAi,
     slash,
+    state,
     titleError,
     titleInputRef,
     titleDraft,

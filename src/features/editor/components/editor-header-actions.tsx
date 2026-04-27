@@ -64,6 +64,7 @@ type EditorHeaderActionsProps = {
   setSearchRects: (value: []) => void;
   setShareEmail: (value: string) => void;
   setSharePermission: (value: "can_edit" | "can_view") => void;
+  setVersionHistoryOpen: (value: boolean | ((current: boolean) => boolean)) => void;
   shareDocument: (
     documentId: string,
     payload: { email: string; permission: "can_edit" | "can_view" },
@@ -132,6 +133,7 @@ export function EditorHeaderActions({
   setSearchRects,
   setShareEmail,
   setSharePermission,
+  setVersionHistoryOpen,
   shareDocument,
   shareEmail,
   sharePermission,
@@ -219,6 +221,7 @@ export function EditorHeaderActions({
         setOverflowMenuOpen={setOverflowMenuOpen}
         setPermissionMenuOpen={setPermissionMenuOpen}
         setSearchMenuOpen={setSearchMenuOpen}
+        setVersionHistoryOpen={setVersionHistoryOpen}
       />
     </div>
   );

@@ -1,12 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import { EditorActionErrorDialog } from "@/features/editor/components/editor-action-error-dialog";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { EditorCanvas } from "@/features/editor/components/editor-canvas";
 import { EditorHeader } from "@/features/editor/components/editor-header";
+import {
+  EditorVersionHistoryPanel,
+  getSelectedDocumentVersion,
+} from "@/features/editor/components/editor-version-history-panel";
 import { useEditorSurfaceModel } from "@/features/editor/hooks/use-editor-surface-model";
+import { toEditorContent } from "@/features/editor/lib/content";
 
 type EditorSurfaceProps = {
   document: DocumentRecord;
@@ -27,6 +33,51 @@ export function EditorSurface({
     routerPushHome: () => router.push("/home"),
     saveDocument,
   });
+  const {
+    selectedVersionId,
+    setSelectedVersionId,
+    setVersionHistoryOpen,
+    versionHistoryOpen,
+  } = model.ui.versionHistoryBody;
+  const selectedVersion = getSelectedDocumentVersion(
+    document,
+    selectedVersionId,
+  );
+
+  useEffect(() => {
+    if (!versionHistoryOpen) {
+      return;
+    }
+
+    if (selectedVersionId) {
+      return;
+    }
+
+    const firstVersion = document.versionHistory?.[0] ?? null;
+
+    if (firstVersion) {
+      setSelectedVersionId(firstVersion.id);
+    }
+  }, [document.versionHistory, selectedVersionId, setSelectedVersionId, versionHistoryOpen]);
+
+  function handleRestoreVersion(version: NonNullable<typeof selectedVersion>) {
+    if (!model.canEditBody) {
+      return;
+    }
+
+    model.editor?.commands.setContent(toEditorContent(version.content), {
+      emitUpdate: true,
+    });
+    void saveDocument(document.id, { content: version.content }).then((result) => {
+      if (!result.ok) {
+        model.ui.setActionError(result.error);
+        return;
+      }
+
+      setVersionHistoryOpen(false);
+      setSelectedVersionId(null);
+    });
+  }
 
   return (
     <div
@@ -93,6 +144,7 @@ export function EditorSurface({
         setShareEmail={model.ui.permissionBody.setShareEmail}
         setSharePermission={model.ui.permissionBody.setSharePermission}
         setTitleDraft={model.setTitleDraft}
+        setVersionHistoryOpen={setVersionHistoryOpen}
         shareDocument={model.shareDocument}
         shareEmail={model.ui.permissionBody.shareEmail}
         sharePermission={model.ui.permissionBody.sharePermission}
@@ -151,7 +203,26 @@ export function EditorSurface({
         setSlashMenu={model.slash.setSlashMenu}
         slashContextState={model.slash.slashContextState}
         slashMenu={model.slash.slashMenu}
+        versionHistoryPreview={{
+          document,
+          open: versionHistoryOpen,
+          selectedVersion,
+        }}
       />
+      {versionHistoryOpen ? (
+        <EditorVersionHistoryPanel
+          canRestore={model.canEditBody}
+          document={document}
+          onClose={() => {
+            setVersionHistoryOpen(false);
+            setSelectedVersionId(null);
+          }}
+          onRestore={handleRestoreVersion}
+          onSelectVersion={setSelectedVersionId}
+          selectedVersionId={selectedVersionId}
+          users={model.state.users}
+        />
+      ) : null}
     </div>
   );
 }

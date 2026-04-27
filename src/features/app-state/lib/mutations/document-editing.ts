@@ -1,4 +1,5 @@
 import type {
+  DocumentVersion,
   DocumentRecord,
   StoredSyntextState,
 } from "@/features/app-state/types";
@@ -13,6 +14,9 @@ import {
   titleExistsInWorkspace,
   upsertRecentVisit,
 } from "@/features/app-state/lib/mutations/shared";
+
+const VERSION_HISTORY_MERGE_WINDOW_MS = 10 * 60 * 1000;
+const MAX_DOCUMENT_VERSION_HISTORY = 50;
 
 export function createDocumentForWorkspace(
   state: StoredSyntextState,
@@ -136,6 +140,11 @@ export function updateDocumentForUser(
   }
 
   const editedAt = now();
+  const contentChanged =
+    typeof input.content === "string" && input.content !== document.content;
+  const versionHistory = contentChanged
+    ? updateVersionHistory(document, userId, editedAt)
+    : document.versionHistory;
 
   return {
     ok: true as const,
@@ -148,10 +157,48 @@ export function updateDocumentForUser(
               title: nextTitle,
               content: nextContent,
               lastEditedAt: editedAt,
+              versionHistory,
             }
           : item,
       ),
       recentVisits: upsertRecentVisit(state, userId, documentId, editedAt),
     },
   };
+}
+
+function updateVersionHistory(
+  document: DocumentRecord,
+  userId: string,
+  editedAt: string,
+): DocumentVersion[] {
+  const snapshot: DocumentVersion = {
+    id: `version_${crypto.randomUUID()}`,
+    title: document.title,
+    content: document.content,
+    createdAt: editedAt,
+    userId,
+  };
+  const currentHistory = document.versionHistory ?? [];
+  const latest = currentHistory[0] ?? null;
+
+  if (latest?.content === snapshot.content && latest.title === snapshot.title) {
+    return currentHistory;
+  }
+
+  if (latest && isRecentVersion(latest.createdAt, editedAt)) {
+    return [snapshot, ...currentHistory.slice(1)].slice(0, MAX_DOCUMENT_VERSION_HISTORY);
+  }
+
+  return [snapshot, ...currentHistory].slice(0, MAX_DOCUMENT_VERSION_HISTORY);
+}
+
+function isRecentVersion(previousCreatedAt: string, nextCreatedAt: string) {
+  const previousTime = Date.parse(previousCreatedAt);
+  const nextTime = Date.parse(nextCreatedAt);
+
+  if (Number.isNaN(previousTime) || Number.isNaN(nextTime)) {
+    return false;
+  }
+
+  return nextTime - previousTime < VERSION_HISTORY_MERGE_WINDOW_MS;
 }

@@ -147,6 +147,47 @@ test("guest cannot edit document title", () => {
   });
 });
 
+test("saving document content records previous content in version history", () => {
+  const result = updateDocumentForUser(createState(), "user_one", "doc_shared", {
+    content: "<p>Next content</p>",
+  });
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  const document = result.state.documents.find((entry) => entry.id === "doc_shared");
+  assert.equal(document?.content, "<p>Next content</p>");
+  assert.equal(document?.versionHistory?.length, 1);
+  assert.equal(document?.versionHistory?.[0]?.content, "<p>Shared content</p>");
+  assert.equal(document?.versionHistory?.[0]?.userId, "user_one");
+});
+
+test("nearby autosaves merge into one version history entry", () => {
+  const first = updateDocumentForUser(createState(), "user_one", "doc_shared", {
+    content: "<p>First edit</p>",
+  });
+
+  assert.equal(first.ok, true);
+  if (!first.ok) {
+    return;
+  }
+
+  const second = updateDocumentForUser(first.state, "user_one", "doc_shared", {
+    content: "<p>Second edit</p>",
+  });
+
+  assert.equal(second.ok, true);
+  if (!second.ok) {
+    return;
+  }
+
+  const document = second.state.documents.find((entry) => entry.id === "doc_shared");
+  assert.equal(document?.versionHistory?.length, 1);
+  assert.equal(document?.versionHistory?.[0]?.content, "<p>First edit</p>");
+});
+
 test("sharing with yourself is rejected", () => {
   const result = shareDocumentWithUser(
     createState(),
