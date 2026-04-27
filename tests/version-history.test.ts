@@ -189,6 +189,22 @@ test("version diff keeps added blank blocks without added styling", () => {
   assert.doesNotMatch(html, /border-left:\s*3px solid var\(--color-primary\)/);
 });
 
+test("version diff marks added text without styling the whole block", () => {
+  if (typeof DOMParser === "undefined") {
+    return;
+  }
+
+  const html = buildVersionDiffHtml(
+    "<p>Hello</p><p>New paragraph</p>",
+    "<p>Hello</p>",
+  );
+
+  assert.match(html, /<p><span style="color: var\(--color-primary\);">New paragraph<\/span><\/p>/);
+  assert.doesNotMatch(html, /background-color:\s*color-mix/);
+  assert.doesNotMatch(html, /border-left:\s*3px solid var\(--color-primary\)/);
+  assert.doesNotMatch(html, /padding-left:\s*12px/);
+});
+
 test("htmlToVersionText returns empty string for empty content", () => {
   if (typeof DOMParser === "undefined") {
     return;
