@@ -215,7 +215,7 @@ function updateVersionHistory(
   userId: string,
   editedAt: string,
   mode: Exclude<VersionHistoryMode, "snapshot">,
-): DocumentVersion[] {
+): DocumentVersion[] | undefined {
   const currentHistory = document.versionHistory ?? [];
   const latest = currentHistory[0] ?? null;
 
@@ -231,7 +231,7 @@ function appendVersionSnapshot(
   userId: string,
   editedAt: string,
   currentHistoryInput: DocumentVersion[] | undefined,
-): DocumentVersion[] {
+): DocumentVersion[] | undefined {
   const currentHistory = currentHistoryInput ?? [];
   const snapshot: DocumentVersion = {
     id: `version_${crypto.randomUUID()}`,
@@ -243,11 +243,11 @@ function appendVersionSnapshot(
   const latest = currentHistory[0] ?? null;
 
   if (latest?.content === snapshot.content && latest.title === snapshot.title) {
-    return currentHistory;
+    return currentHistoryInput;
   }
 
   if (isEmptyEditorContent(snapshot.content)) {
-    return currentHistory;
+    return currentHistoryInput;
   }
 
   return [snapshot, ...currentHistory].slice(0, MAX_DOCUMENT_VERSION_HISTORY);
@@ -265,20 +265,41 @@ function isRecentVersion(previousCreatedAt: string, nextCreatedAt: string) {
 }
 
 function hasVersionWorthyContentChange(previousContent: string, nextContent: string) {
-  if (isEmptyEditorContent(previousContent) && isEmptyEditorContent(nextContent)) {
-    return false;
-  }
-
-  return previousContent !== nextContent;
+  return normalizeVersionContent(previousContent) !== normalizeVersionContent(nextContent);
 }
 
 function isEmptyEditorContent(content: string) {
-  const compact = content.replace(/\s+/g, "").toLowerCase();
+  return normalizeVersionContent(content) === "";
+}
 
-  return (
-    compact === "" ||
-    compact === "<p></p>" ||
-    compact === "<p><br></p>" ||
-    compact === "<p><br/></p>"
-  );
+function normalizeVersionContent(content: string) {
+  return decodeHtmlEntities(content)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|div|li|h[1-6]|blockquote|pre)>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t\f\v]+/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .replace(/\n+/g, "\n")
+    .trim();
+}
+
+function decodeHtmlEntities(content: string) {
+  return content
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_match, value: string) => {
+      const codePoint = Number.parseInt(value, 10);
+
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : "";
+    })
+    .replace(/&#x([\da-f]+);/gi, (_match, value: string) => {
+      const codePoint = Number.parseInt(value, 16);
+
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : "";
+    });
 }

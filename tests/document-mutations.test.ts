@@ -200,6 +200,57 @@ test("initial blank editor autosave does not create version history", () => {
   assert.equal(document?.versionHistory, undefined);
 });
 
+test("whitespace-only content changes do not create version history", () => {
+  const result = updateDocumentForUser(
+    {
+      ...createState(),
+      documents: createState().documents.map((document) =>
+        document.id === "doc_shared"
+          ? {
+              ...document,
+              content: "<p>Shared content</p><p><br></p>",
+            }
+          : document,
+      ),
+    },
+    "user_one",
+    "doc_shared",
+    {
+      content: "<p>  Shared   content&nbsp;</p><p></p><p><br /></p>",
+    },
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  const document = result.state.documents.find((entry) => entry.id === "doc_shared");
+  assert.equal(document?.versionHistory, undefined);
+});
+
+test("blank snapshots do not create version history", () => {
+  const created = createDocumentForWorkspace(createState(), "user_one", "ws_one");
+
+  assert.equal(created.ok, true);
+  if (!created.ok) {
+    return;
+  }
+
+  const snapshotted = updateDocumentForUser(created.state, "user_one", created.documentId, {
+    content: "<p> </p><p><br></p>",
+    versionHistoryMode: "snapshot",
+  });
+
+  assert.equal(snapshotted.ok, true);
+  if (!snapshotted.ok) {
+    return;
+  }
+
+  const document = snapshotted.state.documents.find((entry) => entry.id === created.documentId);
+  assert.equal(document?.versionHistory, undefined);
+});
+
 test("nearby autosaves merge into one stable version history entry", () => {
   const first = updateDocumentForUser(createState(), "user_one", "doc_shared", {
     content: "<p>First edit</p>",
