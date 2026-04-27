@@ -251,6 +251,50 @@ test("blank snapshots do not create version history", () => {
   assert.equal(document?.versionHistory, undefined);
 });
 
+test("snapshot saves do not duplicate existing visible content", () => {
+  const state = {
+    ...createState(),
+    documents: createState().documents.map((document) =>
+      document.id === "doc_shared"
+        ? {
+            ...document,
+            content: "<p>  Shared   content&nbsp;</p><p><br></p>",
+            versionHistory: [
+              {
+                content: "<p>Other content</p>",
+                createdAt: "2026-04-01T00:10:00.000Z",
+                id: "version_other",
+                title: "Shared doc",
+                userId: "user_one",
+              },
+              {
+                content: "<p>Shared content</p>",
+                createdAt: "2026-04-01T00:00:00.000Z",
+                id: "version_shared",
+                title: "Shared doc",
+                userId: "user_one",
+              },
+            ],
+          }
+        : document,
+    ),
+  };
+  const snapshotted = updateDocumentForUser(state, "user_one", "doc_shared", {
+    content: "<p>  Shared   content&nbsp;</p><p><br></p>",
+    versionHistoryMode: "snapshot",
+  });
+
+  assert.equal(snapshotted.ok, true);
+  if (!snapshotted.ok) {
+    return;
+  }
+
+  const document = snapshotted.state.documents.find((entry) => entry.id === "doc_shared");
+  assert.equal(document?.versionHistory?.length, 2);
+  assert.equal(document?.versionHistory?.[0]?.content, "<p>Other content</p>");
+  assert.equal(document?.versionHistory?.[1]?.content, "<p>Shared content</p>");
+});
+
 test("nearby autosaves merge into one stable version history entry", () => {
   const first = updateDocumentForUser(createState(), "user_one", "doc_shared", {
     content: "<p>First edit</p>",

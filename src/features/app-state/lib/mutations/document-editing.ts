@@ -241,12 +241,23 @@ function appendVersionSnapshot(
     userId,
   };
   const latest = currentHistory[0] ?? null;
+  const normalizedSnapshotContent = normalizeVersionContent(snapshot.content);
 
   if (latest?.content === snapshot.content && latest.title === snapshot.title) {
     return currentHistoryInput;
   }
 
-  if (isEmptyEditorContent(snapshot.content)) {
+  if (normalizedSnapshotContent === "") {
+    return currentHistoryInput;
+  }
+
+  if (
+    currentHistory.some(
+      (version) =>
+        version.title === snapshot.title &&
+        normalizeVersionContent(version.content) === normalizedSnapshotContent,
+    )
+  ) {
     return currentHistoryInput;
   }
 
@@ -266,10 +277,6 @@ function isRecentVersion(previousCreatedAt: string, nextCreatedAt: string) {
 
 function hasVersionWorthyContentChange(previousContent: string, nextContent: string) {
   return normalizeVersionContent(previousContent) !== normalizeVersionContent(nextContent);
-}
-
-function isEmptyEditorContent(content: string) {
-  return normalizeVersionContent(content) === "";
 }
 
 function normalizeVersionContent(content: string) {
