@@ -63,6 +63,23 @@ export function useSyntextEditor({
   const seededInitialContentRef = useRef(false);
   const [editorReadyVersion, setEditorReadyVersion] = useState(0);
 
+  async function saveEditorContentNow(currentEditor: Editor) {
+    setStatus("saving");
+    const result = await saveDocument(documentId, {
+      content: currentEditor.getHTML(),
+    });
+
+    if (!result.ok) {
+      setStatus("error");
+      return;
+    }
+
+    setStatus("saved");
+    window.setTimeout(() => {
+      setStatus("idle");
+    }, 1200);
+  }
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -180,6 +197,22 @@ export function useSyntextEditor({
       handleKeyDown: (_view, event) => {
         const currentEditor = editorRef.current;
 
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+          event.preventDefault();
+
+          if (!currentEditor || !canEditBody) {
+            return true;
+          }
+
+          if (saveTimeoutRef.current) {
+            window.clearTimeout(saveTimeoutRef.current);
+            saveTimeoutRef.current = null;
+          }
+
+          void saveEditorContentNow(currentEditor);
+          return true;
+        }
+
         if (
           currentEditor &&
           canEditBody &&
@@ -263,19 +296,8 @@ export function useSyntextEditor({
 
       setStatus("saving");
       saveTimeoutRef.current = window.setTimeout(async () => {
-        const result = await saveDocument(documentId, {
-          content: currentEditor.getHTML(),
-        });
-
-        if (!result.ok) {
-          setStatus("error");
-          return;
-        }
-
-        setStatus("saved");
-        window.setTimeout(() => {
-          setStatus("idle");
-        }, 1200);
+        saveTimeoutRef.current = null;
+        await saveEditorContentNow(currentEditor);
       }, 500);
     },
   }, [canEditBody, collaborationDocument, collaborationProvider, currentUser?.id, documentId]);
