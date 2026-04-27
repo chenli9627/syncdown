@@ -164,6 +164,42 @@ test("saving document content records previous content in version history", () =
   assert.equal(document?.versionHistory?.[0]?.userId, "user_one");
 });
 
+test("saving unchanged content does not create version history", () => {
+  const result = updateDocumentForUser(createState(), "user_one", "doc_shared", {
+    content: "<p>Shared content</p>",
+  });
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  const document = result.state.documents.find((entry) => entry.id === "doc_shared");
+  assert.equal(document?.versionHistory, undefined);
+});
+
+test("initial blank editor autosave does not create version history", () => {
+  const created = createDocumentForWorkspace(createState(), "user_one", "ws_one");
+
+  assert.equal(created.ok, true);
+  if (!created.ok) {
+    return;
+  }
+
+  const saved = updateDocumentForUser(created.state, "user_one", created.documentId, {
+    content: "<p></p>",
+  });
+
+  assert.equal(saved.ok, true);
+  if (!saved.ok) {
+    return;
+  }
+
+  const document = saved.state.documents.find((entry) => entry.id === created.documentId);
+  assert.equal(document?.content, "<p></p>");
+  assert.equal(document?.versionHistory, undefined);
+});
+
 test("nearby autosaves merge into one version history entry", () => {
   const first = updateDocumentForUser(createState(), "user_one", "doc_shared", {
     content: "<p>First edit</p>",

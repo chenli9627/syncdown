@@ -205,7 +205,7 @@ export function EditorSurface({
         slashMenu={model.slash.slashMenu}
         versionHistoryPreview={{
           document,
-          open: versionHistoryOpen,
+          open: versionHistoryOpen && Boolean(selectedVersion),
           selectedVersion,
         }}
       />

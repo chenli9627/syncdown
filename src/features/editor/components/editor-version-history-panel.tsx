@@ -1,16 +1,8 @@
 "use client";
 
-import { CircleHelp, X } from "lucide-react";
+import { Clock3, CircleHelp, X } from "lucide-react";
 import type { DocumentRecord, DocumentVersion, User } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
-
-type VersionHistoryEntry = {
-  content: string;
-  createdAt: string;
-  id: string;
-  title: string;
-  userId: string;
-};
 
 type EditorVersionHistoryPanelProps = {
   canRestore: boolean;
@@ -21,8 +13,6 @@ type EditorVersionHistoryPanelProps = {
   selectedVersionId: string | null;
   users: User[];
 };
-
-const CURRENT_VERSION_ID = "current";
 
 export function EditorVersionHistoryPanel({
   canRestore,
@@ -35,17 +25,7 @@ export function EditorVersionHistoryPanel({
 }: EditorVersionHistoryPanelProps) {
   const { locale, t } = useLocale();
   const versions = document.versionHistory ?? [];
-  const entries: VersionHistoryEntry[] = [
-    {
-      content: document.content,
-      createdAt: document.lastEditedAt,
-      id: CURRENT_VERSION_ID,
-      title: document.title,
-      userId: document.ownerUserId,
-    },
-    ...versions,
-  ];
-  const activeVersionId = selectedVersionId ?? entries[0]?.id ?? CURRENT_VERSION_ID;
+  const activeVersionId = selectedVersionId ?? versions[0]?.id ?? null;
   const selectedVersion =
     versions.find((version) => version.id === activeVersionId) ?? null;
 
@@ -66,29 +46,41 @@ export function EditorVersionHistoryPanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
-        {entries.map((entry) => {
-          const active = entry.id === activeVersionId;
+        {versions.length > 0 ? (
+          versions.map((entry) => {
+            const active = entry.id === activeVersionId;
 
-          return (
-            <button
-              className={`block w-full px-5 py-2.5 text-left transition ${
-                active
-                  ? "bg-[var(--color-hover)]"
-                  : "hover:bg-[color-mix(in_srgb,var(--color-hover)_65%,transparent)]"
-              }`}
-              key={entry.id}
-              onClick={() => onSelectVersion(entry.id)}
-              type="button"
-            >
-              <span className="block text-[20px] leading-7 tracking-[-0.01em] text-[var(--color-foreground)]">
-                {formatVersionTime(entry.createdAt, locale)}
-              </span>
-              <span className="mt-0.5 block text-[16px] leading-6 text-[var(--color-muted-foreground)]">
-                {getUserName(users, entry.userId) ?? t("unknownUser")}
-              </span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                className={`block w-full px-5 py-2.5 text-left transition ${
+                  active
+                    ? "bg-[var(--color-hover)]"
+                    : "hover:bg-[color-mix(in_srgb,var(--color-hover)_65%,transparent)]"
+                }`}
+                key={entry.id}
+                onClick={() => onSelectVersion(entry.id)}
+                type="button"
+              >
+                <span className="block text-[20px] leading-7 tracking-[-0.01em] text-[var(--color-foreground)]">
+                  {formatVersionTime(entry.createdAt, locale)}
+                </span>
+                <span className="mt-0.5 block text-[16px] leading-6 text-[var(--color-muted-foreground)]">
+                  {getUserName(users, entry.userId) ?? t("unknownUser")}
+                </span>
+              </button>
+            );
+          })
+        ) : (
+          <div className="flex min-h-[220px] flex-col items-center justify-center px-6 text-center text-[var(--color-muted-foreground)]">
+            <Clock3 className="mb-3 size-8 opacity-55" />
+            <p className="text-[16px] leading-6 text-[var(--color-foreground)]">
+              {t("noVersionHistory")}
+            </p>
+            <p className="mt-1 text-[14px] leading-5">
+              {t("noVersionHistoryDescription")}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="shrink-0 flex items-center gap-3 border-t border-[var(--color-border)] px-6 py-4">

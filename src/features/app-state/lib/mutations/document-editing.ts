@@ -141,7 +141,8 @@ export function updateDocumentForUser(
 
   const editedAt = now();
   const contentChanged =
-    typeof input.content === "string" && input.content !== document.content;
+    typeof input.content === "string" &&
+    hasVersionWorthyContentChange(document.content, input.content);
   const versionHistory = contentChanged
     ? updateVersionHistory(document, userId, editedAt)
     : document.versionHistory;
@@ -201,4 +202,23 @@ function isRecentVersion(previousCreatedAt: string, nextCreatedAt: string) {
   }
 
   return nextTime - previousTime < VERSION_HISTORY_MERGE_WINDOW_MS;
+}
+
+function hasVersionWorthyContentChange(previousContent: string, nextContent: string) {
+  if (isEmptyEditorContent(previousContent) && isEmptyEditorContent(nextContent)) {
+    return false;
+  }
+
+  return previousContent !== nextContent;
+}
+
+function isEmptyEditorContent(content: string) {
+  const compact = content.replace(/\s+/g, "").toLowerCase();
+
+  return (
+    compact === "" ||
+    compact === "<p></p>" ||
+    compact === "<p><br></p>" ||
+    compact === "<p><br/></p>"
+  );
 }
