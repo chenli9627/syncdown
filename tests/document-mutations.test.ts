@@ -200,7 +200,7 @@ test("initial blank editor autosave does not create version history", () => {
   assert.equal(document?.versionHistory, undefined);
 });
 
-test("nearby autosaves merge into one version history entry", () => {
+test("nearby autosaves merge into one stable version history entry", () => {
   const first = updateDocumentForUser(createState(), "user_one", "doc_shared", {
     content: "<p>First edit</p>",
   });
@@ -221,7 +221,7 @@ test("nearby autosaves merge into one version history entry", () => {
 
   const document = second.state.documents.find((entry) => entry.id === "doc_shared");
   assert.equal(document?.versionHistory?.length, 1);
-  assert.equal(document?.versionHistory?.[0]?.content, "<p>First edit</p>");
+  assert.equal(document?.versionHistory?.[0]?.content, "<p>Shared content</p>");
 });
 
 test("sharing with yourself is rejected", () => {

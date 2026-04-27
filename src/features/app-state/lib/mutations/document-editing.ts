@@ -187,7 +187,7 @@ function updateVersionHistory(
   }
 
   if (latest && isRecentVersion(latest.createdAt, editedAt)) {
-    return [snapshot, ...currentHistory.slice(1)].slice(0, MAX_DOCUMENT_VERSION_HISTORY);
+    return currentHistory;
   }
 
   return [snapshot, ...currentHistory].slice(0, MAX_DOCUMENT_VERSION_HISTORY);
