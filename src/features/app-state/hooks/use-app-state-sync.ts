@@ -10,6 +10,7 @@ import {
 
 const SESSION_STORAGE_KEY = "syncdown.session";
 const STATE_STORAGE_KEY = "syncdown.state";
+const APP_STATE_SYNC_INTERVAL_MS = 10_000;
 
 function toFallbackPublicState(): SyntextState {
   const seed = createSeedState();
@@ -144,8 +145,19 @@ export function useAppStateSync({
     }
 
     let cancelled = false;
+    let syncInFlight = false;
 
     async function syncSilently() {
+      if (syncInFlight) {
+        return;
+      }
+
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
+      syncInFlight = true;
+
       try {
         const response = await fetch("/api/app-state", { cache: "no-store" });
         const data = await readJson<{ state: SyntextState }>(response);
@@ -162,14 +174,20 @@ export function useAppStateSync({
         persistStateSnapshot(data.state);
       } catch {
         // Ignore transient sync failures and keep current local state.
+      } finally {
+        syncInFlight = false;
       }
     }
 
     const intervalId = window.setInterval(() => {
       void syncSilently();
-    }, 4000);
+    }, APP_STATE_SYNC_INTERVAL_MS);
 
     const handleFocus = () => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
       void syncSilently();
     };
 
