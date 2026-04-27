@@ -200,7 +200,7 @@ test("initial blank editor autosave does not create version history", () => {
   assert.equal(document?.versionHistory, undefined);
 });
 
-test("whitespace-only content changes do not create version history", () => {
+test("whitespace-only edits in non-empty documents create version history", () => {
   const result = updateDocumentForUser(
     {
       ...createState(),
@@ -226,7 +226,8 @@ test("whitespace-only content changes do not create version history", () => {
   }
 
   const document = result.state.documents.find((entry) => entry.id === "doc_shared");
-  assert.equal(document?.versionHistory, undefined);
+  assert.equal(document?.versionHistory?.length, 1);
+  assert.equal(document?.versionHistory?.[0]?.content, "<p>Shared content</p><p><br></p>");
 });
 
 test("blank snapshots do not create version history", () => {
@@ -251,7 +252,7 @@ test("blank snapshots do not create version history", () => {
   assert.equal(document?.versionHistory, undefined);
 });
 
-test("snapshot saves do not duplicate existing visible content", () => {
+test("snapshot saves preserve whitespace-only variants", () => {
   const state = {
     ...createState(),
     documents: createState().documents.map((document) =>
@@ -290,9 +291,10 @@ test("snapshot saves do not duplicate existing visible content", () => {
   }
 
   const document = snapshotted.state.documents.find((entry) => entry.id === "doc_shared");
-  assert.equal(document?.versionHistory?.length, 2);
-  assert.equal(document?.versionHistory?.[0]?.content, "<p>Other content</p>");
-  assert.equal(document?.versionHistory?.[1]?.content, "<p>Shared content</p>");
+  assert.equal(document?.versionHistory?.length, 3);
+  assert.equal(document?.versionHistory?.[0]?.content, "<p>  Shared   content&nbsp;</p><p><br></p>");
+  assert.equal(document?.versionHistory?.[1]?.content, "<p>Other content</p>");
+  assert.equal(document?.versionHistory?.[2]?.content, "<p>Shared content</p>");
 });
 
 test("nearby autosaves merge into one stable version history entry", () => {

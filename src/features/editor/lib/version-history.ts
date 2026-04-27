@@ -36,6 +36,11 @@ type AnnotatedTextToken = {
   type: "added" | "unchanged";
 };
 
+type VersionBlockStats = {
+  added: number;
+  total: number;
+};
+
 export function getVersionComparison(
   document: Pick<DocumentRecord, "content" | "versionHistory">,
   selectedVersion: DocumentVersion | null,
@@ -77,17 +82,23 @@ export function buildVersionDiffHtml(
     })),
   );
   const textNodeAnnotations = new Map<Text, AnnotatedTextToken[]>();
+  const blockStats = new Map<Element, VersionBlockStats>();
   let statusIndex = 0;
   let pendingRemovedText = "";
 
   for (const entry of currentEntries) {
     while (statusTokens[statusIndex]?.type === "removed") {
-      pendingRemovedText += statusTokens[statusIndex]?.text ?? "";
+      const removedText = statusTokens[statusIndex]?.text ?? "";
+
+      if (!isWhitespaceOnly(removedText)) {
+        pendingRemovedText += removedText;
+      }
       statusIndex += 1;
     }
 
     const status = statusTokens[statusIndex];
-    const entryType = status?.type === "added" ? "added" : "unchanged";
+    const entryType =
+      status?.type === "added" && !isWhitespaceOnly(entry.token) ? "added" : "unchanged";
 
     if (status && status.type !== "removed") {
       statusIndex += 1;
@@ -99,6 +110,7 @@ export function buildVersionDiffHtml(
 
     const beforeRemoved = pendingRemovedText;
     pendingRemovedText = "";
+    updateBlockStats(currentDoc.body, entry, entryType, blockStats);
 
     if (entry.kind === "image") {
       insertRemovedTextBefore(entry.node, beforeRemoved);
@@ -122,7 +134,7 @@ export function buildVersionDiffHtml(
   while (statusIndex < statusTokens.length) {
     const status = statusTokens[statusIndex];
 
-    if (status?.type === "removed") {
+    if (status?.type === "removed" && !isWhitespaceOnly(status.text)) {
       pendingRemovedText += status.text;
     }
     statusIndex += 1;
@@ -135,6 +147,8 @@ export function buildVersionDiffHtml(
   if (pendingRemovedText) {
     currentDoc.body.append(createRemovedTextElement(currentDoc, pendingRemovedText));
   }
+
+  applyAddedBlockStyles(blockStats);
 
   return currentDoc.body.innerHTML;
 }
@@ -318,6 +332,59 @@ function createRemovedTextElement(doc: Document, text: string) {
   removed.style.textDecoration = "line-through";
   removed.textContent = text;
   return removed;
+}
+
+function updateBlockStats(
+  body: HTMLElement,
+  entry: Exclude<CurrentVersionTokenEntry, { kind: "separator" }>,
+  entryType: AnnotatedTextToken["type"],
+  blockStats: Map<Element, VersionBlockStats>,
+) {
+  if (isWhitespaceOnly(entry.token)) {
+    return;
+  }
+
+  const block = getTopLevelVersionBlock(body, entry.node);
+
+  if (!block) {
+    return;
+  }
+
+  const current = blockStats.get(block) ?? { added: 0, total: 0 };
+  current.total += 1;
+
+  if (entryType === "added") {
+    current.added += 1;
+  }
+
+  blockStats.set(block, current);
+}
+
+function getTopLevelVersionBlock(body: HTMLElement, node: Node) {
+  let current: Node | null = node;
+
+  while (current?.parentNode && current.parentNode !== body) {
+    current = current.parentNode;
+  }
+
+  return current instanceof Element ? current : null;
+}
+
+function applyAddedBlockStyles(blockStats: Map<Element, VersionBlockStats>) {
+  for (const [block, stats] of blockStats.entries()) {
+    if (stats.total === 0 || stats.added !== stats.total) {
+      continue;
+    }
+
+    const element = block as HTMLElement;
+    element.style.backgroundColor = "color-mix(in srgb, var(--color-primary) 8%, transparent)";
+    element.style.borderLeft = "3px solid var(--color-primary)";
+    element.style.paddingLeft = "12px";
+  }
+}
+
+function isWhitespaceOnly(text: string) {
+  return text.trim() === "";
 }
 
 function tokenizeVersionText(text: string) {

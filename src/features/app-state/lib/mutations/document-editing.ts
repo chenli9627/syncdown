@@ -253,9 +253,7 @@ function appendVersionSnapshot(
 
   if (
     currentHistory.some(
-      (version) =>
-        version.title === snapshot.title &&
-        normalizeVersionContent(version.content) === normalizedSnapshotContent,
+      (version) => version.title === snapshot.title && version.content === snapshot.content,
     )
   ) {
     return currentHistoryInput;
@@ -276,7 +274,11 @@ function isRecentVersion(previousCreatedAt: string, nextCreatedAt: string) {
 }
 
 function hasVersionWorthyContentChange(previousContent: string, nextContent: string) {
-  return normalizeVersionContent(previousContent) !== normalizeVersionContent(nextContent);
+  if (previousContent === nextContent) {
+    return false;
+  }
+
+  return normalizeVersionContent(nextContent) !== "";
 }
 
 function normalizeVersionContent(content: string) {
