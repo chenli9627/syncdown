@@ -35,6 +35,7 @@ export function useEditorSurfaceUiState() {
   const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
   const [permissionBusy, setPermissionBusy] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [updatesOpen, setUpdatesOpen] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [blockMenu, setBlockMenu] = useState({
     left: 0,
@@ -97,6 +98,10 @@ export function useEditorSurfaceUiState() {
     setOverflowMenuOpen,
     setStatus,
     status,
+    updatesBody: {
+      setUpdatesOpen,
+      updatesOpen,
+    },
     versionHistoryBody: {
       selectedVersionId,
       setSelectedVersionId,

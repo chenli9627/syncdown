@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, History, ImagePlus, MoreHorizontal, Trash2, Undo2, Upload } from "lucide-react";
+import { Activity, Download, History, ImagePlus, MoreHorizontal, Trash2, Undo2, Upload } from "lucide-react";
 import type { RefObject } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -13,6 +13,7 @@ type EditorOverflowMenuProps = {
   onImport: () => void;
   onMoveToTrash: () => void;
   onOpenChange: (next: boolean | ((current: boolean) => boolean)) => void;
+  onOpenUpdates: () => void;
   onOpenVersionHistory: () => void;
   onResetMessages: () => void;
   onUndo: () => void;
@@ -31,6 +32,7 @@ export function EditorOverflowMenu({
   onImport,
   onMoveToTrash,
   onOpenChange,
+  onOpenUpdates,
   onOpenVersionHistory,
   onResetMessages,
   onUndo,
@@ -101,6 +103,16 @@ export function EditorOverflowMenu({
               <span>{t("export")}</span>
               <Download className="ml-auto size-4" />
             </button>
+            {permission !== "can_view" ? (
+              <button
+                className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
+                onClick={onOpenUpdates}
+                type="button"
+              >
+                <span>{t("openUpdates")}</span>
+                <Activity className="ml-auto size-4" />
+              </button>
+            ) : null}
             {permission !== "can_view" ? (
               <button
                 className="flex w-full items-center border border-transparent py-2 pl-2 pr-0.5 text-left text-sm text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"

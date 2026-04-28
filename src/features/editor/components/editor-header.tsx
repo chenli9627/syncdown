@@ -71,6 +71,7 @@ type EditorHeaderProps = {
   setShareEmail: (value: string) => void;
   setSharePermission: (value: "can_edit" | "can_view") => void;
   setTitleDraft: (value: string) => void;
+  setUpdatesOpen: (value: boolean | ((current: boolean) => boolean)) => void;
   setVersionHistoryOpen: (value: boolean | ((current: boolean) => boolean)) => void;
   shareDocument: (
     documentId: string,
@@ -145,6 +146,7 @@ export function EditorHeader({
   setShareEmail,
   setSharePermission,
   setTitleDraft,
+  setUpdatesOpen,
   setVersionHistoryOpen,
   shareDocument,
   shareEmail,
@@ -217,6 +219,7 @@ export function EditorHeader({
     setSearchRects,
     setShareEmail,
     setSharePermission,
+    setUpdatesOpen,
     setVersionHistoryOpen,
     shareDocument,
     shareEmail,

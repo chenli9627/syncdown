@@ -7,6 +7,7 @@ import { EditorActionErrorDialog } from "@/features/editor/components/editor-act
 import type { DocumentRecord, DocumentVersion } from "@/features/app-state/types";
 import { EditorCanvas } from "@/features/editor/components/editor-canvas";
 import { EditorHeader } from "@/features/editor/components/editor-header";
+import { EditorUpdatesPanel } from "@/features/editor/components/editor-updates-panel";
 import { EditorVersionHistoryPanel } from "@/features/editor/components/editor-version-history-panel";
 import { useEditorSurfaceModel } from "@/features/editor/hooks/use-editor-surface-model";
 import { toEditorContent } from "@/features/editor/lib/content";
@@ -31,6 +32,7 @@ export function EditorSurface({
     routerPushHome: () => router.push("/home"),
     saveDocument,
   });
+  const { setUpdatesOpen, updatesOpen } = model.ui.updatesBody;
   const {
     selectedVersionId,
     setSelectedVersionId,
@@ -150,6 +152,7 @@ export function EditorSurface({
         setShareEmail={model.ui.permissionBody.setShareEmail}
         setSharePermission={model.ui.permissionBody.setSharePermission}
         setTitleDraft={model.setTitleDraft}
+        setUpdatesOpen={setUpdatesOpen}
         setVersionHistoryOpen={setVersionHistoryOpen}
         shareDocument={model.shareDocument}
         shareEmail={model.ui.permissionBody.shareEmail}
@@ -222,6 +225,13 @@ export function EditorSurface({
           onRestore={handleRestoreVersion}
           onSelectVersion={setSelectedVersionId}
           selectedVersionId={selectedVersionId}
+          users={model.state.users}
+        />
+      ) : null}
+      {updatesOpen && permission !== "can_view" ? (
+        <EditorUpdatesPanel
+          document={document}
+          onClose={() => setUpdatesOpen(false)}
           users={model.state.users}
         />
       ) : null}
