@@ -20,80 +20,87 @@ export function EditorUpdatesPanel({
   users,
 }: EditorUpdatesPanelProps) {
   const { locale, t } = useLocale();
-  const imageLabels = {
-    single: `[${t("versionImagePlaceholder")}]`,
-    plural: (count: number) => `[${count} ${t("versionImagePlaceholder")}]`,
+  const updateLabels = {
+    imageSingle: `[${t("versionImagePlaceholder")}]`,
+    tableOfContents: t("tableOfContents"),
   };
-  const updates = getDocumentUpdateEntries(document, imageLabels);
+  const updates = getDocumentUpdateEntries(document, updateLabels);
 
   return (
-    <aside className="fixed bottom-4 right-4 top-4 z-[45] flex w-[min(460px,calc(100vw-32px))] min-h-0 flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
-      <div className="shrink-0 flex items-center justify-between px-5 py-4">
-        <div>
-          <h2 className="text-[15px] font-semibold text-[var(--color-foreground)]">
-            {t("updates")}
-          </h2>
-          <p className="mt-0.5 text-[12px] leading-5 text-[var(--color-muted-foreground)]">
-            {t("updatesDescription")}
-          </p>
+    <>
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 z-[44] bg-transparent"
+        onMouseDown={onClose}
+      />
+      <aside className="fixed bottom-4 right-4 top-4 z-[45] flex w-[min(460px,calc(100vw-32px))] min-h-0 flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]">
+        <div className="shrink-0 flex items-center justify-between px-5 py-4">
+          <div>
+            <h2 className="text-[15px] font-semibold text-[var(--color-foreground)]">
+              {t("updates")}
+            </h2>
+            <p className="mt-0.5 text-[12px] leading-5 text-[var(--color-muted-foreground)]">
+              {t("updatesDescription")}
+            </p>
+          </div>
+          <button
+            aria-label={t("close")}
+            className="flex size-7 items-center justify-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="size-4" />
+          </button>
         </div>
-        <button
-          aria-label={t("close")}
-          className="flex size-7 items-center justify-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
-          onClick={onClose}
-          type="button"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
-        {updates.length > 0 ? (
-          <div className="space-y-2">
-            {updates.map((entry) => (
-              <article
-                className="border border-transparent px-4 py-3 transition hover:bg-[color-mix(in_srgb,var(--color-hover)_55%,transparent)]"
-                key={entry.id}
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="min-w-0 truncate text-[13px] font-medium leading-5 text-[var(--color-foreground)]">
-                    {getUserName(users, entry.userId) ?? t("unknownUser")}
-                  </p>
-                  <time className="shrink-0 text-[11px] leading-5 text-[var(--color-muted-foreground)]">
-                    {formatUpdateTime(entry.createdAt, locale)}
-                  </time>
-                </div>
-                {entry.parts.length > 0 ? (
-                  <div className="mt-2 space-y-1.5 text-[12px] leading-5">
-                    {entry.parts.map((part, index) => (
-                      <UpdatePartLine
-                        key={`${entry.id}-${index}`}
-                        part={part}
-                        prefix={part.type === "added" ? t("updateAdded") : t("updateRemoved")}
-                      />
-                    ))}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+          {updates.length > 0 ? (
+            <div className="space-y-2">
+              {updates.map((entry) => (
+                <article
+                  className="border border-transparent px-4 py-3 transition hover:bg-[color-mix(in_srgb,var(--color-hover)_55%,transparent)]"
+                  key={entry.id}
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="min-w-0 truncate text-[13px] font-medium leading-5 text-[var(--color-foreground)]">
+                      {getUserName(users, entry.userId) ?? t("unknownUser")}
+                    </p>
+                    <time className="shrink-0 text-[11px] leading-5 text-[var(--color-muted-foreground)]">
+                      {formatUpdateTime(entry.createdAt, locale)}
+                    </time>
                   </div>
-                ) : (
-                  <p className="mt-2 text-[12px] leading-5 text-[var(--color-muted-foreground)]">
-                    {t("updateNoVisibleTextChange")}
-                  </p>
-                )}
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="flex min-h-[220px] flex-col items-center justify-center px-5 text-center text-[var(--color-muted-foreground)]">
-            <Activity className="mb-3 size-7 opacity-55" />
-            <p className="text-[13px] leading-6 text-[var(--color-foreground)]">
-              {t("noUpdates")}
-            </p>
-            <p className="mt-1 text-[12px] leading-5">
-              {t("noUpdatesDescription")}
-            </p>
-          </div>
-        )}
-      </div>
-    </aside>
+                  {entry.parts.length > 0 ? (
+                    <div className="mt-2 space-y-1.5 text-[12px] leading-5">
+                      {entry.parts.map((part, index) => (
+                        <UpdatePartLine
+                          key={`${entry.id}-${index}`}
+                          part={part}
+                          prefix={part.type === "added" ? t("updateAdded") : t("updateRemoved")}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-[12px] leading-5 text-[var(--color-muted-foreground)]">
+                      {t("updateNoVisibleTextChange")}
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="flex min-h-[220px] flex-col items-center justify-center px-5 text-center text-[var(--color-muted-foreground)]">
+              <Activity className="mb-3 size-7 opacity-55" />
+              <p className="text-[13px] leading-6 text-[var(--color-foreground)]">
+                {t("noUpdates")}
+              </p>
+              <p className="mt-1 text-[12px] leading-5">
+                {t("noUpdatesDescription")}
+              </p>
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }
 
