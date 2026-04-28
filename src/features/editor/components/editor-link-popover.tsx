@@ -1,7 +1,7 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -46,6 +46,21 @@ export function LinkPopover({
   onSave,
 }: LinkPopoverProps) {
   const hoverCard = linkPopover.mode === "hover";
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const [position, setPosition] = useState(() => getPopoverPosition(linkPopover, hoverCard));
+
+  useLayoutEffect(() => {
+    const updatePosition = () => {
+      setPosition(getPopoverPosition(linkPopover, hoverCard, popoverRef.current));
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [hoverCard, linkPopover]);
 
   return (
     <div
@@ -58,11 +73,10 @@ export function LinkPopover({
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
       onPointerDown={stopPopoverPointerDown}
+      ref={popoverRef}
       style={{
-        left: `${linkPopover.left}px`,
-        top: `${linkPopover.top}px`,
-        transform:
-          linkPopover.mode === "hover" ? "translate(-50%, -100%)" : "translateX(-50%)",
+        left: `${position.left}px`,
+        top: `${position.top}px`,
       }}
     >
       {linkPopover.mode === "hover" ? (
@@ -84,6 +98,32 @@ export function LinkPopover({
       )}
     </div>
   );
+}
+
+function getPopoverPosition(
+  linkPopover: LinkPopoverState,
+  hoverCard: boolean,
+  element?: HTMLDivElement | null,
+) {
+  const screenPadding = 8;
+  const viewportWidth = typeof window === "undefined" ? 1024 : window.innerWidth;
+  const viewportHeight = typeof window === "undefined" ? 768 : window.innerHeight;
+  const fallbackWidth = hoverCard ? 400 : 360;
+  const fallbackHeight = hoverCard ? 40 : 178;
+  const width = element?.offsetWidth || Math.min(fallbackWidth, viewportWidth - 24);
+  const height = element?.offsetHeight || fallbackHeight;
+  const halfWidth = width / 2;
+  const left = Math.min(
+    viewportWidth - halfWidth - screenPadding,
+    Math.max(halfWidth + screenPadding, linkPopover.left),
+  );
+  const preferredTop = hoverCard ? linkPopover.top - height : linkPopover.top;
+  const top =
+    preferredTop + height > viewportHeight - screenPadding
+      ? Math.max(screenPadding, linkPopover.top - height - (hoverCard ? 0 : 56))
+      : Math.max(screenPadding, preferredTop);
+
+  return { left, top };
 }
 
 function HoverLinkPopoverContent({

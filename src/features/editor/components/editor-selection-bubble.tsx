@@ -50,6 +50,44 @@ export function EditorSelectionBubble({
   };
 
   useEffect(() => {
+    if (!linkPopover.open) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (selectionBubbleRef.current?.contains(target)) {
+        return;
+      }
+
+      if (target instanceof Element && target.closest("[data-link-hover-ui='true']")) {
+        return;
+      }
+
+      setLinkPopover(closedLinkPopover());
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setLinkPopover(closedLinkPopover());
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [linkPopover.open, selectionBubbleRef]);
+
+  useEffect(() => {
     if (!editor) {
       return;
     }
