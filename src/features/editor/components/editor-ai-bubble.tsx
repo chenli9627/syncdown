@@ -107,18 +107,11 @@ function AiActionMenu({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
-      <div className="grid grid-cols-2 gap-1.5">
-        <AiResultCountButton
-          active={candidateCount === 1}
-          label={t("aiOneResult")}
-          onClick={() => onResultCountChange(1)}
-        />
-        <AiResultCountButton
-          active={candidateCount === 2}
-          label={t("aiTwoResults")}
-          onClick={() => onResultCountChange(2)}
-        />
-      </div>
+      <AiCompareResultsToggle
+        checked={candidateCount === 2}
+        label={t("aiCompareResults")}
+        onChange={(checked) => onResultCountChange(checked ? 2 : 1)}
+      />
       <div className="grid grid-cols-2 gap-1.5">
         <AiActionButton label={t("improveWriting")} onClick={() => onPreviewAction("improve_writing")} />
         <AiActionButton label={t("explain")} onClick={() => onPreviewAction("explain")} />
@@ -317,27 +310,42 @@ function AiCandidateContent({
   );
 }
 
-function AiResultCountButton({
-  active,
+function AiCompareResultsToggle({
+  checked,
   label,
-  onClick,
+  onChange,
 }: {
-  active: boolean;
+  checked: boolean;
   label: string;
-  onClick: () => void;
+  onChange: (checked: boolean) => void;
 }) {
   return (
     <button
-      className={`border px-2.5 py-1.5 text-left text-[12px] transition ${
-        active
+      aria-pressed={checked}
+      className={`flex items-center justify-between gap-3 border px-2.5 py-1.5 text-left text-[12px] transition ${
+        checked
           ? "border-[var(--color-primary)] bg-[rgba(35,131,226,0.08)] text-[var(--color-primary)]"
           : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
       }`}
       onMouseDown={preventBubbleBlur}
-      onClick={onClick}
+      onClick={() => onChange(!checked)}
       type="button"
     >
-      {label}
+      <span>{label}</span>
+      <span
+        aria-hidden="true"
+        className={`relative h-4 w-7 shrink-0 border transition ${
+          checked
+            ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
+            : "border-[var(--color-border)] bg-[var(--color-card)]"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 size-2.5 bg-[var(--color-card)] shadow-sm transition ${
+            checked ? "left-[13px]" : "left-0.5"
+          }`}
+        />
+      </span>
     </button>
   );
 }

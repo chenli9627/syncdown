@@ -53,7 +53,7 @@ test("rejects AI requests when environment is not configured", async () => {
   });
 });
 
-test("calls remote responses endpoint when AI environment is configured", async () => {
+test("defaults to the primary model when AI environment is configured", async () => {
   process.env.AI_API_KEY = "secret";
   process.env.AI_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3/chat/completions";
   process.env.AI_MODEL = "deepseek-v3-2-251201";
@@ -96,11 +96,9 @@ test("calls remote responses endpoint when AI environment is configured", async 
 
   assert.deepEqual(requestedUrls, [
     "https://ark.cn-beijing.volces.com/api/v3/responses",
-    "https://ark.cn-beijing.volces.com/api/v3/responses",
   ]);
   assert.deepEqual(requestedModels, [
     "deepseek-v3-2-251201",
-    "doubao-seed-2-0-pro-260215",
   ]);
   assert.equal(response.status, 200);
   assert.deepEqual(payload, {
@@ -108,10 +106,6 @@ test("calls remote responses endpoint when AI environment is configured", async 
       {
         model: "deepseek-v3-2-251201",
         result: "Remote answer from deepseek-v3-2-251201",
-      },
-      {
-        model: "doubao-seed-2-0-pro-260215",
-        result: "Remote answer from doubao-seed-2-0-pro-260215",
       },
     ],
     ok: true,
@@ -231,6 +225,7 @@ test("falls back to chat completions when responses endpoint does not return con
     new Request("http://localhost/api/ai/action", {
       body: JSON.stringify({
         action: "summarize",
+        candidateCount: 2,
         locale: "zh",
         selectedText: "需要总结的文字",
       }),

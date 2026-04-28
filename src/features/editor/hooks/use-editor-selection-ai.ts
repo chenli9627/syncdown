@@ -21,6 +21,7 @@ const AI_BUBBLE_SINGLE_WIDTH = 320;
 const AI_BUBBLE_SINGLE_HEIGHT = 360;
 const AI_BUBBLE_COMPARE_WIDTH = 620;
 const AI_BUBBLE_COMPARE_HEIGHT = 420;
+const AI_COMPARE_RESULTS_STORAGE_KEY = "syncdown.ai.compareResults";
 
 export function useEditorSelectionAi({
   canEditBody,
@@ -286,11 +287,12 @@ export function useEditorSelectionAi({
           return;
         }
 
-        const bubblePosition = getAiBubblePosition(editor, visibleSelectionBubble, 1);
+        const candidateCount = getStoredAiCandidateCount();
+        const bubblePosition = getAiBubblePosition(editor, visibleSelectionBubble, candidateCount);
         setSelectionBubble(closedSelectionBubble());
         setAiBubble({
           action: null,
-          candidateCount: 2,
+          candidateCount,
           error: null,
           from: visibleSelectionBubble.from,
           highlightRects: getSelectionHighlightRects(
@@ -411,6 +413,7 @@ export function useEditorSelectionAi({
         }));
       },
       setCandidateCount(candidateCount: 1 | 2) {
+        setStoredAiCandidateCount(candidateCount);
         setAiBubble((current) => ({
           ...current,
           candidateCount,
@@ -628,7 +631,7 @@ function closedSelectionBubble(): SelectionBubbleState {
 function closedAiBubble(): AiBubbleState {
   return {
     action: null,
-    candidateCount: 2,
+    candidateCount: 1,
     error: null,
     from: 0,
     highlightRects: [],
@@ -643,4 +646,31 @@ function closedAiBubble(): AiBubbleState {
     top: 0,
     viewOnly: false,
   };
+}
+
+function getStoredAiCandidateCount(): 1 | 2 {
+  if (typeof window === "undefined") {
+    return 1;
+  }
+
+  try {
+    return window.localStorage.getItem(AI_COMPARE_RESULTS_STORAGE_KEY) === "true" ? 2 : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function setStoredAiCandidateCount(candidateCount: 1 | 2) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      AI_COMPARE_RESULTS_STORAGE_KEY,
+      candidateCount === 2 ? "true" : "false",
+    );
+  } catch {
+    // Ignore storage failures; the current bubble state still reflects the user choice.
+  }
 }

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   const viewOnly = getAiViewOnly(body.action);
-  const candidateCount = body.candidateCount === 1 ? 1 : 2;
+  const candidateCount = body.candidateCount === 2 ? 2 : 1;
 
   const apiKey = process.env.AI_API_KEY?.trim() || process.env.ARK_API_KEY?.trim();
   const baseUrl = process.env.AI_BASE_URL?.trim();
