@@ -23,6 +23,7 @@ export function EditorUpdatesPanel({
   const updateLabels = {
     imageSingle: `[${t("versionImagePlaceholder")}]`,
     tableOfContents: t("tableOfContents"),
+    title: t("updateDocumentTitle"),
   };
   const updates = getDocumentUpdateEntries(document, updateLabels);
 

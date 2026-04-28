@@ -6,6 +6,7 @@ import type { DocumentRecord } from "../src/features/app-state/types";
 const UPDATE_LABELS = {
   imageSingle: "[Image]",
   tableOfContents: "Table of Contents",
+  title: "Title",
 };
 
 test("document updates only include changed text parts", () => {
@@ -110,9 +111,14 @@ function makeDocument(
     ownerUserId: "user_one",
     status: "private",
     title: "Document",
-    versionHistory: versions.map((version) => ({
-      ...version,
-      title: "Document",
+    updateHistory: versions.map((version, index) => ({
+      createdAt: version.createdAt,
+      id: version.id,
+      nextContent: version.content,
+      nextTitle: "Document",
+      previousContent: versions[index + 1]?.content ?? "",
+      previousTitle: "Document",
+      userId: version.userId,
     })),
     workspaceId: "workspace_one",
   };

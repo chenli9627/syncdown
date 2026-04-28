@@ -6,6 +6,7 @@ import { diffVersionText } from "@/features/editor/lib/version-history";
 type DocumentUpdateLabels = {
   imageSingle: string;
   tableOfContents: string;
+  title: string;
 };
 
 export type DocumentUpdatePart = {
@@ -21,29 +22,65 @@ export type DocumentUpdateEntry = {
 };
 
 export function getDocumentUpdateEntries(
-  document: Pick<DocumentRecord, "versionHistory">,
+  document: Pick<DocumentRecord, "updateHistory" | "versionHistory">,
   labels: DocumentUpdateLabels,
 ): DocumentUpdateEntry[] {
+  if (document.updateHistory?.length) {
+    return document.updateHistory.map((update) => {
+      const previousText = documentStateToUpdateText(
+        {
+          content: update.previousContent,
+          title: update.previousTitle,
+        },
+        labels,
+      );
+      const currentText = documentStateToUpdateText(
+        {
+          content: update.nextContent,
+          title: update.nextTitle,
+        },
+        labels,
+      );
+
+      return {
+        createdAt: update.createdAt,
+        id: update.id,
+        parts: getChangedParts(previousText, currentText),
+        userId: update.userId,
+      };
+    });
+  }
+
   const versions = document.versionHistory ?? [];
 
   return versions.map((version, index) => {
     const previousVersion = versions[index + 1] ?? null;
     const previousText = previousVersion
-      ? htmlToUpdateText(previousVersion.content, labels)
+      ? documentStateToUpdateText(previousVersion, labels)
       : "";
-    const currentText = htmlToUpdateText(version.content, labels);
-    const parts = diffVersionText(previousText, currentText).filter(
-      (part): part is DocumentUpdatePart =>
-        part.type !== "unchanged" && part.text.trim() !== "",
-    );
+    const currentText = documentStateToUpdateText(version, labels);
 
     return {
       createdAt: version.createdAt,
       id: version.id,
-      parts,
+      parts: getChangedParts(previousText, currentText),
       userId: version.userId,
     };
   });
+}
+
+function documentStateToUpdateText(
+  document: Pick<DocumentRecord, "content" | "title">,
+  labels: DocumentUpdateLabels,
+) {
+  return `${labels.title}: ${document.title}\n\n${htmlToUpdateText(document.content, labels)}`.trim();
+}
+
+function getChangedParts(previousText: string, currentText: string) {
+  return diffVersionText(previousText, currentText).filter(
+    (part): part is DocumentUpdatePart =>
+      part.type !== "unchanged" && part.text.trim() !== "",
+  );
 }
 
 function htmlToUpdateText(html: string, labels: DocumentUpdateLabels) {

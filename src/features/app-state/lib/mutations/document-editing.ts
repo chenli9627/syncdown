@@ -1,4 +1,5 @@
 import type {
+  DocumentUpdate,
   DocumentVersion,
   DocumentRecord,
   StoredSyntextState,
@@ -17,6 +18,7 @@ import {
 
 const VERSION_HISTORY_MERGE_WINDOW_MS = 10 * 60 * 1000;
 const MAX_DOCUMENT_VERSION_HISTORY = 50;
+const MAX_DOCUMENT_UPDATE_HISTORY = 200;
 export type VersionHistoryMode = "force" | "merge" | "snapshot";
 
 export function createDocumentForWorkspace(
@@ -145,6 +147,12 @@ export function updateDocumentForUser(
   const contentChanged =
     typeof input.content === "string" &&
     hasVersionWorthyContentChange(document.content, input.content);
+  const updateHistory = appendDocumentUpdate(document, {
+    editedAt,
+    nextContent,
+    nextTitle,
+    userId,
+  });
   const versionHistory = resolveVersionHistory({
     contentChanged,
     document,
@@ -166,6 +174,7 @@ export function updateDocumentForUser(
               title: nextTitle,
               content: nextContent,
               lastEditedAt: editedAt,
+              updateHistory,
               versionHistory,
             }
           : item,
@@ -173,6 +182,38 @@ export function updateDocumentForUser(
       recentVisits: upsertRecentVisit(state, userId, documentId, editedAt),
     },
   };
+}
+
+function appendDocumentUpdate(
+  document: DocumentRecord,
+  {
+    editedAt,
+    nextContent,
+    nextTitle,
+    userId,
+  }: {
+    editedAt: string;
+    nextContent: string;
+    nextTitle: string;
+    userId: string;
+  },
+): DocumentUpdate[] | undefined {
+  if (document.title === nextTitle && document.content === nextContent) {
+    return document.updateHistory;
+  }
+
+  return [
+    {
+      createdAt: editedAt,
+      id: `update_${crypto.randomUUID()}`,
+      nextContent,
+      nextTitle,
+      previousContent: document.content,
+      previousTitle: document.title,
+      userId,
+    },
+    ...(document.updateHistory ?? []),
+  ].slice(0, MAX_DOCUMENT_UPDATE_HISTORY);
 }
 
 function resolveVersionHistory({

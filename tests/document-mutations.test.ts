@@ -321,6 +321,44 @@ test("nearby autosaves merge into one stable version history entry", () => {
   assert.equal(document?.versionHistory?.[0]?.content, "<p>Shared content</p>");
 });
 
+test("document updates record every persisted content change with each user", () => {
+  const state = {
+    ...createState(),
+    accesses: createState().accesses.map((access) =>
+      access.documentId === "doc_shared" && access.userId === "user_two"
+        ? { ...access, permission: "can_edit" as const }
+        : access,
+    ),
+  };
+  const first = updateDocumentForUser(state, "user_one", "doc_shared", {
+    content: "<p>First edit</p>",
+  });
+
+  assert.equal(first.ok, true);
+  if (!first.ok) {
+    return;
+  }
+
+  const second = updateDocumentForUser(first.state, "user_two", "doc_shared", {
+    content: "<p>Second edit</p>",
+  });
+
+  assert.equal(second.ok, true);
+  if (!second.ok) {
+    return;
+  }
+
+  const document = second.state.documents.find((entry) => entry.id === "doc_shared");
+  assert.equal(document?.versionHistory?.length, 1);
+  assert.equal(document?.updateHistory?.length, 2);
+  assert.equal(document?.updateHistory?.[0]?.userId, "user_two");
+  assert.equal(document?.updateHistory?.[0]?.previousContent, "<p>First edit</p>");
+  assert.equal(document?.updateHistory?.[0]?.nextContent, "<p>Second edit</p>");
+  assert.equal(document?.updateHistory?.[1]?.userId, "user_one");
+  assert.equal(document?.updateHistory?.[1]?.previousContent, "<p>Shared content</p>");
+  assert.equal(document?.updateHistory?.[1]?.nextContent, "<p>First edit</p>");
+});
+
 test("forced document saves keep the previous content restorable inside the merge window", () => {
   const first = updateDocumentForUser(createState(), "user_one", "doc_shared", {
     content: "<p>First edit</p>",
