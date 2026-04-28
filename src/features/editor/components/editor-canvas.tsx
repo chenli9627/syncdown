@@ -124,6 +124,7 @@ type EditorCanvasProps = {
   onAiInsertBelow: () => void;
   onAiPreviewAction: (action: AiActionKind) => void;
   onAiPromptChange: (value: string) => void;
+  onAiResultCountChange: (count: 1 | 2) => void;
   onAiSelectCandidate: (index: number) => void;
   onFormatSelection: (command: "bold" | "italic" | "strike" | "code") => void;
   onOpenAiMenu: () => void;
@@ -183,6 +184,7 @@ export function EditorCanvas({
   onAiInsertBelow,
   onAiPreviewAction,
   onAiPromptChange,
+  onAiResultCountChange,
   onAiSelectCandidate,
   onFormatSelection,
   onOpenAiMenu,
@@ -1169,6 +1171,7 @@ export function EditorCanvas({
           onInsertBelow={onAiInsertBelow}
           onPreviewAction={onAiPreviewAction}
           onPromptChange={onAiPromptChange}
+          onResultCountChange={onAiResultCountChange}
           onSelectCandidate={onAiSelectCandidate}
         />
         {canEditBody && blockMenu.open && globalThis.document?.body

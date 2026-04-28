@@ -120,6 +120,57 @@ test("calls remote responses endpoint when AI environment is configured", async 
   });
 });
 
+test("requests only the primary model when one AI result is selected", async () => {
+  process.env.AI_API_KEY = "secret";
+  process.env.AI_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+  process.env.AI_MODEL = "qwen3.6-flash";
+  process.env.AI_SECONDARY_MODEL = "deepseek-v4-flash";
+
+  const requestedModels: string[] = [];
+  global.fetch = (async (_input: URL | RequestInfo, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body ?? "{}")) as { model?: string };
+    requestedModels.push(body.model ?? "");
+
+    return new Response(
+      JSON.stringify({
+        output_text: `Only answer from ${body.model}`,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      },
+    );
+  }) as typeof fetch;
+
+  const response = await POST(
+    new Request("http://localhost/api/ai/action", {
+      body: JSON.stringify({
+        action: "improve_writing",
+        candidateCount: 1,
+        locale: "en",
+        selectedText: "hello world",
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    }),
+  );
+  const payload = await response.json();
+
+  assert.deepEqual(requestedModels, ["qwen3.6-flash"]);
+  assert.equal(response.status, 200);
+  assert.deepEqual(payload, {
+    candidates: [
+      {
+        model: "qwen3.6-flash",
+        result: "Only answer from qwen3.6-flash",
+      },
+    ],
+    ok: true,
+    source: "remote",
+    viewOnly: false,
+  });
+});
+
 test("falls back to chat completions when responses endpoint does not return content", async () => {
   process.env.AI_API_KEY = "secret";
   process.env.AI_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";

@@ -55,6 +55,7 @@ export type SelectionBubbleState = {
 
 export type AiBubbleState = {
   action: import("@/features/editor/lib/ai").AiActionKind | null;
+  candidateCount: 1 | 2;
   candidates: Array<{
     model: string;
     result: string;

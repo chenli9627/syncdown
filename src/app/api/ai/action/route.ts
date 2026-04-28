@@ -44,13 +44,14 @@ export async function POST(request: Request) {
   }
 
   const viewOnly = getAiViewOnly(body.action);
+  const candidateCount = body.candidateCount === 1 ? 1 : 2;
 
   const apiKey = process.env.AI_API_KEY?.trim() || process.env.ARK_API_KEY?.trim();
   const baseUrl = process.env.AI_BASE_URL?.trim();
   const model = process.env.AI_MODEL?.trim();
   const secondaryModel = process.env.AI_SECONDARY_MODEL?.trim();
 
-  if (!apiKey || !baseUrl || !model || !secondaryModel) {
+  if (!apiKey || !baseUrl || !model || (candidateCount === 2 && !secondaryModel)) {
     return NextResponse.json(
       { error: "AI service is not configured", ok: false },
       { status: 503 },
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
       new Set(
         [
           model,
-          secondaryModel,
+          candidateCount === 2 ? secondaryModel : null,
         ].filter((candidate): candidate is string => Boolean(candidate)),
       ),
     );

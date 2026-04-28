@@ -290,6 +290,7 @@ export function useEditorSelectionAi({
         setSelectionBubble(closedSelectionBubble());
         setAiBubble({
           action: null,
+          candidateCount: 2,
           error: null,
           from: visibleSelectionBubble.from,
           highlightRects: getSelectionHighlightRects(
@@ -325,6 +326,7 @@ export function useEditorSelectionAi({
           const response = await fetch("/api/ai/action", {
             body: JSON.stringify({
               action,
+              candidateCount: aiBubble.candidateCount,
               locale,
               prompt: action === "custom" ? aiBubble.prompt : undefined,
               selectedText: aiBubble.text,
@@ -406,6 +408,12 @@ export function useEditorSelectionAi({
             0,
             Math.min(index, Math.max(0, current.candidates.length - 1)),
           ),
+        }));
+      },
+      setCandidateCount(candidateCount: 1 | 2) {
+        setAiBubble((current) => ({
+          ...current,
+          candidateCount,
         }));
       },
       setPrompt(value: string) {
@@ -620,6 +628,7 @@ function closedSelectionBubble(): SelectionBubbleState {
 function closedAiBubble(): AiBubbleState {
   return {
     action: null,
+    candidateCount: 2,
     error: null,
     from: 0,
     highlightRects: [],

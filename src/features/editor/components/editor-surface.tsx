@@ -199,6 +199,7 @@ export function EditorSurface({
         onAiInsertBelow={model.selectionAi.actions.insertBelow}
         onAiPreviewAction={model.selectionAi.actions.previewAction}
         onAiPromptChange={model.selectionAi.actions.setPrompt}
+        onAiResultCountChange={model.selectionAi.actions.setCandidateCount}
         onAiSelectCandidate={model.selectionAi.actions.selectCandidate}
         onFormatSelection={model.selectionAi.actions.formatSelection}
         onOpenAiMenu={model.selectionAi.actions.openAiMenu}

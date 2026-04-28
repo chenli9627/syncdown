@@ -11,6 +11,7 @@ export type AiActionKind =
 
 export type AiRequestPayload = {
   action: AiActionKind;
+  candidateCount?: 1 | 2;
   locale: Locale;
   prompt?: string;
   selectedText: string;

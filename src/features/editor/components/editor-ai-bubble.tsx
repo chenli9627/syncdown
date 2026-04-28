@@ -14,6 +14,7 @@ type EditorAiBubbleProps = {
   onClose: () => void;
   onInsertBelow: () => void;
   onPreviewAction: (action: AiActionKind) => void;
+  onResultCountChange: (count: 1 | 2) => void;
   onPromptChange: (value: string) => void;
   onSelectCandidate: (index: number) => void;
 };
@@ -25,6 +26,7 @@ export function EditorAiBubble({
   onClose,
   onInsertBelow,
   onPreviewAction,
+  onResultCountChange,
   onPromptChange,
   onSelectCandidate,
 }: EditorAiBubbleProps) {
@@ -70,10 +72,12 @@ export function EditorAiBubble({
           />
         ) : (
           <AiActionMenu
+            candidateCount={aiBubble.candidateCount}
             prompt={aiBubble.prompt}
             onClose={onClose}
             onPreviewAction={onPreviewAction}
             onPromptChange={onPromptChange}
+            onResultCountChange={onResultCountChange}
           />
         )}
       </div>
@@ -83,22 +87,38 @@ export function EditorAiBubble({
 }
 
 type AiActionMenuProps = {
+  candidateCount: 1 | 2;
   onClose: () => void;
   onPreviewAction: (action: AiActionKind) => void;
   onPromptChange: (value: string) => void;
+  onResultCountChange: (count: 1 | 2) => void;
   prompt: string;
 };
 
 function AiActionMenu({
+  candidateCount,
   onClose,
   onPreviewAction,
   onPromptChange,
+  onResultCountChange,
   prompt,
 }: AiActionMenuProps) {
   const { t } = useLocale();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
+      <div className="grid grid-cols-2 gap-1.5">
+        <AiResultCountButton
+          active={candidateCount === 1}
+          label={t("aiOneResult")}
+          onClick={() => onResultCountChange(1)}
+        />
+        <AiResultCountButton
+          active={candidateCount === 2}
+          label={t("aiTwoResults")}
+          onClick={() => onResultCountChange(2)}
+        />
+      </div>
       <div className="grid grid-cols-2 gap-1.5">
         <AiActionButton label={t("improveWriting")} onClick={() => onPreviewAction("improve_writing")} />
         <AiActionButton label={t("explain")} onClick={() => onPreviewAction("explain")} />
@@ -294,6 +314,31 @@ function AiCandidateContent({
     >
       {candidate?.result ?? ""}
     </div>
+  );
+}
+
+function AiResultCountButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`border px-2.5 py-1.5 text-left text-[12px] transition ${
+        active
+          ? "border-[var(--color-primary)] bg-[rgba(35,131,226,0.08)] text-[var(--color-primary)]"
+          : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-hover)]"
+      }`}
+      onMouseDown={preventBubbleBlur}
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
   );
 }
 
