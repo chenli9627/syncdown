@@ -5,8 +5,12 @@ import type { DocumentRecord, User } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   getDocumentUpdateEntries,
+  getDocumentUpdateParts,
+  type DocumentUpdateEntry,
+  type DocumentUpdateLabels,
   type DocumentUpdatePart,
 } from "@/features/editor/lib/document-updates";
+import { useIncrementalList } from "@/features/editor/hooks/use-incremental-list";
 
 type EditorUpdatesPanelProps = {
   document: DocumentRecord;
@@ -25,7 +29,13 @@ export function EditorUpdatesPanel({
     tableOfContents: t("tableOfContents"),
     title: t("updateDocumentTitle"),
   };
-  const updates = getDocumentUpdateEntries(document, updateLabels);
+  const updates = getDocumentUpdateEntries(document);
+  const {
+    handleScroll,
+    hasMore,
+    loadMore,
+    visibleItems: visibleUpdates,
+  } = useIncrementalList(updates, 40);
 
   return (
     <>
@@ -54,39 +64,30 @@ export function EditorUpdatesPanel({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4"
+          onScroll={handleScroll}
+        >
           {updates.length > 0 ? (
             <div className="space-y-2">
-              {updates.map((entry) => (
-                <article
-                  className="border border-transparent px-4 py-3 transition hover:bg-[color-mix(in_srgb,var(--color-hover)_55%,transparent)]"
+              {visibleUpdates.map((entry) => (
+                <UpdateEntryCard
+                  entry={entry}
                   key={entry.id}
-                >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="min-w-0 truncate text-[13px] font-medium leading-5 text-[var(--color-foreground)]">
-                      {getUserName(users, entry.userId) ?? t("unknownUser")}
-                    </p>
-                    <time className="shrink-0 text-[11px] leading-5 text-[var(--color-muted-foreground)]">
-                      {formatUpdateTime(entry.createdAt, locale)}
-                    </time>
-                  </div>
-                  {entry.parts.length > 0 ? (
-                    <div className="mt-2 space-y-1.5 text-[12px] leading-5">
-                      {entry.parts.map((part, index) => (
-                        <UpdatePartLine
-                          key={`${entry.id}-${index}`}
-                          part={part}
-                          prefix={part.type === "added" ? t("updateAdded") : t("updateRemoved")}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-[12px] leading-5 text-[var(--color-muted-foreground)]">
-                      {t("updateNoVisibleTextChange")}
-                    </p>
-                  )}
-                </article>
+                  labels={updateLabels}
+                  locale={locale}
+                  users={users}
+                />
               ))}
+              {hasMore ? (
+                <button
+                  className="w-full border border-transparent px-4 py-2 text-left text-[12px] text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
+                  onClick={loadMore}
+                  type="button"
+                >
+                  {t("loadMore")}
+                </button>
+              ) : null}
             </div>
           ) : (
             <div className="flex min-h-[220px] flex-col items-center justify-center px-5 text-center text-[var(--color-muted-foreground)]">
@@ -102,6 +103,49 @@ export function EditorUpdatesPanel({
         </div>
       </aside>
     </>
+  );
+}
+
+function UpdateEntryCard({
+  entry,
+  labels,
+  locale,
+  users,
+}: {
+  entry: DocumentUpdateEntry;
+  labels: DocumentUpdateLabels;
+  locale: "zh" | "en";
+  users: User[];
+}) {
+  const { t } = useLocale();
+  const parts = getDocumentUpdateParts(entry, labels);
+
+  return (
+    <article className="border border-transparent px-4 py-3 transition hover:bg-[color-mix(in_srgb,var(--color-hover)_55%,transparent)]">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate text-[13px] font-medium leading-5 text-[var(--color-foreground)]">
+          {getUserName(users, entry.userId) ?? t("unknownUser")}
+        </p>
+        <time className="shrink-0 text-[11px] leading-5 text-[var(--color-muted-foreground)]">
+          {formatUpdateTime(entry.createdAt, locale)}
+        </time>
+      </div>
+      {parts.length > 0 ? (
+        <div className="mt-2 space-y-1.5 text-[12px] leading-5">
+          {parts.map((part, index) => (
+            <UpdatePartLine
+              key={`${entry.id}-${index}`}
+              part={part}
+              prefix={part.type === "added" ? t("updateAdded") : t("updateRemoved")}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-[12px] leading-5 text-[var(--color-muted-foreground)]">
+          {t("updateNoVisibleTextChange")}
+        </p>
+      )}
+    </article>
   );
 }
 

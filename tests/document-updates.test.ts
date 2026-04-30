@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getDocumentUpdateEntries } from "../src/features/editor/lib/document-updates";
+import {
+  getDocumentUpdateEntries,
+  getDocumentUpdateParts,
+} from "../src/features/editor/lib/document-updates";
 import type { DocumentRecord } from "../src/features/app-state/types";
 
 const UPDATE_LABELS = {
@@ -29,11 +32,17 @@ test("document updates only include changed text parts", () => {
     },
   ]);
 
-  const updates = getDocumentUpdateEntries(document, UPDATE_LABELS);
+  const updates = getDocumentUpdateEntries(document);
 
   assert.equal(updates.length, 2);
-  assert.deepEqual(updates[0]?.parts, [{ text: "brave ", type: "added" }]);
-  assert.deepEqual(updates[1]?.parts, [{ text: "Hello world", type: "added" }]);
+  assert.deepEqual(
+    updates[0] ? getDocumentUpdateParts(updates[0], UPDATE_LABELS) : [],
+    [{ text: "brave ", type: "added" }],
+  );
+  assert.deepEqual(
+    updates[1] ? getDocumentUpdateParts(updates[1], UPDATE_LABELS) : [],
+    [{ text: "Hello world", type: "added" }],
+  );
 });
 
 test("document updates include removed text parts", () => {
@@ -56,9 +65,12 @@ test("document updates include removed text parts", () => {
     },
   ]);
 
-  const updates = getDocumentUpdateEntries(document, UPDATE_LABELS);
+  const updates = getDocumentUpdateEntries(document);
 
-  assert.deepEqual(updates[0]?.parts, [{ text: "old ", type: "removed" }]);
+  assert.deepEqual(
+    updates[0] ? getDocumentUpdateParts(updates[0], UPDATE_LABELS) : [],
+    [{ text: "old ", type: "removed" }],
+  );
 });
 
 test("document updates include rich text structure", () => {
@@ -87,8 +99,8 @@ test("document updates include rich text structure", () => {
     },
   ]);
 
-  const updates = getDocumentUpdateEntries(document, UPDATE_LABELS);
-  const addedText = updates[0]?.parts
+  const updates = getDocumentUpdateEntries(document);
+  const addedText = (updates[0] ? getDocumentUpdateParts(updates[0], UPDATE_LABELS) : [])
     .filter((part) => part.type === "added")
     .map((part) => part.text)
     .join("");

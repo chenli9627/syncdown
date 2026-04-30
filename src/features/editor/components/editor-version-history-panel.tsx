@@ -4,6 +4,7 @@ import { Clock3, X } from "lucide-react";
 import type { DocumentRecord, DocumentVersion, User } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
 import { EditorVersionHistoryPreview } from "@/features/editor/components/editor-version-history-preview";
+import { useIncrementalList } from "@/features/editor/hooks/use-incremental-list";
 import { getVersionComparison } from "@/features/editor/lib/version-history";
 
 type EditorVersionHistoryPanelProps = {
@@ -32,6 +33,12 @@ export function EditorVersionHistoryPanel({
     versions.find((version) => version.id === activeVersionId) ?? null;
   const versionComparison = getVersionComparison(document, selectedVersion);
   const selectedVersionIsCurrent = selectedVersion?.content === document.content;
+  const {
+    handleScroll,
+    hasMore,
+    loadMore,
+    visibleItems: visibleVersions,
+  } = useIncrementalList(versions, 80);
 
   return (
     <aside className="fixed bottom-4 left-4 right-4 top-4 z-[45] flex min-h-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] md:left-[288px]">
@@ -56,31 +63,45 @@ export function EditorVersionHistoryPanel({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4"
+          onScroll={handleScroll}
+        >
           {versions.length > 0 ? (
-            versions.map((entry) => {
-              const active = entry.id === activeVersionId;
+            <>
+              {visibleVersions.map((entry) => {
+                const active = entry.id === activeVersionId;
 
-              return (
+                return (
+                  <button
+                    className={`block w-full px-4 py-2.5 text-left transition ${
+                      active
+                        ? "bg-[var(--color-hover)]"
+                        : "hover:bg-[color-mix(in_srgb,var(--color-hover)_65%,transparent)]"
+                    }`}
+                    key={entry.id}
+                    onClick={() => onSelectVersion(entry.id)}
+                    type="button"
+                  >
+                    <span className="block text-sm leading-5 text-[var(--color-foreground)]">
+                      {formatVersionTime(entry.createdAt, locale)}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-5 text-[var(--color-muted-foreground)]">
+                      {getUserName(users, entry.userId) ?? t("unknownUser")}
+                    </span>
+                  </button>
+                );
+              })}
+              {hasMore ? (
                 <button
-                  className={`block w-full px-4 py-2.5 text-left transition ${
-                    active
-                      ? "bg-[var(--color-hover)]"
-                      : "hover:bg-[color-mix(in_srgb,var(--color-hover)_65%,transparent)]"
-                  }`}
-                  key={entry.id}
-                  onClick={() => onSelectVersion(entry.id)}
+                  className="block w-full px-4 py-2.5 text-left text-xs text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
+                  onClick={loadMore}
                   type="button"
                 >
-                  <span className="block text-sm leading-5 text-[var(--color-foreground)]">
-                    {formatVersionTime(entry.createdAt, locale)}
-                  </span>
-                  <span className="mt-0.5 block text-xs leading-5 text-[var(--color-muted-foreground)]">
-                    {getUserName(users, entry.userId) ?? t("unknownUser")}
-                  </span>
+                  {t("loadMore")}
                 </button>
-              );
-            })
+              ) : null}
+            </>
           ) : (
             <div className="flex min-h-[220px] flex-col items-center justify-center px-5 text-center text-[var(--color-muted-foreground)]">
               <Clock3 className="mb-3 size-7 opacity-55" />

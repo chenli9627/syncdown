@@ -3,7 +3,7 @@
 import type { DocumentRecord } from "@/features/app-state/types";
 import { diffVersionText } from "@/features/editor/lib/version-history";
 
-type DocumentUpdateLabels = {
+export type DocumentUpdateLabels = {
   imageSingle: string;
   tableOfContents: string;
   title: string;
@@ -17,56 +17,68 @@ export type DocumentUpdatePart = {
 export type DocumentUpdateEntry = {
   id: string;
   createdAt: string;
-  parts: DocumentUpdatePart[];
+  nextContent: string;
+  nextTitle: string;
+  previousContent: string;
+  previousTitle: string;
   userId: string;
 };
 
 export function getDocumentUpdateEntries(
   document: Pick<DocumentRecord, "updateHistory" | "versionHistory">,
-  labels: DocumentUpdateLabels,
 ): DocumentUpdateEntry[] {
   if (document.updateHistory?.length) {
-    return document.updateHistory.map((update) => {
-      const previousText = documentStateToUpdateText(
-        {
-          content: update.previousContent,
-          title: update.previousTitle,
-        },
-        labels,
-      );
-      const currentText = documentStateToUpdateText(
-        {
-          content: update.nextContent,
-          title: update.nextTitle,
-        },
-        labels,
-      );
-
-      return {
-        createdAt: update.createdAt,
-        id: update.id,
-        parts: getChangedParts(previousText, currentText),
-        userId: update.userId,
-      };
-    });
+    return document.updateHistory.map((update) => ({
+      createdAt: update.createdAt,
+      id: update.id,
+      nextContent: update.nextContent,
+      nextTitle: update.nextTitle,
+      previousContent: update.previousContent,
+      previousTitle: update.previousTitle,
+      userId: update.userId,
+    }));
   }
 
   const versions = document.versionHistory ?? [];
 
   return versions.map((version, index) => {
     const previousVersion = versions[index + 1] ?? null;
-    const previousText = previousVersion
-      ? documentStateToUpdateText(previousVersion, labels)
-      : "";
-    const currentText = documentStateToUpdateText(version, labels);
 
     return {
       createdAt: version.createdAt,
       id: version.id,
-      parts: getChangedParts(previousText, currentText),
+      nextContent: version.content,
+      nextTitle: version.title,
+      previousContent: previousVersion?.content ?? "",
+      previousTitle: previousVersion?.title ?? "",
       userId: version.userId,
     };
   });
+}
+
+export function getDocumentUpdateParts(
+  entry: Pick<
+    DocumentUpdateEntry,
+    "nextContent" | "nextTitle" | "previousContent" | "previousTitle"
+  >,
+  labels: DocumentUpdateLabels,
+) {
+  const previousText = documentStateToUpdateText(
+    {
+      content: entry.previousContent,
+      title: entry.previousTitle,
+    },
+    labels,
+  );
+  const currentText = documentStateToUpdateText(
+    {
+      content: entry.nextContent,
+      title: entry.nextTitle,
+    },
+    labels,
+  );
+
+  return getChangedParts(previousText, currentText);
 }
 
 function documentStateToUpdateText(
