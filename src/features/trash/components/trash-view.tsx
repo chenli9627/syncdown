@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import { AppErrorDialog } from "@/components/ui/app-error-dialog";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import type { DocumentRecord } from "@/features/app-state/types";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
+import { usePaginatedItems } from "@/features/editor/hooks/use-paginated-items";
 import { translateAppError } from "@/lib/i18n/error-messages";
 
 function formatDeletedAt(value: string | null | undefined, locale: string, fallback: string) {
@@ -43,6 +45,9 @@ export function TrashView() {
     currentUser && currentWorkspace
       ? currentWorkspace.ownerUserId === currentUser.id
       : false;
+  const trashItems = buckets?.trash ?? [];
+  const { currentPage, paginatedItems, setCurrentPage, totalPages } =
+    usePaginatedItems(trashItems, 20);
 
   useEffect(() => {
     if (!ready || !currentUser || !currentWorkspace) {
@@ -57,8 +62,6 @@ export function TrashView() {
   if (!ready || !currentUser || !currentWorkspace || !canManageCurrentWorkspace) {
     return null;
   }
-
-  const trashItems = buckets?.trash ?? [];
 
   return (
     <div
@@ -79,8 +82,9 @@ export function TrashView() {
       ) : null}
 
       {trashItems.length ? (
-        <div className="mt-8 max-h-[min(60vh,720px)] max-w-4xl overflow-y-auto border border-[var(--color-border)] bg-[var(--color-card)]">
-          {trashItems.map((document, index) => {
+        <div className="mt-8 max-w-4xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)]">
+          <div className="max-h-[min(60vh,720px)] overflow-y-auto">
+          {paginatedItems.map((document, index) => {
             const isWorking = workingDocumentId === document.id;
 
             return (
@@ -137,6 +141,17 @@ export function TrashView() {
               </div>
             );
           })}
+          </div>
+          <PaginationControls
+            currentPage={currentPage}
+            locale={locale}
+            nextLabel={t("next")}
+            onNext={() => setCurrentPage((current) => Math.min(totalPages, current + 1))}
+            onPrevious={() => setCurrentPage((current) => Math.max(1, current - 1))}
+            previousLabel={t("previous")}
+            totalItems={trashItems.length}
+            totalPages={totalPages}
+          />
         </div>
       ) : (
         <div className="mt-8 max-w-4xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4 text-sm text-[var(--color-muted-foreground)]">

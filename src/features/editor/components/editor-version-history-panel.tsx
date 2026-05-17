@@ -1,11 +1,15 @@
 "use client";
 
+import { useEffect } from "react";
 import { Clock3, X } from "lucide-react";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import type { DocumentRecord, DocumentVersion, User } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
 import { EditorVersionHistoryPreview } from "@/features/editor/components/editor-version-history-preview";
-import { useIncrementalList } from "@/features/editor/hooks/use-incremental-list";
+import { usePaginatedItems } from "@/features/editor/hooks/use-paginated-items";
 import { getVersionComparison } from "@/features/editor/lib/version-history";
+
+const EMPTY_VERSIONS: DocumentVersion[] = [];
 
 type EditorVersionHistoryPanelProps = {
   canRestore: boolean;
@@ -27,18 +31,32 @@ export function EditorVersionHistoryPanel({
   users,
 }: EditorVersionHistoryPanelProps) {
   const { locale, t } = useLocale();
-  const versions = document.versionHistory ?? [];
+  const versions = document.versionHistory ?? EMPTY_VERSIONS;
   const activeVersionId = selectedVersionId ?? versions[0]?.id ?? null;
   const selectedVersion =
     versions.find((version) => version.id === activeVersionId) ?? null;
   const versionComparison = getVersionComparison(document, selectedVersion);
   const selectedVersionIsCurrent = selectedVersion?.content === document.content;
-  const {
-    handleScroll,
-    hasMore,
-    loadMore,
-    visibleItems: visibleVersions,
-  } = useIncrementalList(versions, 80);
+  const { currentPage, paginatedItems, setCurrentPage, totalPages } =
+    usePaginatedItems(versions, 20);
+
+  useEffect(() => {
+    if (!activeVersionId) {
+      return;
+    }
+
+    const activeIndex = versions.findIndex((version) => version.id === activeVersionId);
+
+    if (activeIndex === -1) {
+      return;
+    }
+
+    const targetPage = Math.floor(activeIndex / 20) + 1;
+
+    if (targetPage !== currentPage) {
+      setCurrentPage(targetPage);
+    }
+  }, [activeVersionId, currentPage, setCurrentPage, versions]);
 
   return (
     <aside className="fixed bottom-4 left-4 right-4 top-4 z-[45] flex min-h-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] md:left-[288px]">
@@ -63,13 +81,10 @@ export function EditorVersionHistoryPanel({
           </button>
         </div>
 
-        <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4"
-          onScroll={handleScroll}
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
           {versions.length > 0 ? (
             <>
-              {visibleVersions.map((entry) => {
+              {paginatedItems.map((entry) => {
                 const active = entry.id === activeVersionId;
 
                 return (
@@ -92,15 +107,6 @@ export function EditorVersionHistoryPanel({
                   </button>
                 );
               })}
-              {hasMore ? (
-                <button
-                  className="block w-full px-4 py-2.5 text-left text-xs text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
-                  onClick={loadMore}
-                  type="button"
-                >
-                  {t("loadMore")}
-                </button>
-              ) : null}
             </>
           ) : (
             <div className="flex min-h-[220px] flex-col items-center justify-center px-5 text-center text-[var(--color-muted-foreground)]">
@@ -114,6 +120,16 @@ export function EditorVersionHistoryPanel({
             </div>
           )}
         </div>
+        <PaginationControls
+          currentPage={currentPage}
+          locale={locale}
+          nextLabel={t("next")}
+          onNext={() => setCurrentPage((current) => Math.min(totalPages, current + 1))}
+          onPrevious={() => setCurrentPage((current) => Math.max(1, current - 1))}
+          previousLabel={t("previous")}
+          totalItems={versions.length}
+          totalPages={totalPages}
+        />
 
         <div className="shrink-0 flex justify-end border-t border-[var(--color-border)] px-5 py-3.5">
           <button

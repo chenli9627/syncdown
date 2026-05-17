@@ -1,6 +1,7 @@
 "use client";
 
 import { Activity, X } from "lucide-react";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import type { DocumentRecord, User } from "@/features/app-state/types";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
@@ -10,7 +11,7 @@ import {
   type DocumentUpdateLabels,
   type DocumentUpdatePart,
 } from "@/features/editor/lib/document-updates";
-import { useIncrementalList } from "@/features/editor/hooks/use-incremental-list";
+import { usePaginatedItems } from "@/features/editor/hooks/use-paginated-items";
 
 type EditorUpdatesPanelProps = {
   document: DocumentRecord;
@@ -30,12 +31,8 @@ export function EditorUpdatesPanel({
     title: t("updateDocumentTitle"),
   };
   const updates = getDocumentUpdateEntries(document);
-  const {
-    handleScroll,
-    hasMore,
-    loadMore,
-    visibleItems: visibleUpdates,
-  } = useIncrementalList(updates, 40);
+  const { currentPage, paginatedItems, setCurrentPage, totalPages } =
+    usePaginatedItems(updates, 20);
 
   return (
     <>
@@ -64,13 +61,10 @@ export function EditorUpdatesPanel({
           </button>
         </div>
 
-        <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4"
-          onScroll={handleScroll}
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
           {updates.length > 0 ? (
             <div className="space-y-2">
-              {visibleUpdates.map((entry) => (
+              {paginatedItems.map((entry) => (
                 <UpdateEntryCard
                   entry={entry}
                   key={entry.id}
@@ -79,15 +73,6 @@ export function EditorUpdatesPanel({
                   users={users}
                 />
               ))}
-              {hasMore ? (
-                <button
-                  className="w-full border border-transparent px-4 py-2 text-left text-[12px] text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)]"
-                  onClick={loadMore}
-                  type="button"
-                >
-                  {t("loadMore")}
-                </button>
-              ) : null}
             </div>
           ) : (
             <div className="flex min-h-[220px] flex-col items-center justify-center px-5 text-center text-[var(--color-muted-foreground)]">
@@ -101,6 +86,16 @@ export function EditorUpdatesPanel({
             </div>
           )}
         </div>
+        <PaginationControls
+          currentPage={currentPage}
+          locale={locale}
+          nextLabel={t("next")}
+          onNext={() => setCurrentPage((current) => Math.min(totalPages, current + 1))}
+          onPrevious={() => setCurrentPage((current) => Math.max(1, current - 1))}
+          previousLabel={t("previous")}
+          totalItems={updates.length}
+          totalPages={totalPages}
+        />
       </aside>
     </>
   );
