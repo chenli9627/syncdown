@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Clock3, X } from "lucide-react";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import type { DocumentRecord, DocumentVersion, User } from "@/features/app-state/types";
@@ -10,6 +10,7 @@ import { usePaginatedItems } from "@/features/editor/hooks/use-paginated-items";
 import { getVersionComparison } from "@/features/editor/lib/version-history";
 
 const EMPTY_VERSIONS: DocumentVersion[] = [];
+const PAGE_SIZE = 20;
 
 type EditorVersionHistoryPanelProps = {
   canRestore: boolean;
@@ -38,25 +39,47 @@ export function EditorVersionHistoryPanel({
   const versionComparison = getVersionComparison(document, selectedVersion);
   const selectedVersionIsCurrent = selectedVersion?.content === document.content;
   const { currentPage, paginatedItems, setCurrentPage, totalPages } =
-    usePaginatedItems(versions, 20);
+    usePaginatedItems(versions, PAGE_SIZE);
+  const previousActiveVersionIdRef = useRef<string | null>(activeVersionId);
 
   useEffect(() => {
     if (!activeVersionId) {
       return;
     }
 
+    if (previousActiveVersionIdRef.current === activeVersionId) {
+      return;
+    }
+
+    previousActiveVersionIdRef.current = activeVersionId;
     const activeIndex = versions.findIndex((version) => version.id === activeVersionId);
 
     if (activeIndex === -1) {
       return;
     }
 
-    const targetPage = Math.floor(activeIndex / 20) + 1;
+    const targetPage = Math.floor(activeIndex / PAGE_SIZE) + 1;
 
     if (targetPage !== currentPage) {
       setCurrentPage(targetPage);
     }
   }, [activeVersionId, currentPage, setCurrentPage, versions]);
+
+  function changePage(nextPage: number) {
+    const clampedPage = Math.max(1, Math.min(totalPages, nextPage));
+
+    if (clampedPage === currentPage) {
+      return;
+    }
+
+    setCurrentPage(clampedPage);
+    const nextVersion = versions[(clampedPage - 1) * PAGE_SIZE] ?? null;
+
+    if (nextVersion && nextVersion.id !== activeVersionId) {
+      previousActiveVersionIdRef.current = nextVersion.id;
+      onSelectVersion(nextVersion.id);
+    }
+  }
 
   return (
     <aside className="fixed bottom-4 left-4 right-4 top-4 z-[45] flex min-h-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] md:left-[288px]">
@@ -124,8 +147,8 @@ export function EditorVersionHistoryPanel({
           currentPage={currentPage}
           locale={locale}
           nextLabel={t("next")}
-          onNext={() => setCurrentPage((current) => Math.min(totalPages, current + 1))}
-          onPrevious={() => setCurrentPage((current) => Math.max(1, current - 1))}
+          onNext={() => changePage(currentPage + 1)}
+          onPrevious={() => changePage(currentPage - 1)}
           previousLabel={t("previous")}
           totalItems={versions.length}
           totalPages={totalPages}
