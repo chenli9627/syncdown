@@ -10,7 +10,7 @@ import { usePaginatedItems } from "@/features/editor/hooks/use-paginated-items";
 import { getVersionComparison } from "@/features/editor/lib/version-history";
 
 const EMPTY_VERSIONS: DocumentVersion[] = [];
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 type EditorVersionHistoryPanelProps = {
   canRestore: boolean;

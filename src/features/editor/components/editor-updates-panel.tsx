@@ -32,7 +32,7 @@ export function EditorUpdatesPanel({
   };
   const updates = getDocumentUpdateEntries(document);
   const { currentPage, paginatedItems, setCurrentPage, totalPages } =
-    usePaginatedItems(updates, 20);
+    usePaginatedItems(updates, 10);
 
   return (
     <>

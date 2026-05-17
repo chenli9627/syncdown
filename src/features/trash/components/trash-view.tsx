@@ -47,7 +47,7 @@ export function TrashView() {
       : false;
   const trashItems = buckets?.trash ?? [];
   const { currentPage, paginatedItems, setCurrentPage, totalPages } =
-    usePaginatedItems(trashItems, 20);
+    usePaginatedItems(trashItems, 10);
 
   useEffect(() => {
     if (!ready || !currentUser || !currentWorkspace) {
