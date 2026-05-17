@@ -148,6 +148,7 @@ export function EditorVersionHistoryPanel({
           locale={locale}
           nextLabel={t("next")}
           onNext={() => changePage(currentPage + 1)}
+          onPageSelect={changePage}
           onPrevious={() => changePage(currentPage - 1)}
           previousLabel={t("previous")}
           totalItems={versions.length}

@@ -91,6 +91,7 @@ export function EditorUpdatesPanel({
           locale={locale}
           nextLabel={t("next")}
           onNext={() => setCurrentPage((current) => Math.min(totalPages, current + 1))}
+          onPageSelect={(page) => setCurrentPage(page)}
           onPrevious={() => setCurrentPage((current) => Math.max(1, current - 1))}
           previousLabel={t("previous")}
           totalItems={updates.length}

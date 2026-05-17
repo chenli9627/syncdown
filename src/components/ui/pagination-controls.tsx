@@ -4,6 +4,7 @@ type PaginationControlsProps = {
   currentPage: number;
   locale: "zh" | "en";
   onNext: () => void;
+  onPageSelect: (page: number) => void;
   onPrevious: () => void;
   previousLabel: string;
   nextLabel: string;
@@ -15,6 +16,7 @@ export function PaginationControls({
   currentPage,
   locale,
   onNext,
+  onPageSelect,
   onPrevious,
   previousLabel,
   nextLabel,
@@ -31,6 +33,23 @@ export function PaginationControls({
         {formatPaginationStatus(locale, currentPage, totalPages)}
       </p>
       <div className="flex items-center gap-2">
+        {totalPages > 1 ? (
+          <label className="flex items-center gap-2 text-[12px] text-[var(--color-muted-foreground)]">
+            <span>{locale === "zh" ? "跳至" : "Go to"}</span>
+            <select
+              aria-label={locale === "zh" ? "选择页码" : "Select page"}
+              className="border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1.5 text-[12px] text-[var(--color-foreground)] outline-none transition hover:bg-[var(--color-hover)] focus:border-[var(--color-foreground)]"
+              onChange={(event) => onPageSelect(Number(event.target.value))}
+              value={currentPage}
+            >
+              {Array.from({ length: totalPages }, (_, index) => (
+                <option key={index + 1} value={index + 1}>
+                  {formatPageOption(locale, index + 1)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <button
           className="border border-[var(--color-border)] px-3 py-1.5 text-[12px] text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] disabled:cursor-not-allowed disabled:opacity-45"
           disabled={currentPage <= 1}
@@ -62,4 +81,12 @@ function formatPaginationStatus(
   }
 
   return `Page ${currentPage} of ${totalPages}`;
+}
+
+function formatPageOption(locale: "zh" | "en", page: number) {
+  if (locale === "zh") {
+    return `第 ${page} 页`;
+  }
+
+  return `Page ${page}`;
 }
