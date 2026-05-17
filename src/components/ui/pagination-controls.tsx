@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 type PaginationControlsProps = {
   currentPage: number;
   locale: "zh" | "en";
@@ -23,6 +25,25 @@ export function PaginationControls({
   totalItems,
   totalPages,
 }: PaginationControlsProps) {
+  const [pageInput, setPageInput] = useState(String(currentPage));
+
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
+
+  function submitPageInput() {
+    const parsedPage = Number.parseInt(pageInput, 10);
+
+    if (Number.isNaN(parsedPage)) {
+      setPageInput(String(currentPage));
+      return;
+    }
+
+    const targetPage = Math.max(1, Math.min(totalPages, parsedPage));
+    setPageInput(String(targetPage));
+    onPageSelect(targetPage);
+  }
+
   if (totalItems === 0) {
     return null;
   }
@@ -36,18 +57,23 @@ export function PaginationControls({
         {totalPages > 1 ? (
           <label className="flex items-center gap-2 text-[12px] text-[var(--color-muted-foreground)]">
             <span>{locale === "zh" ? "跳至" : "Go to"}</span>
-            <select
-              aria-label={locale === "zh" ? "选择页码" : "Select page"}
-              className="border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1.5 text-[12px] text-[var(--color-foreground)] outline-none transition hover:bg-[var(--color-hover)] focus:border-[var(--color-foreground)]"
-              onChange={(event) => onPageSelect(Number(event.target.value))}
-              value={currentPage}
-            >
-              {Array.from({ length: totalPages }, (_, index) => (
-                <option key={index + 1} value={index + 1}>
-                  {formatPageOption(locale, index + 1)}
-                </option>
-              ))}
-            </select>
+            <input
+              aria-label={locale === "zh" ? "输入页码" : "Enter page number"}
+              className="w-14 border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1.5 text-[12px] text-[var(--color-foreground)] outline-none transition hover:bg-[var(--color-hover)] focus:border-[var(--color-foreground)]"
+              inputMode="numeric"
+              max={totalPages}
+              min={1}
+              onBlur={submitPageInput}
+              onChange={(event) => setPageInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  submitPageInput();
+                }
+              }}
+              type="number"
+              value={pageInput}
+            />
+            <span>/ {totalPages}</span>
           </label>
         ) : null}
         <button
@@ -81,12 +107,4 @@ function formatPaginationStatus(
   }
 
   return `Page ${currentPage} of ${totalPages}`;
-}
-
-function formatPageOption(locale: "zh" | "en", page: number) {
-  if (locale === "zh") {
-    return `第 ${page} 页`;
-  }
-
-  return `Page ${page}`;
 }
