@@ -110,7 +110,10 @@ export function useShellWorkspaceActions(args: UseShellWorkspaceActionsArgs) {
     },
     onTrashOpen: () => args.routerPush("/trash"),
     onWorkspaceDocumentCreated: (documentId: string) => {
-      args.routerPush(`/documents/${documentId}`);
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      args.routerPush(`/documents/${documentId}?focus=title`);
     },
   };
 }

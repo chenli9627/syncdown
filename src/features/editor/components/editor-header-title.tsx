@@ -2,12 +2,16 @@
 
 import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export type EditorHeaderTitleProps = {
   canEditTitle: boolean;
   commitTitle: () => Promise<void>;
+  documentId: string;
   editor: Editor | null;
+  initialFocusTitle?: boolean;
   statusLabel: string | null;
   setTitleDraft: (value: string) => void;
   titleDraft: string;
@@ -17,13 +21,62 @@ export type EditorHeaderTitleProps = {
 export function EditorHeaderTitle({
   canEditTitle,
   commitTitle,
+  documentId,
   editor,
+  initialFocusTitle = false,
   setTitleDraft,
   statusLabel,
   titleDraft,
   titleInputRef,
 }: EditorHeaderTitleProps) {
   const { t } = useLocale();
+  const searchParams = useSearchParams();
+  const initialFocusDocumentIdRef = useRef<string | null>(null);
+  const pendingInitialSelectionDocumentIdRef = useRef<string | null>(null);
+  const shouldInitialFocus =
+    initialFocusTitle || searchParams.get("focus") === "title";
+
+  useEffect(() => {
+    if (!canEditTitle || !shouldInitialFocus) {
+      return;
+    }
+
+    if (initialFocusDocumentIdRef.current === documentId) {
+      return;
+    }
+
+    initialFocusDocumentIdRef.current = documentId;
+    pendingInitialSelectionDocumentIdRef.current = documentId;
+
+    let timeoutId = 0;
+    let attempts = 0;
+
+    const applyFocus = () => {
+      const input = titleInputRef.current;
+
+      if (input) {
+        input.focus({ preventScroll: true });
+        input.select();
+
+        if (document.activeElement === input) {
+          return;
+        }
+      }
+
+      if (attempts >= 10) {
+        return;
+      }
+
+      attempts += 1;
+      timeoutId = window.setTimeout(applyFocus, 50);
+    };
+
+    timeoutId = window.setTimeout(applyFocus, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [canEditTitle, documentId, shouldInitialFocus, titleInputRef]);
 
   return (
     <div className="inline-flex max-w-full items-center gap-1.5">
@@ -35,11 +88,20 @@ export function EditorHeaderTitle({
           {titleDraft || t("untitled")}
         </span>
         <input
+          autoFocus={canEditTitle && shouldInitialFocus}
           className="absolute inset-0 w-full border-none bg-transparent px-0 text-[1.15rem] font-semibold tracking-[-0.026em] outline-none placeholder:text-[var(--color-muted-foreground)] disabled:cursor-default md:text-[1.3rem]"
           disabled={!canEditTitle}
           name="document-title"
           onBlur={() => void commitTitle()}
           onChange={(event) => setTitleDraft(event.target.value)}
+          onFocus={(event) => {
+            if (pendingInitialSelectionDocumentIdRef.current !== documentId) {
+              return;
+            }
+
+            event.currentTarget.select();
+            pendingInitialSelectionDocumentIdRef.current = null;
+          }}
           onKeyDown={(event) => {
             if (event.key !== "Enter") {
               return;

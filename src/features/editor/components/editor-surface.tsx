@@ -14,12 +14,14 @@ import { toEditorContent } from "@/features/editor/lib/content";
 
 type EditorSurfaceProps = {
   document: DocumentRecord;
+  initialFocusTitle?: boolean;
   permission: "owner" | "can_edit" | "can_view";
   saveDocument: ReturnType<typeof useAppState>["saveDocument"];
 };
 
 export function EditorSurface({
   document,
+  initialFocusTitle = false,
   permission,
   saveDocument,
 }: EditorSurfaceProps) {
@@ -28,6 +30,7 @@ export function EditorSurface({
   const [restoreBusy, setRestoreBusy] = useState(false);
   const model = useEditorSurfaceModel({
     document,
+    initialFocusTitle,
     permission,
     routerPushHome: () => router.push("/home"),
     saveDocument,
@@ -113,6 +116,7 @@ export function EditorSurface({
         handleExportMarkdown={model.actions.handleExportMarkdown}
         imageInputRef={model.ui.imageInputRef}
         importInputRef={model.ui.importInputRef}
+        initialFocusTitle={initialFocusTitle}
         moveDocumentToTrash={model.moveDocumentToTrash}
         onSearchNext={() => model.actions.runSearch("forward")}
         onSearchPrevious={() => model.actions.runSearch("backward")}

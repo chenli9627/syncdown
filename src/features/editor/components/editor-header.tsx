@@ -29,6 +29,7 @@ type EditorHeaderProps = {
   handleExportMarkdown: () => Promise<void>;
   imageInputRef: RefObject<HTMLInputElement | null>;
   importInputRef: RefObject<HTMLInputElement | null>;
+  initialFocusTitle?: boolean;
   moveDocumentToTrash: (documentId: string) => Promise<{ error: string; ok: false } | { ok: true }>;
   onSearchNext: () => void;
   onSearchPrevious: () => void;
@@ -107,6 +108,7 @@ export function EditorHeader({
   handleExportMarkdown,
   imageInputRef,
   importInputRef,
+  initialFocusTitle = false,
   moveDocumentToTrash,
   onSearchNext,
   onSearchPrevious,
@@ -160,7 +162,9 @@ export function EditorHeader({
   const titleProps: EditorHeaderTitleProps = {
     canEditTitle,
     commitTitle,
+    documentId,
     editor,
+    initialFocusTitle,
     setTitleDraft,
     statusLabel,
     titleDraft,

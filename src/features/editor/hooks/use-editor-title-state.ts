@@ -13,6 +13,7 @@ type UseEditorTitleStateArgs = {
   canEditTitle: boolean;
   documentId: string;
   documentTitle: string;
+  initialFocusTitle?: boolean;
   saveDocument: SaveDocument;
   setStatus: (value: "idle" | "saving" | "saved" | "error") => void;
 };
@@ -21,27 +22,57 @@ export function useEditorTitleState({
   canEditTitle,
   documentId,
   documentTitle,
+  initialFocusTitle = false,
   saveDocument,
   setStatus,
 }: UseEditorTitleStateArgs) {
   const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const initialFocusDocumentIdRef = useRef<string | null>(null);
   const [titleDraft, setTitleDraft] = useState(documentTitle);
   const [titleError, setTitleError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!canEditTitle || documentTitle.trim()) {
+    const shouldApplyInitialFocus =
+      initialFocusTitle && initialFocusDocumentIdRef.current !== documentId;
+    const shouldFocusBlankTitle = !initialFocusTitle && !documentTitle.trim();
+
+    if (!canEditTitle || (!shouldApplyInitialFocus && !shouldFocusBlankTitle)) {
       return;
     }
 
-    const frameId = window.requestAnimationFrame(() => {
-      titleInputRef.current?.focus();
-      titleInputRef.current?.select();
-    });
+    if (shouldApplyInitialFocus) {
+      initialFocusDocumentIdRef.current = documentId;
+    }
+
+    let timeoutId = 0;
+    let attempts = 0;
+
+    const applyFocus = () => {
+      const input = titleInputRef.current;
+
+      if (input) {
+        input.focus({ preventScroll: true });
+        input.select();
+
+        if (document.activeElement === input) {
+          return;
+        }
+      }
+
+      if (attempts >= 10) {
+        return;
+      }
+
+      attempts += 1;
+      timeoutId = window.setTimeout(applyFocus, 50);
+    };
+
+    timeoutId = window.setTimeout(applyFocus, 0);
 
     return () => {
-      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
     };
-  }, [canEditTitle, documentId, documentTitle]);
+  }, [canEditTitle, documentId, documentTitle, initialFocusTitle]);
 
   async function commitTitle() {
     if (!canEditTitle) {
