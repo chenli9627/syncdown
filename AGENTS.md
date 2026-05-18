@@ -139,7 +139,10 @@ General engineering expectations:
 - prefer simple, production-friendly implementations
 - avoid overengineering
 - keep APIs explicit and naming clear
-- use `pnpm`
+- always use `pnpm` and `pnpx`
+- do not use `npm` or `npx`
+- do not use `agent-browser`; use Chrome DevTools tooling for browser verification instead
+- successful modifications must be recorded with git
 - run lint after changes
 
 Code structure constraints:
