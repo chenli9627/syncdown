@@ -1,24 +1,52 @@
 {
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    codex-cli-nix.url = "github:sadjow/codex-cli-nix";
-  };
+  description = "A Nix-flake-based Node.js development environment";
+
+  inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1"; # unstable Nixpkgs
 
   outputs =
-    {
-      self,
-      nixpkgs,
-      codex-cli-nix,
-    }:
+    { self, ... }@inputs:
+
     let
-      system = "x86_64-linux"; # or your system
-      pkgs = nixpkgs.legacyPackages.${system};
+      supportedSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
+      forEachSupportedSystem =
+        f:
+        inputs.nixpkgs.lib.genAttrs supportedSystems (
+          system:
+          f {
+            inherit system;
+            pkgs = import inputs.nixpkgs {
+              inherit system;
+              overlays = [ inputs.self.overlays.default ];
+            };
+          }
+        );
     in
     {
-      devShells.${system}.default = pkgs.mkShell {
-        buildInputs = [
-          codex-cli-nix.packages.${system}.default
-        ];
+      overlays.default = final: prev: rec {
+        nodejs = prev.nodejs;
+        yarn = (prev.yarn.override { inherit nodejs; });
       };
+
+      devShells = forEachSupportedSystem (
+        { pkgs, system }:
+        {
+          default = pkgs.mkShellNoCC {
+            packages = with pkgs; [
+              nodejs
+              pnpm
+              bun
+              bubblewrap
+              python3
+              self.formatter.${system}
+            ];
+          };
+        }
+      );
+
+      formatter = forEachSupportedSystem ({ pkgs, ... }: pkgs.nixfmt);
     };
 }
