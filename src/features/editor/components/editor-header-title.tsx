@@ -2,7 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import type { RefObject } from "react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -33,8 +33,55 @@ export function EditorHeaderTitle({
   const searchParams = useSearchParams();
   const initialFocusDocumentIdRef = useRef<string | null>(null);
   const pendingInitialSelectionDocumentIdRef = useRef<string | null>(null);
+  const selectionGuardTimeoutRef = useRef<number | null>(null);
   const shouldInitialFocus =
     initialFocusTitle || searchParams.get("focus") === "title";
+
+  const startSelectionGuard = useCallback(() => {
+    if (selectionGuardTimeoutRef.current) {
+      window.clearTimeout(selectionGuardTimeoutRef.current);
+      selectionGuardTimeoutRef.current = null;
+    }
+
+    let attempts = 0;
+    const initialTitleValue = titleDraft;
+
+    const enforceSelection = () => {
+      const input = titleInputRef.current;
+
+      if (!input) {
+        return;
+      }
+
+      if (
+        pendingInitialSelectionDocumentIdRef.current !== documentId ||
+        input.value !== initialTitleValue
+      ) {
+        pendingInitialSelectionDocumentIdRef.current = null;
+        return;
+      }
+
+      input.focus({ preventScroll: true });
+      input.setSelectionRange(0, input.value.length);
+
+      if (attempts >= 40) {
+        return;
+      }
+
+      attempts += 1;
+      selectionGuardTimeoutRef.current = window.setTimeout(enforceSelection, 50);
+    };
+
+    enforceSelection();
+  }, [documentId, titleDraft, titleInputRef]);
+
+  useEffect(() => {
+    return () => {
+      if (selectionGuardTimeoutRef.current) {
+        window.clearTimeout(selectionGuardTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!canEditTitle || !shouldInitialFocus) {
@@ -47,36 +94,41 @@ export function EditorHeaderTitle({
 
     initialFocusDocumentIdRef.current = documentId;
     pendingInitialSelectionDocumentIdRef.current = documentId;
+    const timeoutId = window.setTimeout(startSelectionGuard, 0);
 
-    let timeoutId = 0;
-    let attempts = 0;
-
-    const applyFocus = () => {
+    const handlePointerUp = () => {
       const input = titleInputRef.current;
 
-      if (input) {
-        input.focus({ preventScroll: true });
-        input.select();
-
-        if (document.activeElement === input) {
-          return;
-        }
-      }
-
-      if (attempts >= 10) {
+      if (!input || pendingInitialSelectionDocumentIdRef.current !== documentId) {
         return;
       }
 
-      attempts += 1;
-      timeoutId = window.setTimeout(applyFocus, 50);
+      window.requestAnimationFrame(() => {
+        const currentInput = titleInputRef.current;
+
+        if (!currentInput) {
+          return;
+        }
+
+        if (
+          pendingInitialSelectionDocumentIdRef.current !== documentId ||
+          currentInput.value !== titleDraft
+        ) {
+          pendingInitialSelectionDocumentIdRef.current = null;
+          return;
+        }
+
+        startSelectionGuard();
+      });
     };
 
-    timeoutId = window.setTimeout(applyFocus, 0);
+    window.addEventListener("pointerup", handlePointerUp, true);
 
     return () => {
       window.clearTimeout(timeoutId);
+      window.removeEventListener("pointerup", handlePointerUp, true);
     };
-  }, [canEditTitle, documentId, shouldInitialFocus, titleInputRef]);
+  }, [canEditTitle, documentId, shouldInitialFocus, startSelectionGuard, titleDraft, titleInputRef]);
 
   return (
     <div className="inline-flex max-w-full items-center gap-1.5">
@@ -100,7 +152,7 @@ export function EditorHeaderTitle({
             }
 
             event.currentTarget.select();
-            pendingInitialSelectionDocumentIdRef.current = null;
+            startSelectionGuard();
           }}
           onKeyDown={(event) => {
             if (event.key !== "Enter") {
