@@ -11,8 +11,12 @@ dist
 .tmp-home*.png
 .data/media/
 .data/presence.json
+.data/browser-test-backups/
+.data/backup-before-delete-users-*.json
 .agents/
 .codex
 .gemini/
+.sisyphus/
 skills/
 tmp/
+tsconfig.tsbuildinfo
