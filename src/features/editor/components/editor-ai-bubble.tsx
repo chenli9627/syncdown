@@ -220,7 +220,15 @@ function AiResultView({
               </div>
             ))
           : (
-              <div className="min-h-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2 text-[12px] leading-5 text-[var(--color-foreground)] whitespace-pre-wrap">
+              <div className="flex min-h-0 flex-col gap-2 overflow-hidden border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-2.5 py-2">
+                {selectedCandidate ? (
+                  <div
+                    className="min-w-0 truncate text-[11px] font-medium text-[var(--color-muted-foreground)]"
+                    title={selectedCandidate.model}
+                  >
+                    {selectedCandidate.model}
+                  </div>
+                ) : null}
                 <AiCandidateContent
                   candidate={selectedCandidate}
                   error={aiBubble.error}
