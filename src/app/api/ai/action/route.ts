@@ -22,6 +22,12 @@ type OpenAiCompatibleResponse = {
   }>;
 };
 
+type AiModelConfig = {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+};
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as
     | (AiRequestPayload & { action?: AiActionKind; locale?: Locale; selectedText?: string })
@@ -49,9 +55,16 @@ export async function POST(request: Request) {
   const apiKey = process.env.AI_API_KEY?.trim() || process.env.ARK_API_KEY?.trim();
   const baseUrl = process.env.AI_BASE_URL?.trim();
   const model = process.env.AI_MODEL?.trim();
+  const secondaryApiKey = process.env.AI_SECONDARY_API_KEY?.trim() || apiKey;
+  const secondaryBaseUrl = process.env.AI_SECONDARY_BASE_URL?.trim() || baseUrl;
   const secondaryModel = process.env.AI_SECONDARY_MODEL?.trim();
 
-  if (!apiKey || !baseUrl || !model || (candidateCount === 2 && !secondaryModel)) {
+  if (
+    !apiKey ||
+    !baseUrl ||
+    !model ||
+    (candidateCount === 2 && (!secondaryApiKey || !secondaryBaseUrl || !secondaryModel))
+  ) {
     return NextResponse.json(
       { error: "AI service is not configured", ok: false },
       { status: 503 },
@@ -59,22 +72,26 @@ export async function POST(request: Request) {
   }
 
   try {
-    const models = Array.from(
-      new Set(
-        [
-          model,
-          candidateCount === 2 ? secondaryModel : null,
-        ].filter((candidate): candidate is string => Boolean(candidate)),
-      ),
+    const modelConfigs: AiModelConfig[] = [
+      { apiKey, baseUrl, model },
+      ...(candidateCount === 2 && secondaryApiKey && secondaryBaseUrl && secondaryModel
+        ? [{ apiKey: secondaryApiKey, baseUrl: secondaryBaseUrl, model: secondaryModel }]
+        : []),
+    ].filter(
+      (config, index, configs) =>
+        configs.findIndex(
+          (candidate) =>
+            candidate.baseUrl === config.baseUrl && candidate.model === config.model,
+        ) === index,
     );
     const candidates = (
       await Promise.all(
-        models.map((candidateModel) =>
+        modelConfigs.map((config) =>
           requestAiCandidate({
-            apiKey,
-            baseUrl,
+            apiKey: config.apiKey,
+            baseUrl: config.baseUrl,
             locale: body.locale,
-            model: candidateModel,
+            model: config.model,
             payload: body,
           }),
         ),

@@ -31,6 +31,8 @@ test("rejects AI requests when environment is not configured", async () => {
   delete process.env.ARK_API_KEY;
   delete process.env.AI_BASE_URL;
   delete process.env.AI_MODEL;
+  delete process.env.AI_SECONDARY_API_KEY;
+  delete process.env.AI_SECONDARY_BASE_URL;
   delete process.env.AI_SECONDARY_MODEL;
 
   const response = await POST(
@@ -118,6 +120,8 @@ test("requests only the primary model when one AI result is selected", async () 
   process.env.AI_API_KEY = "secret";
   process.env.AI_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
   process.env.AI_MODEL = "qwen3.6-flash";
+  process.env.AI_SECONDARY_API_KEY = "secondary-secret";
+  process.env.AI_SECONDARY_BASE_URL = "https://api.deepseek.com";
   process.env.AI_SECONDARY_MODEL = "deepseek-v4-flash";
 
   const requestedModels: string[] = [];
@@ -169,6 +173,8 @@ test("falls back to chat completions when responses endpoint does not return con
   process.env.AI_API_KEY = "secret";
   process.env.AI_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
   process.env.AI_MODEL = "qwen3.6-flash";
+  process.env.AI_SECONDARY_API_KEY = "secondary-secret";
+  process.env.AI_SECONDARY_BASE_URL = "https://api.deepseek.com";
   process.env.AI_SECONDARY_MODEL = "deepseek-v4-flash";
 
   const requestedUrls: string[] = [];
@@ -237,8 +243,8 @@ test("falls back to chat completions when responses endpoint does not return con
 
   assert.deepEqual(requestedUrls, [
     "https://dashscope.aliyuncs.com/compatible-mode/v1/responses",
-    "https://dashscope.aliyuncs.com/compatible-mode/v1/responses",
-    "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "https://api.deepseek.com/responses",
+    "https://api.deepseek.com/chat/completions",
   ]);
   assert.deepEqual(requestedModels, [
     "qwen3.6-flash",
