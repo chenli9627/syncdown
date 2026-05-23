@@ -2,7 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import { useChat } from "@ai-sdk/react";
-import { Bot, PanelRightClose } from "lucide-react";
+import { Bot, PanelRightClose, Send } from "lucide-react";
 import { DefaultChatTransport } from "ai";
 import {
   type PointerEvent,
@@ -21,6 +21,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
+import { useLocale } from "@/components/providers/locale-provider";
 import type {
   AiChatMessage,
   AiChatModelKey,
@@ -47,6 +48,11 @@ type AiModelOption = {
   name: string;
 };
 
+type EditingQuestion = {
+  id: string;
+  text: string;
+};
+
 const AI_CHAT_MODEL_STORAGE_KEY = "syncdown.aiChatModelKey";
 
 export function EditorAiChatPanel({
@@ -59,10 +65,12 @@ export function EditorAiChatPanel({
   onResizeStart,
   panelWidth,
 }: AiChatPanelProps) {
+  const { t } = useLocale();
   const [input, setInput] = useState("");
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredModelKey());
   const [models, setModels] = useState<AiModelOption[]>([]);
   const [discardedIds, setDiscardedIds] = useState<Set<string>>(() => new Set());
+  const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const transport = useMemo(
     () =>
@@ -130,12 +138,32 @@ export function EditorAiChatPanel({
     );
   }
 
-  function handleEditQuestion(text: string) {
-    setInput(text);
-    window.requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.setSelectionRange(text.length, text.length);
-    });
+  function handleEditQuestion(messageId: string, text: string) {
+    setEditingQuestion({ id: messageId, text });
+  }
+
+  function handleCancelEditQuestion() {
+    setEditingQuestion(null);
+  }
+
+  function handleSendEditedQuestion() {
+    const trimmed = editingQuestion?.text.trim() ?? "";
+
+    if (!editingQuestion || !trimmed || busy || !currentUser?.id) {
+      return;
+    }
+
+    const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
+    const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
+
+    setMessages(nextMessages);
+    setEditingQuestion(null);
+    window.setTimeout(() => {
+      void sendMessage(
+        { text: trimmed },
+        { body: getChatRequestBody(editor, modelKey, currentUser.id, documentTitle) },
+      );
+    }, 0);
   }
 
   function handleModelChange(nextModelKey: AiChatModelKey) {
@@ -163,16 +191,16 @@ export function EditorAiChatPanel({
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold text-[var(--color-foreground)]">
             <Bot aria-hidden="true" size={16} />
-            AI Chat
+            {t("aiChatTitle")}
           </p>
           <p className="truncate text-[11px] text-[var(--color-muted-foreground)]">
-            AI Model: {activeModelName}
+            {t("aiModel")}: {activeModelName}
           </p>
         </div>
         <button
           className="inline-flex h-8 w-8 items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
           onClick={onClose}
-          title="Close AI chat"
+          title={t("closeAiChat")}
           type="button"
         >
           <PanelRightClose aria-hidden="true" size={16} />
@@ -180,7 +208,7 @@ export function EditorAiChatPanel({
       </div>
       <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-2">
         <label className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
-          Model
+          {t("aiModel")}
         </label>
         <EditorAiModelSelect models={models} onChange={handleModelChange} value={modelKey} />
       </div>
@@ -188,7 +216,7 @@ export function EditorAiChatPanel({
         <ConversationContent>
           {messages.length === 0 ? (
             <ConversationEmptyState>
-              Ask AI to summarize, rewrite, expand, translate, or structure the current document.
+              {t("aiChatEmpty")}
             </ConversationEmptyState>
           ) : (
             <div className="flex flex-col gap-4">
@@ -223,11 +251,11 @@ export function EditorAiChatPanel({
               onClick={() => void stop()}
               type="button"
             >
-              Stop
+              {t("aiStop")}
             </button>
           ) : null}
           {error ? (
-            <p className="mt-3 text-xs text-[#dd5b00]">AI request failed. Check model configuration.</p>
+            <p className="mt-3 text-xs text-[#dd5b00]">{t("aiRequestFailed")}</p>
           ) : null}
         </ConversationContent>
       </Conversation>
@@ -236,13 +264,64 @@ export function EditorAiChatPanel({
           <PromptInputTextarea
             disabled={busy}
             onChange={(event) => setInput(event.target.value)}
-            placeholder="Ask AI about this document"
+            placeholder={t("aiChatPlaceholder")}
             ref={inputRef}
             value={input}
           />
           <PromptInputSubmit disabled={busy || !input.trim()} />
         </div>
       </PromptInput>
+      {editingQuestion ? (
+        <div className="absolute inset-0 z-50 flex items-end justify-center bg-[rgba(0,0,0,0.08)] px-4 py-20">
+          <form
+            className="w-full max-w-[360px] border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSendEditedQuestion();
+            }}
+          >
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-[var(--color-foreground)]">
+                {t("aiEditQuestionTitle")}
+              </p>
+              <button
+                className="text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
+                onClick={handleCancelEditQuestion}
+                type="button"
+              >
+                {t("cancel")}
+              </button>
+            </div>
+            <textarea
+              className="min-h-24 w-full resize-none border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm leading-5 text-[var(--color-foreground)] outline-none focus:border-[var(--color-accent)]"
+              onChange={(event) =>
+                setEditingQuestion((current) =>
+                  current ? { ...current, text: event.target.value } : current,
+                )
+              }
+              placeholder={t("aiEditQuestionPlaceholder")}
+              value={editingQuestion.text}
+            />
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                className="h-8 border border-[var(--color-border)] px-3 text-xs text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
+                onClick={handleCancelEditQuestion}
+                type="button"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                className="inline-flex h-8 items-center gap-1 border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 text-xs font-medium text-[var(--color-primary-foreground)] hover:brightness-95 disabled:opacity-50"
+                disabled={busy || !editingQuestion.text.trim()}
+                type="submit"
+              >
+                <Send aria-hidden="true" size={13} />
+                {t("aiSend")}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </aside>
   );
 }

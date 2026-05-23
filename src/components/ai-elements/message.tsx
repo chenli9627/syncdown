@@ -12,7 +12,7 @@ export function Message({
   className,
   ...props
 }: ComponentPropsWithoutRef<"article">) {
-  return <article className={cn("flex flex-col gap-2", className)} {...props} />;
+  return <article className={cn("group/message flex flex-col gap-2", className)} {...props} />;
 }
 
 export function MessageContent({
@@ -102,7 +102,15 @@ export function MessageActions({
   className,
   ...props
 }: ComponentPropsWithoutRef<"div">) {
-  return <div className={cn("flex flex-wrap items-center gap-1", className)} {...props} />;
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-1 opacity-0 transition group-hover/message:opacity-100 group-focus-within/message:opacity-100",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function MessageAction({
@@ -117,7 +125,7 @@ export function MessageAction({
   return (
     <button
       className={cn(
-        "inline-flex h-7 items-center justify-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[11px] font-medium text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] disabled:cursor-not-allowed disabled:opacity-50",
+        "group/action inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] px-0 text-[11px] font-medium text-[var(--color-muted-foreground)] transition-all hover:w-auto hover:bg-[var(--color-muted)] hover:px-2 hover:text-[var(--color-foreground)] focus-visible:w-auto focus-visible:px-2 disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       title={tooltip}

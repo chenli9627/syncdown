@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
 import { EditorActionErrorDialog } from "@/features/editor/components/editor-action-error-dialog";
 import { EditorAiChatPanel } from "@/features/editor/components/editor-ai-chat-panel";
@@ -28,6 +29,7 @@ export function EditorSurface({
   permission,
   saveDocument,
 }: EditorSurfaceProps) {
+  const { t } = useLocale();
   const router = useRouter();
   const blockMenuWidth = 168;
   const {
@@ -254,9 +256,9 @@ export function EditorSurface({
       </div>
       {model.canEditBody && !aiChatOpen ? (
         <button
-          className="fixed bottom-5 right-5 z-30 inline-flex h-11 w-11 items-center justify-center border border-[#111111] bg-[#111111] text-white shadow-[var(--shadow-soft-card)] transition hover:bg-white hover:text-[#111111]"
+          className="fixed bottom-5 right-5 z-30 inline-flex h-11 w-11 items-center justify-center border border-[#111111] bg-white text-[#111111] shadow-[var(--shadow-soft-card)] transition hover:bg-[#111111] hover:text-white"
           onClick={() => setAiChatOpen(true)}
-          title="AI Chat"
+          title={t("aiOpenChat")}
           type="button"
         >
           <MessageCircleMore aria-hidden="true" size={19} />

@@ -18,6 +18,7 @@ import {
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { AiChatMessage } from "@/features/app-state/types";
 import { toAiInsertHtml } from "@/features/editor/lib/ai";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,7 @@ type ChatMessageProps = {
   editor: Editor | null;
   message: AiChatMessage;
   onDiscard: () => void;
-  onEdit?: (text: string) => void;
+  onEdit?: (messageId: string, text: string) => void;
   onRegenerate: () => void;
 };
 
@@ -39,6 +40,7 @@ export function ChatMessage({
   onEdit,
   onRegenerate,
 }: ChatMessageProps) {
+  const { t } = useLocale();
   const text = getMessageText(message);
   const isAssistant = message.role === "assistant";
   const [copied, setCopied] = useState(false);
@@ -67,59 +69,67 @@ export function ChatMessage({
       </MessageContent>
       {isAssistant && text.trim() && !discarded ? (
         <MessageActions>
-          <MessageAction onClick={handleCopy} tooltip="Copy answer">
+          <MessageAction onClick={handleCopy} tooltip={t("aiCopyAnswer")}>
             {copied ? (
               <Check aria-hidden="true" size={13} />
             ) : (
               <Copy aria-hidden="true" size={13} />
             )}
-            Copy
+            <ActionLabel>{copied ? t("aiCopied") : t("copy")}</ActionLabel>
           </MessageAction>
           <MessageAction
             onClick={() => replaceSelection(editor, message, text)}
-            tooltip="Replace original selection"
+            tooltip={t("aiReplaceSelection")}
           >
             <Check aria-hidden="true" size={13} />
-            Replace
+            <ActionLabel>{t("apply")}</ActionLabel>
           </MessageAction>
           <MessageAction
             onClick={() => insertAtCursor(editor, text)}
-            tooltip="Insert at cursor"
+            tooltip={t("aiInsertAtCursor")}
           >
             <ChevronRight aria-hidden="true" size={13} />
-            Cursor
+            <ActionLabel>{t("aiCursor")}</ActionLabel>
           </MessageAction>
-          <MessageAction onClick={() => insertAtEnd(editor, text)} tooltip="Insert at end">
+          <MessageAction onClick={() => insertAtEnd(editor, text)} tooltip={t("aiInsertAtEnd")}>
             <CopyPlus aria-hidden="true" size={13} />
-            End
+            <ActionLabel>{t("aiEnd")}</ActionLabel>
           </MessageAction>
-          <MessageAction onClick={onRegenerate} tooltip="Retry">
+          <MessageAction onClick={onRegenerate} tooltip={t("aiRetry")}>
             <RefreshCw aria-hidden="true" size={13} />
-            Retry
+            <ActionLabel>{t("aiRetry")}</ActionLabel>
           </MessageAction>
-          <MessageAction onClick={onDiscard} tooltip="Hide actions">
+          <MessageAction onClick={onDiscard} tooltip={t("aiHideActions")}>
             <X aria-hidden="true" size={13} />
-            Discard
+            <ActionLabel>{t("discard")}</ActionLabel>
           </MessageAction>
         </MessageActions>
       ) : null}
       {!isAssistant && text.trim() ? (
         <MessageActions className="justify-end">
-          <MessageAction onClick={handleCopy} tooltip="Copy question">
+          <MessageAction onClick={handleCopy} tooltip={t("aiCopyQuestion")}>
             {copied ? (
               <Check aria-hidden="true" size={13} />
             ) : (
               <Copy aria-hidden="true" size={13} />
             )}
-            Copy
+            <ActionLabel>{copied ? t("aiCopied") : t("copy")}</ActionLabel>
           </MessageAction>
-          <MessageAction onClick={() => onEdit?.(text)} tooltip="Edit question">
+          <MessageAction onClick={() => onEdit?.(message.id, text)} tooltip={t("aiEditQuestion")}>
             <Pencil aria-hidden="true" size={13} />
-            Edit
+            <ActionLabel>{t("edit")}</ActionLabel>
           </MessageAction>
         </MessageActions>
       ) : null}
     </Message>
+  );
+}
+
+function ActionLabel({ children }: { children: string }) {
+  return (
+    <span className="hidden whitespace-nowrap group-hover/action:inline group-focus-visible/action:inline">
+      {children}
+    </span>
   );
 }
 
