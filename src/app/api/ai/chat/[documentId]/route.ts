@@ -11,6 +11,7 @@ import type {
   AiChatSelection,
 } from "@/features/app-state/types";
 import {
+  deleteAiChatThreadForUser,
   getAiChatThreadForUser,
   getAiChatThreadsForUser,
   saveAiChatThreadMessages,
@@ -170,6 +171,40 @@ export async function POST(request: Request, context: RouteContext) {
     },
     originalMessages: messages,
     sendReasoning: false,
+  });
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  const { documentId } = await context.params;
+  const url = new URL(request.url);
+  const userId = url.searchParams.get("userId");
+  const threadId = url.searchParams.get("threadId");
+
+  if (!userId) {
+    return NextResponse.json({ error: "You must be logged in" }, { status: 401 });
+  }
+
+  if (!threadId) {
+    return NextResponse.json({ error: "Thread is required" }, { status: 400 });
+  }
+
+  const state = await readStoredState();
+  const result = deleteAiChatThreadForUser(state, userId, documentId, threadId);
+
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 403 });
+  }
+
+  await writeStoredState(result.state);
+
+  return NextResponse.json({
+    thread: result.threads[0] ?? {
+      documentId,
+      id: null,
+      messages: [],
+      userId,
+    },
+    threads: result.threads,
   });
 }
 

@@ -113,6 +113,38 @@ export function saveAiChatThreadMessages(
   };
 }
 
+export function deleteAiChatThreadForUser(
+  state: StoredSyntextState,
+  userId: string,
+  documentId: string,
+  threadId: string,
+) {
+  const permission = canUseAiChat(state, userId, documentId);
+
+  if (!permission.ok) {
+    return permission;
+  }
+
+  const currentThreads = state.aiChatThreads ?? [];
+  const nextState = {
+    ...state,
+    aiChatThreads: currentThreads.filter(
+      (thread) =>
+        !(
+          thread.id === threadId &&
+          thread.userId === userId &&
+          thread.documentId === documentId
+        ),
+    ),
+  };
+
+  return {
+    ok: true as const,
+    state: nextState,
+    threads: getUserDocumentThreads(nextState, userId, documentId),
+  };
+}
+
 function getUserDocumentThreads(
   state: StoredSyntextState,
   userId: string,

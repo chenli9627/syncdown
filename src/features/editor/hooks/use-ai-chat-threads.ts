@@ -113,9 +113,50 @@ export function useAiChatThreads({
       .catch(() => undefined);
   }
 
+  function handleDeleteThread(threadId: string) {
+    if (!currentUserId || busy) {
+      return;
+    }
+
+    const nextLocalThreads = threads.filter((thread) => thread.id !== threadId);
+    const nextActiveThread =
+      threadId === activeThreadId
+        ? nextLocalThreads[0] ?? null
+        : threads.find((thread) => thread.id === activeThreadId) ?? null;
+
+    setThreads(nextLocalThreads);
+    setActiveThreadId(nextActiveThread?.id ?? null);
+
+    if (threadId === activeThreadId) {
+      setMessages(nextActiveThread?.messages ?? []);
+    }
+
+    fetch(
+      `/api/ai/chat/${documentId}?userId=${encodeURIComponent(currentUserId)}&threadId=${encodeURIComponent(threadId)}`,
+      { method: "DELETE" },
+    )
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: AiChatPayload | null) => {
+        if (!payload) {
+          return;
+        }
+
+        setThreads(payload.threads ?? []);
+
+        if (threadId !== activeThreadId) {
+          return;
+        }
+
+        setActiveThreadId(payload.thread?.id ?? null);
+        setMessages(payload.thread?.messages ?? []);
+      })
+      .catch(() => undefined);
+  }
+
   return {
     activeThreadId,
     createThreadForSend,
+    handleDeleteThread,
     handleNewThread,
     handleSelectThread,
     models,

@@ -1,4 +1,5 @@
 export {
+  deleteAiChatThreadForUser,
   getAiChatThreadForUser,
   getAiChatThreadsForUser,
   saveAiChatThreadMessages,

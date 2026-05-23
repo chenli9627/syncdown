@@ -96,6 +96,7 @@ export function EditorAiChatPanel({
   const {
     activeThreadId,
     createThreadForSend,
+    handleDeleteThread,
     handleNewThread,
     handleSelectThread,
     models,
@@ -210,6 +211,7 @@ export function EditorAiChatPanel({
         modelKey={modelKey}
         models={models}
         onClose={onClose}
+        onDeleteThread={handleDeleteThread}
         onModelChange={handleModelChange}
         onNewThread={() => {
           setEditingQuestion(null);

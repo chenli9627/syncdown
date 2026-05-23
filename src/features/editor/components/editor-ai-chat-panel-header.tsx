@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, PanelRightClose } from "lucide-react";
+import { PanelRightClose } from "lucide-react";
 import type { PointerEvent } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { AiChatModelKey, AiChatThread } from "@/features/app-state/types";
@@ -19,6 +19,7 @@ type EditorAiChatPanelHeaderProps = {
   modelKey: AiChatModelKey;
   models: AiModelOption[];
   onClose: () => void;
+  onDeleteThread: (threadId: string) => void;
   onModelChange: (value: AiChatModelKey) => void;
   onNewThread: () => void;
   onResizeStart: (event: PointerEvent<HTMLDivElement>) => void;
@@ -33,6 +34,7 @@ export function EditorAiChatPanelHeader({
   modelKey,
   models,
   onClose,
+  onDeleteThread,
   onModelChange,
   onNewThread,
   onResizeStart,
@@ -50,12 +52,10 @@ export function EditorAiChatPanelHeader({
         />
       ) : null}
       <div className="flex h-13 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="inline-flex h-8 w-5 shrink-0 items-center justify-center text-[var(--color-foreground)]">
-            <Bot aria-hidden="true" size={16} />
-          </span>
+        <div className="flex min-w-0 items-center">
           <EditorAiChatThreadSwitcher
             activeThreadId={activeThreadId}
+            onDeleteThread={onDeleteThread}
             onNewThread={onNewThread}
             onSelectThread={onSelectThread}
             threads={threads}

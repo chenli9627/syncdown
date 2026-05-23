@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { AiChatMessage, StoredSyntextState } from "../src/features/app-state/types";
 import {
+  deleteAiChatThreadForUser,
   getAiChatThreadForUser,
   getAiChatThreadsForUser,
   saveAiChatThreadMessages,
@@ -153,6 +154,43 @@ test("view-only guests cannot use AI chat", () => {
   const result = saveAiChatThreadMessages(createState(), "user_viewer", "doc_shared", [message]);
 
   assert.equal(result.ok, false);
+});
+
+test("AI chat thread deletion removes only the requested thread", () => {
+  const first = saveAiChatThreadMessages(createState(), "user_owner", "doc_shared", [message], {
+    threadId: "ai_chat_first",
+  });
+
+  assert.equal(first.ok, true);
+  if (!first.ok) {
+    return;
+  }
+
+  const second = saveAiChatThreadMessages(first.state, "user_owner", "doc_shared", [message], {
+    threadId: "ai_chat_second",
+  });
+
+  assert.equal(second.ok, true);
+  if (!second.ok) {
+    return;
+  }
+
+  const deleted = deleteAiChatThreadForUser(
+    second.state,
+    "user_owner",
+    "doc_shared",
+    "ai_chat_first",
+  );
+
+  assert.equal(deleted.ok, true);
+  if (!deleted.ok) {
+    return;
+  }
+
+  assert.deepEqual(
+    deleted.threads.map((thread) => thread.id),
+    ["ai_chat_second"],
+  );
 });
 
 test("permanent document deletion removes AI chat threads", () => {
