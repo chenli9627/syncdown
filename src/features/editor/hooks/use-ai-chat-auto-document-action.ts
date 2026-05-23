@@ -9,6 +9,8 @@ import type {
 import {
   appendAiResponseAsDocumentEndBlocks,
   getAiChatMessageText,
+  insertAiResponseAtCursor,
+  replaceSelectionWithAiResponse,
 } from "@/features/editor/lib/ai-chat-actions";
 
 type UseAiChatAutoDocumentActionArgs = {
@@ -53,6 +55,16 @@ export function useAiChatAutoDocumentAction({
 
     if (documentAction === "insert_end") {
       appendAiResponseAsDocumentEndBlocks(editor, responseText);
+      return;
+    }
+
+    if (documentAction === "insert_cursor") {
+      insertAiResponseAtCursor(editor, responseText);
+      return;
+    }
+
+    if (documentAction === "replace_selection") {
+      replaceSelectionWithAiResponse(editor, lastMessage, responseText);
     }
   }, [busy, editor, messages]);
 

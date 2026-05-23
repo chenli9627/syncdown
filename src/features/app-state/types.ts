@@ -4,7 +4,7 @@ export type Permission = "can_edit" | "can_view";
 
 export type AiChatModelKey = "primary" | "secondary";
 
-export type AiChatDocumentAction = "insert_end";
+export type AiChatDocumentAction = "insert_cursor" | "insert_end" | "replace_selection";
 
 export type AiChatSelection = {
   from: number;

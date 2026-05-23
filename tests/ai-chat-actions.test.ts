@@ -20,6 +20,18 @@ test("infers insert-end action from English document placement requests", () => 
   assert.equal(inferAiChatDocumentAction("Please add this at the document bottom"), "insert_end");
 });
 
+test("infers insert-cursor action from cursor placement requests", () => {
+  assert.equal(inferAiChatDocumentAction("生成一句摘要，插入到光标处"), "insert_cursor");
+  assert.equal(inferAiChatDocumentAction("把下面这句话加到当前位置"), "insert_cursor");
+  assert.equal(inferAiChatDocumentAction("Insert a short summary at the cursor"), "insert_cursor");
+});
+
+test("infers replace-selection action from selected text edit requests", () => {
+  assert.equal(inferAiChatDocumentAction("把选中的内容改写得更正式"), "replace_selection");
+  assert.equal(inferAiChatDocumentAction("润色当前选区"), "replace_selection");
+  assert.equal(inferAiChatDocumentAction("Translate the selected text to English"), "replace_selection");
+});
+
 test("does not infer document actions for ordinary chat prompts", () => {
   assert.equal(inferAiChatDocumentAction("解释一下这篇文档"), null);
   assert.equal(inferAiChatDocumentAction("What are the differences between these models?"), null);

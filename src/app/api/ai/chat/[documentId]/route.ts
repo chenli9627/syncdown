@@ -185,9 +185,7 @@ function buildDocumentChatSystemPrompt(
     documentAction
       ? "The frontend will automatically apply your next answer to the current document."
       : "When the user asks for an edit, return content that can be inserted into the document directly.",
-    documentAction === "insert_end"
-      ? "The requested automatic action is: insert your answer at the end of the document. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content."
-      : "",
+    getAutomaticActionInstruction(documentAction),
     "Use Markdown when lists, headings, or emphasis make the answer clearer.",
     documentAction
       ? "Do not claim that the document has already changed while you are generating the answer."
@@ -200,4 +198,20 @@ function buildDocumentChatSystemPrompt(
     cleanDocumentText,
     selectionText ? "\nCurrent selected text:\n" + selectionText : "",
   ].join("\n");
+}
+
+function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | null) {
+  if (documentAction === "insert_end") {
+    return "The requested automatic action is: insert your answer at the end of the document. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
+  }
+
+  if (documentAction === "insert_cursor") {
+    return "The requested automatic action is: insert your answer at the current cursor position. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
+  }
+
+  if (documentAction === "replace_selection") {
+    return "The requested automatic action is: replace the selected text with your answer. Return only the exact replacement content. Do not quote the original text, do not explain the change, and do not say you replaced it.";
+  }
+
+  return "";
 }

@@ -9,29 +9,70 @@ export function inferAiChatDocumentAction(prompt: string): AiChatDocumentAction 
   const compactPrompt = prompt.toLowerCase().replace(/\s+/g, "");
   const lowerPrompt = prompt.toLowerCase();
 
-  if (
+  if (isInsertEndPrompt(compactPrompt, lowerPrompt)) {
+    return "insert_end";
+  }
+
+  if (isInsertCursorPrompt(compactPrompt, lowerPrompt)) {
+    return "insert_cursor";
+  }
+
+  if (isReplaceSelectionPrompt(compactPrompt, lowerPrompt)) {
+    return "replace_selection";
+  }
+
+  return null;
+}
+
+function isInsertEndPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
     /(?:放到|插入到|添加到|加到|追加到).{0,12}(?:文档)?(?:末尾|最后|结尾|底部)/.test(
       compactPrompt,
     ) ||
     /(?:文档)?(?:末尾|最后|结尾|底部).{0,12}(?:放|插入|添加|加|追加)/.test(
       compactPrompt,
-    )
-  ) {
-    return "insert_end";
-  }
-
-  if (
+    ) ||
     /\b(?:append|insert|add|place)\b[\s\S]{0,120}\b(?:end|bottom)\b[\s\S]{0,60}\b(?:document|doc|page)\b/.test(
       lowerPrompt,
     ) ||
     /\b(?:append|insert|add|place)\b[\s\S]{0,120}\b(?:document|doc|page)\b[\s\S]{0,60}\b(?:end|bottom)\b/.test(
       lowerPrompt,
     )
-  ) {
-    return "insert_end";
-  }
+  );
+}
 
-  return null;
+function isInsertCursorPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:插入到|放到|添加到|加到).{0,12}(?:光标|当前位置|当前块|这里|此处)/.test(
+      compactPrompt,
+    ) ||
+    /(?:光标|当前位置|当前块|这里|此处).{0,12}(?:插入|放|添加|加)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:insert|add|place)\b[\s\S]{0,120}\b(?:cursor|current position|here)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:cursor|current position|here)\b[\s\S]{0,120}\b(?:insert|add|place)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isReplaceSelectionPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:替换|改写|修改|润色|优化|重写|翻译|总结|扩写|缩写|精简).{0,16}(?:选中|选区|所选|这段|当前选中)/.test(
+      compactPrompt,
+    ) ||
+    /(?:选中|选区|所选|这段|当前选中).{0,16}(?:替换|改写|修改|润色|优化|重写|翻译|总结|扩写|缩写|精简|改成|变成)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:replace|rewrite|revise|edit|improve|translate|summarize|expand|shorten)\b[\s\S]{0,120}\b(?:selection|selected text|selected content|highlighted text)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:selection|selected text|selected content|highlighted text)\b[\s\S]{0,120}\b(?:replace|rewrite|revise|edit|improve|translate|summarize|expand|shorten)\b/.test(
+      lowerPrompt,
+    )
+  );
 }
 
 export function getAiChatMessageText(message: AiChatMessage) {
