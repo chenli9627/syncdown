@@ -182,6 +182,8 @@ export function EditorSurface({
           updateDocumentAccess={model.updateDocumentAccess}
         />
         <EditorCanvas
+          aiChatOpen={aiChatOpen}
+          aiPanelWidth={aiPanelWidth}
           blockControlsRef={model.ui.blockControlsRef}
           blockMenu={model.ui.blockMenu}
           blockMenuRef={model.ui.blockMenuRef}
@@ -210,6 +212,7 @@ export function EditorSurface({
           hoveredBlock={model.hovered.hoveredBlock}
           imageInputRef={model.ui.imageInputRef}
           importInputRef={model.ui.importInputRef}
+          isNarrowAiLayout={isNarrowAiLayout}
           remoteEntries={model.presence.remoteEntries}
           searchRects={model.ui.searchBody.searchRects}
           aiHighlightRects={model.selectionAi.aiBubble.highlightRects}

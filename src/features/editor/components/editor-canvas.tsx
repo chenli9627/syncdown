@@ -5,7 +5,7 @@ import type { Editor } from "@tiptap/react";
 import { relativePositionToAbsolutePosition, ySyncPluginKey } from "@tiptap/y-tiptap";
 import { GripHorizontal, GripVertical, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { RefObject } from "react";
+import type { CSSProperties, RefObject } from "react";
 import { createPortal } from "react-dom";
 import * as Y from "yjs";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -78,6 +78,7 @@ type TableAxisDragState = {
 };
 
 type EditorCanvasProps = {
+  aiChatOpen: boolean;
   blockControlsRef: RefObject<HTMLDivElement | null>;
   blockMenu: BlockMenuState;
   blockMenuRef: RefObject<HTMLDivElement | null>;
@@ -114,6 +115,8 @@ type EditorCanvasProps = {
   hoveredBlock: HoveredBlock | null;
   imageInputRef: RefObject<HTMLInputElement | null>;
   importInputRef: RefObject<HTMLInputElement | null>;
+  isNarrowAiLayout: boolean;
+  aiPanelWidth: number;
   remoteEntries: RemoteAwarenessEntry[];
   searchRects: SearchRect[];
   aiHighlightRects: SearchRect[];
@@ -146,6 +149,7 @@ type EditorCanvasProps = {
 };
 
 export function EditorCanvas({
+  aiChatOpen,
   blockControlsRef,
   blockMenu,
   blockMenuRef,
@@ -174,6 +178,8 @@ export function EditorCanvas({
   hoveredBlock,
   imageInputRef,
   importInputRef,
+  isNarrowAiLayout,
+  aiPanelWidth,
   remoteEntries,
   searchRects,
   aiHighlightRects,
@@ -393,6 +399,22 @@ export function EditorCanvas({
   const tableOverlayLeft = tableOverlay?.left ?? 0;
   const tableOverlayTop = tableOverlay?.top ?? 0;
   const tableOverlayWidth = tableOverlay?.width ?? 0;
+  const shouldAnchorCanvasForAiPanel = aiChatOpen && !isNarrowAiLayout;
+  const aiCanvasLeftOffset =
+    "max(0px, calc((100% + var(--syncdown-ai-panel-width) - 56rem) / 2))";
+  const canvasStyle = shouldAnchorCanvasForAiPanel
+    ? ({
+        "--syncdown-ai-panel-width": `${aiPanelWidth}px`,
+        "--syncdown-editor-canvas-left-offset": aiCanvasLeftOffset,
+        marginLeft: "var(--syncdown-editor-canvas-left-offset)",
+        marginRight: 0,
+        maxWidth: "56rem",
+        width: "calc(100% - var(--syncdown-editor-canvas-left-offset))",
+      } as CSSProperties & {
+        "--syncdown-ai-panel-width": string;
+        "--syncdown-editor-canvas-left-offset": string;
+      })
+    : undefined;
 
   useEffect(() => {
     if (!tableAxisDrag?.active || !editor) {
@@ -689,7 +711,14 @@ export function EditorCanvas({
   }, [tableAxisMenu?.open]);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col py-8 pl-20 pr-10">
+    <div
+      className={
+        shouldAnchorCanvasForAiPanel
+          ? "flex min-w-0 flex-1 flex-col py-8 pl-20 pr-10"
+          : "mx-auto flex w-full max-w-4xl flex-1 flex-col py-8 pl-20 pr-10"
+      }
+      style={canvasStyle}
+    >
       <input
         accept=".md,.zip,text/markdown,application/zip"
         className="hidden"

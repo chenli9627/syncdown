@@ -128,7 +128,10 @@ export function ShellFrame({ children }: ShellFrameProps) {
 
         <main
           className="relative z-0 h-screen min-h-0 overflow-y-auto"
-          style={{ background: "var(--color-editor-surface-gradient)" }}
+          style={{
+            background: "var(--color-editor-surface-gradient)",
+            scrollbarGutter: "stable",
+          }}
         >
           {children}
         </main>
