@@ -274,50 +274,40 @@ export function EditorAiChatPanel({
       {editingQuestion ? (
         <div className="absolute inset-0 z-50 flex items-end justify-center bg-[rgba(0,0,0,0.08)] px-4 py-20">
           <form
-            className="w-full max-w-[360px] border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-soft-card)]"
+            className="w-full max-w-[360px] border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
             onSubmit={(event) => {
               event.preventDefault();
               handleSendEditedQuestion();
             }}
           >
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-[var(--color-foreground)]">
-                {t("aiEditQuestionTitle")}
-              </p>
-              <button
-                className="text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
-                onClick={handleCancelEditQuestion}
-                type="button"
-              >
-                {t("cancel")}
-              </button>
-            </div>
-            <textarea
-              className="min-h-24 w-full resize-none border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm leading-5 text-[var(--color-foreground)] outline-none focus:border-[var(--color-accent)]"
-              onChange={(event) =>
-                setEditingQuestion((current) =>
-                  current ? { ...current, text: event.target.value } : current,
-                )
-              }
-              placeholder={t("aiEditQuestionPlaceholder")}
-              value={editingQuestion.text}
-            />
-            <div className="mt-3 flex justify-end gap-2">
-              <button
-                className="h-8 border border-[var(--color-border)] px-3 text-xs text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
-                onClick={handleCancelEditQuestion}
-                type="button"
-              >
-                {t("cancel")}
-              </button>
-              <button
-                className="inline-flex h-8 items-center gap-1 border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 text-xs font-medium text-[var(--color-primary-foreground)] hover:brightness-95 disabled:opacity-50"
-                disabled={busy || !editingQuestion.text.trim()}
-                type="submit"
-              >
-                <Send aria-hidden="true" size={13} />
-                {t("aiSend")}
-              </button>
+            <div className="relative">
+              <textarea
+                className="min-h-28 w-full resize-none bg-[var(--color-surface)] px-3 pb-12 pt-3 text-sm leading-5 text-[var(--color-foreground)] outline-none"
+                onChange={(event) =>
+                  setEditingQuestion((current) =>
+                    current ? { ...current, text: event.target.value } : current,
+                  )
+                }
+                placeholder={t("aiEditQuestionPlaceholder")}
+                value={editingQuestion.text}
+              />
+              <div className="absolute bottom-2 right-2 flex gap-2">
+                <button
+                  className="h-7 border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 text-xs text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
+                  onClick={handleCancelEditQuestion}
+                  type="button"
+                >
+                  {t("cancel")}
+                </button>
+                <button
+                  className="inline-flex h-7 items-center gap-1 border border-[var(--color-primary)] bg-[var(--color-primary)] px-2.5 text-xs font-medium text-[var(--color-primary-foreground)] hover:brightness-95 disabled:opacity-50"
+                  disabled={busy || !editingQuestion.text.trim()}
+                  type="submit"
+                >
+                  <Send aria-hidden="true" size={13} />
+                  {t("aiSend")}
+                </button>
+              </div>
             </div>
           </form>
         </div>
