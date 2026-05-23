@@ -19,7 +19,7 @@ import {
 } from "@/components/ai-elements/message";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { AiChatMessage } from "@/features/app-state/types";
-import { toAiInsertHtml } from "@/features/editor/lib/ai";
+import { toAiInlineInsertHtml, toAiInsertHtml } from "@/features/editor/lib/ai";
 import { cn } from "@/lib/utils";
 
 type ChatMessageProps = {
@@ -144,7 +144,7 @@ function replaceSelection(editor: Editor | null, message: AiChatMessage, text: s
       .focus()
       .insertContentAt(
         { from: currentSelection.from, to: currentSelection.to },
-        toAiInsertHtml(text),
+        getAiInsertContentForRange(editor, currentSelection.from, currentSelection.to, text),
       )
       .run();
     return;
@@ -159,13 +159,23 @@ function replaceSelection(editor: Editor | null, message: AiChatMessage, text: s
     editor
       .chain()
       .focus()
-      .insertContentAt({ from, to }, toAiInsertHtml(text))
+      .insertContentAt({ from, to }, getAiInsertContentForRange(editor, from, to, text))
       .run();
   }
 }
 
 function insertAtCursor(editor: Editor | null, text: string) {
-  editor?.chain().focus().insertContent(toAiInsertHtml(text)).run();
+  if (!editor) {
+    return;
+  }
+
+  const { from, to } = editor.state.selection;
+
+  editor
+    .chain()
+    .focus()
+    .insertContent(getAiInsertContentForRange(editor, from, to, text))
+    .run();
 }
 
 function insertAtEnd(editor: Editor | null, text: string) {
@@ -178,4 +188,25 @@ function insertAtEnd(editor: Editor | null, text: string) {
     .focus()
     .insertContentAt(editor.state.doc.content.size, toAiInsertHtml(text))
     .run();
+}
+
+function getAiInsertContentForRange(
+  editor: Editor,
+  from: number,
+  to: number,
+  text: string,
+) {
+  return canInsertInlineAtRange(editor, from, to)
+    ? toAiInlineInsertHtml(text)
+    : toAiInsertHtml(text);
+}
+
+function canInsertInlineAtRange(editor: Editor, from: number, to: number) {
+  const docSize = editor.state.doc.content.size;
+  const safeFrom = Math.max(0, Math.min(from, docSize));
+  const safeTo = Math.max(safeFrom, Math.min(to, docSize));
+  const $from = editor.state.doc.resolve(safeFrom);
+  const $to = editor.state.doc.resolve(safeTo);
+
+  return $from.parent.isTextblock && $from.sameParent($to);
 }

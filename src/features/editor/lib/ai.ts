@@ -95,3 +95,24 @@ export function toAiInsertHtml(resultText: string) {
 
   return markdownToEditorHtml(resultText);
 }
+
+export function toAiInlineInsertHtml(resultText: string) {
+  const html = toAiInsertHtml(resultText);
+  return unwrapSingleParagraphHtml(html) ?? html;
+}
+
+function unwrapSingleParagraphHtml(html: string) {
+  const trimmed = html.trim();
+
+  if (!trimmed.startsWith("<p>") || !trimmed.endsWith("</p>")) {
+    return null;
+  }
+
+  const innerHtml = trimmed.slice(3, -4);
+
+  if (innerHtml.includes("<p") || innerHtml.includes("</p>")) {
+    return null;
+  }
+
+  return innerHtml;
+}

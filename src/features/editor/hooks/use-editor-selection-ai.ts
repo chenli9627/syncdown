@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   getAiViewOnly,
+  toAiInlineInsertHtml,
   toAiInsertHtml,
   type AiActionKind,
 } from "@/features/editor/lib/ai";
@@ -246,7 +247,13 @@ export function useEditorSelectionAi({
           .focus()
           .insertContentAt(
             { from: aiBubble.from, to: aiBubble.to },
-            selectedCandidate.resultHtml || toAiInsertHtml(selectedCandidate.result),
+            getAiInsertContentForRange(
+              editor,
+              aiBubble.from,
+              aiBubble.to,
+              selectedCandidate.result,
+              selectedCandidate.resultHtml,
+            ),
           )
           .run();
         setAiBubble(closedAiBubble());
@@ -594,6 +601,28 @@ function clampBubbleLeft(left: number, bubbleHalfWidth: number, screenPadding: n
     window.innerWidth - bubbleHalfWidth - screenPadding,
     Math.max(bubbleHalfWidth + screenPadding, left),
   );
+}
+
+function getAiInsertContentForRange(
+  editor: Editor,
+  from: number,
+  to: number,
+  result: string,
+  resultHtml?: string,
+) {
+  return canInsertInlineAtRange(editor, from, to)
+    ? toAiInlineInsertHtml(result)
+    : resultHtml || toAiInsertHtml(result);
+}
+
+function canInsertInlineAtRange(editor: Editor, from: number, to: number) {
+  const docSize = editor.state.doc.content.size;
+  const safeFrom = Math.max(0, Math.min(from, docSize));
+  const safeTo = Math.max(safeFrom, Math.min(to, docSize));
+  const $from = editor.state.doc.resolve(safeFrom);
+  const $to = editor.state.doc.resolve(safeTo);
+
+  return $from.parent.isTextblock && $from.sameParent($to);
 }
 
 function clampBubbleTop(top: number, bubbleHeight: number, screenPadding: number) {
