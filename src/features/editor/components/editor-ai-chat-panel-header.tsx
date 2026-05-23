@@ -3,8 +3,9 @@
 import { Bot, PanelRightClose } from "lucide-react";
 import type { PointerEvent } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
-import type { AiChatModelKey } from "@/features/app-state/types";
+import type { AiChatModelKey, AiChatThread } from "@/features/app-state/types";
 import { EditorAiModelSelect } from "@/features/editor/components/editor-ai-model-select";
+import { EditorAiChatThreadSwitcher } from "@/features/editor/components/editor-ai-chat-thread-switcher";
 
 type AiModelOption = {
   key: AiChatModelKey;
@@ -12,23 +13,31 @@ type AiModelOption = {
 };
 
 type EditorAiChatPanelHeaderProps = {
+  activeThreadId: string | null;
   activeModelName: string;
   isNarrow: boolean;
   modelKey: AiChatModelKey;
   models: AiModelOption[];
   onClose: () => void;
   onModelChange: (value: AiChatModelKey) => void;
+  onNewThread: () => void;
   onResizeStart: (event: PointerEvent<HTMLDivElement>) => void;
+  onSelectThread: (threadId: string) => void;
+  threads: AiChatThread[];
 };
 
 export function EditorAiChatPanelHeader({
+  activeThreadId,
   activeModelName,
   isNarrow,
   modelKey,
   models,
   onClose,
   onModelChange,
+  onNewThread,
   onResizeStart,
+  onSelectThread,
+  threads,
 }: EditorAiChatPanelHeaderProps) {
   const { t } = useLocale();
 
@@ -41,11 +50,18 @@ export function EditorAiChatPanelHeader({
         />
       ) : null}
       <div className="flex h-13 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-semibold text-[var(--color-foreground)]">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex h-8 w-5 shrink-0 items-center justify-center text-[var(--color-foreground)]">
             <Bot aria-hidden="true" size={16} />
-            {t("aiChatTitle")}
-          </p>
+          </span>
+          <EditorAiChatThreadSwitcher
+            activeThreadId={activeThreadId}
+            onNewThread={onNewThread}
+            onSelectThread={onSelectThread}
+            threads={threads}
+          />
+        </div>
+        <div className="ml-2 min-w-0 flex-1 text-right">
           <p className="truncate text-[11px] text-[var(--color-muted-foreground)]">
             {t("aiModel")}: {activeModelName}
           </p>

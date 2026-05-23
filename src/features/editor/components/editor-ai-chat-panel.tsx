@@ -27,7 +27,6 @@ import type {
 } from "@/features/app-state/types";
 import { ChatMessage } from "@/features/editor/components/editor-ai-chat-message";
 import { EditorAiChatPanelHeader } from "@/features/editor/components/editor-ai-chat-panel-header";
-import { EditorAiChatThreadSwitcher } from "@/features/editor/components/editor-ai-chat-thread-switcher";
 import { useAiChatAutoDocumentAction } from "@/features/editor/hooks/use-ai-chat-auto-document-action";
 import { useAiChatThreads } from "@/features/editor/hooks/use-ai-chat-threads";
 import { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-actions";
@@ -205,20 +204,18 @@ export function EditorAiChatPanel({
       }
     >
       <EditorAiChatPanelHeader
+        activeThreadId={activeThreadId}
         activeModelName={activeModelName}
         isNarrow={isNarrow}
         modelKey={modelKey}
         models={models}
         onClose={onClose}
         onModelChange={handleModelChange}
-        onResizeStart={onResizeStart}
-      />
-      <EditorAiChatThreadSwitcher
-        activeThreadId={activeThreadId}
         onNewThread={() => {
           setEditingQuestion(null);
           handleNewThread();
         }}
+        onResizeStart={onResizeStart}
         onSelectThread={(threadId) => {
           setEditingQuestion(null);
           handleSelectThread(threadId);
