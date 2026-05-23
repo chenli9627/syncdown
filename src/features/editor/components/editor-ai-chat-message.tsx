@@ -8,7 +8,6 @@ import {
   CopyPlus,
   Pencil,
   RefreshCw,
-  X,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -24,19 +23,15 @@ import { toAiInsertHtml } from "@/features/editor/lib/ai";
 import { cn } from "@/lib/utils";
 
 type ChatMessageProps = {
-  discarded: boolean;
   editor: Editor | null;
   message: AiChatMessage;
-  onDiscard: () => void;
   onEdit?: (messageId: string, text: string) => void;
   onRegenerate: () => void;
 };
 
 export function ChatMessage({
-  discarded,
   editor,
   message,
-  onDiscard,
   onEdit,
   onRegenerate,
 }: ChatMessageProps) {
@@ -67,7 +62,7 @@ export function ChatMessage({
       >
         {isAssistant ? <MessageResponse>{text}</MessageResponse> : text}
       </MessageContent>
-      {isAssistant && text.trim() && !discarded ? (
+      {isAssistant && text.trim() ? (
         <MessageActions>
           <MessageAction onClick={handleCopy} tooltip={t("aiCopyAnswer")}>
             {copied ? (
@@ -98,10 +93,6 @@ export function ChatMessage({
           <MessageAction onClick={onRegenerate} tooltip={t("aiRetry")}>
             <RefreshCw aria-hidden="true" size={13} />
             <ActionLabel>{t("aiRetry")}</ActionLabel>
-          </MessageAction>
-          <MessageAction onClick={onDiscard} tooltip={t("aiHideActions")}>
-            <X aria-hidden="true" size={13} />
-            <ActionLabel>{t("discard")}</ActionLabel>
           </MessageAction>
         </MessageActions>
       ) : null}
@@ -141,25 +132,36 @@ function getMessageText(message: AiChatMessage) {
 }
 
 function replaceSelection(editor: Editor | null, message: AiChatMessage, text: string) {
-  const selection = message.metadata?.selection;
-
-  if (!editor || !selection) {
+  if (!editor) {
     return;
   }
 
-  const currentText = editor.state.doc
-    .textBetween(selection.from, selection.to, "\n")
-    .trim();
+  const currentSelection = editor.state.selection;
 
-  if (currentText !== selection.text.trim()) {
+  if (!currentSelection.empty) {
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(
+        { from: currentSelection.from, to: currentSelection.to },
+        toAiInsertHtml(text),
+      )
+      .run();
     return;
   }
 
-  editor
-    .chain()
-    .focus()
-    .insertContentAt({ from: selection.from, to: selection.to }, toAiInsertHtml(text))
-    .run();
+  const originalSelection = message.metadata?.selection;
+
+  if (originalSelection) {
+    const from = Math.max(0, Math.min(originalSelection.from, editor.state.doc.content.size));
+    const to = Math.max(from, Math.min(originalSelection.to, editor.state.doc.content.size));
+
+    editor
+      .chain()
+      .focus()
+      .insertContentAt({ from, to }, toAiInsertHtml(text))
+      .run();
+  }
 }
 
 function insertAtCursor(editor: Editor | null, text: string) {

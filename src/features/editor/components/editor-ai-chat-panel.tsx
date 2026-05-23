@@ -69,7 +69,6 @@ export function EditorAiChatPanel({
   const [input, setInput] = useState("");
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredModelKey());
   const [models, setModels] = useState<AiModelOption[]>([]);
-  const [discardedIds, setDiscardedIds] = useState<Set<string>>(() => new Set());
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const transport = useMemo(
@@ -222,13 +221,9 @@ export function EditorAiChatPanel({
             <div className="flex flex-col gap-4">
               {messages.map((message) => (
                 <ChatMessage
-                  discarded={discardedIds.has(message.id)}
                   editor={editor}
                   key={message.id}
                   message={message}
-                  onDiscard={() =>
-                    setDiscardedIds((current) => new Set(current).add(message.id))
-                  }
                   onEdit={handleEditQuestion}
                   onRegenerate={() =>
                     void regenerate({
