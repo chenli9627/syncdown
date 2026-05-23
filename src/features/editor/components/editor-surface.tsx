@@ -13,7 +13,7 @@ import { EditorVersionHistoryPanel } from "@/features/editor/components/editor-v
 import { useEditorAiChatLayout } from "@/features/editor/hooks/use-editor-ai-chat-layout";
 import { useEditorSurfaceModel } from "@/features/editor/hooks/use-editor-surface-model";
 import { toEditorContent } from "@/features/editor/lib/content";
-import { Bot } from "lucide-react";
+import { MessageCircleMore } from "lucide-react";
 
 type EditorSurfaceProps = {
   document: DocumentRecord;
@@ -254,18 +254,19 @@ export function EditorSurface({
       </div>
       {model.canEditBody && !aiChatOpen ? (
         <button
-          className="fixed bottom-5 right-5 z-30 inline-flex h-11 w-11 items-center justify-center border border-[color-mix(in_srgb,var(--color-primary)_30%,var(--color-border))] bg-[var(--color-card)] text-[var(--color-primary)] shadow-[var(--shadow-soft-card)] transition hover:bg-[var(--color-accent)] hover:text-[var(--color-accent-foreground)]"
+          className="fixed bottom-5 right-5 z-30 inline-flex h-11 w-11 items-center justify-center border border-[#111111] bg-[#111111] text-white shadow-[var(--shadow-soft-card)] transition hover:bg-white hover:text-[#111111]"
           onClick={() => setAiChatOpen(true)}
           title="AI Chat"
           type="button"
         >
-          <Bot aria-hidden="true" size={18} />
+          <MessageCircleMore aria-hidden="true" size={19} />
         </button>
       ) : null}
       {model.canEditBody && aiChatOpen ? (
         <EditorAiChatPanel
           currentUser={currentUser}
           documentId={document.id}
+          documentTitle={model.titleDraft || document.title}
           editor={model.editor}
           isNarrow={isNarrowAiLayout}
           onClose={() => setAiChatOpen(false)}

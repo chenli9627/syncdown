@@ -3,6 +3,7 @@
 import {
   type ComponentPropsWithoutRef,
   type FormEvent,
+  forwardRef,
   type KeyboardEvent,
   useEffect,
   useRef,
@@ -50,12 +51,15 @@ export function PromptInput({
   );
 }
 
-export function PromptInputTextarea({
+export const PromptInputTextarea = forwardRef<
+  HTMLTextAreaElement,
+  ComponentPropsWithoutRef<"textarea">
+>(function PromptInputTextarea({
   className,
   onKeyDown,
   value,
   ...props
-}: ComponentPropsWithoutRef<"textarea">) {
+}, forwardedRef) {
   const ref = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -79,6 +83,19 @@ export function PromptInputTextarea({
     onKeyDown?.(event);
   }
 
+  function setRefs(node: HTMLTextAreaElement | null) {
+    ref.current = node;
+
+    if (typeof forwardedRef === "function") {
+      forwardedRef(node);
+      return;
+    }
+
+    if (forwardedRef) {
+      forwardedRef.current = node;
+    }
+  }
+
   return (
     <textarea
       className={cn(
@@ -86,13 +103,13 @@ export function PromptInputTextarea({
         className,
       )}
       onKeyDown={handleKeyDown}
-      ref={ref}
+      ref={setRefs}
       rows={1}
       value={value}
       {...props}
     />
   );
-}
+});
 
 export function PromptInputSubmit({
   className,

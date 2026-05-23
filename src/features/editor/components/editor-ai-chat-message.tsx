@@ -4,10 +4,13 @@ import type { Editor } from "@tiptap/react";
 import {
   Check,
   ChevronRight,
+  Copy,
   CopyPlus,
+  Pencil,
   RefreshCw,
   X,
 } from "lucide-react";
+import { useState } from "react";
 import {
   Message,
   MessageAction,
@@ -24,6 +27,7 @@ type ChatMessageProps = {
   editor: Editor | null;
   message: AiChatMessage;
   onDiscard: () => void;
+  onEdit?: (text: string) => void;
   onRegenerate: () => void;
 };
 
@@ -32,10 +36,23 @@ export function ChatMessage({
   editor,
   message,
   onDiscard,
+  onEdit,
   onRegenerate,
 }: ChatMessageProps) {
   const text = getMessageText(message);
   const isAssistant = message.role === "assistant";
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    if (!text.trim()) {
+      return;
+    }
+
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    });
+  }
 
   return (
     <Message className={isAssistant ? "items-start" : "items-end"}>
@@ -50,6 +67,14 @@ export function ChatMessage({
       </MessageContent>
       {isAssistant && text.trim() && !discarded ? (
         <MessageActions>
+          <MessageAction onClick={handleCopy} tooltip="Copy answer">
+            {copied ? (
+              <Check aria-hidden="true" size={13} />
+            ) : (
+              <Copy aria-hidden="true" size={13} />
+            )}
+            Copy
+          </MessageAction>
           <MessageAction
             onClick={() => replaceSelection(editor, message, text)}
             tooltip="Replace original selection"
@@ -75,6 +100,22 @@ export function ChatMessage({
           <MessageAction onClick={onDiscard} tooltip="Hide actions">
             <X aria-hidden="true" size={13} />
             Discard
+          </MessageAction>
+        </MessageActions>
+      ) : null}
+      {!isAssistant && text.trim() ? (
+        <MessageActions className="justify-end">
+          <MessageAction onClick={handleCopy} tooltip="Copy question">
+            {copied ? (
+              <Check aria-hidden="true" size={13} />
+            ) : (
+              <Copy aria-hidden="true" size={13} />
+            )}
+            Copy
+          </MessageAction>
+          <MessageAction onClick={() => onEdit?.(text)} tooltip="Edit question">
+            <Pencil aria-hidden="true" size={13} />
+            Edit
           </MessageAction>
         </MessageActions>
       ) : null}

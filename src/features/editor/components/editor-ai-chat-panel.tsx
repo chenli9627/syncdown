@@ -8,6 +8,7 @@ import {
   type PointerEvent,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -33,6 +34,7 @@ import { cn } from "@/lib/utils";
 type AiChatPanelProps = {
   currentUser: User | null;
   documentId: string;
+  documentTitle: string;
   editor: Editor | null;
   isNarrow: boolean;
   onClose: () => void;
@@ -45,9 +47,12 @@ type AiModelOption = {
   name: string;
 };
 
+const AI_CHAT_MODEL_STORAGE_KEY = "syncdown.aiChatModelKey";
+
 export function EditorAiChatPanel({
   currentUser,
   documentId,
+  documentTitle,
   editor,
   isNarrow,
   onClose,
@@ -55,9 +60,10 @@ export function EditorAiChatPanel({
   panelWidth,
 }: AiChatPanelProps) {
   const [input, setInput] = useState("");
-  const [modelKey, setModelKey] = useState<AiChatModelKey>("primary");
+  const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredModelKey());
   const [models, setModels] = useState<AiModelOption[]>([]);
   const [discardedIds, setDiscardedIds] = useState<Set<string>>(() => new Set());
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const transport = useMemo(
     () =>
       new DefaultChatTransport<AiChatMessage>({
@@ -120,19 +126,32 @@ export function EditorAiChatPanel({
     setInput("");
     void sendMessage(
       { text: trimmed },
-      { body: getChatRequestBody(editor, modelKey, currentUser.id) },
+      { body: getChatRequestBody(editor, modelKey, currentUser.id, documentTitle) },
     );
+  }
+
+  function handleEditQuestion(text: string) {
+    setInput(text);
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(text.length, text.length);
+    });
+  }
+
+  function handleModelChange(nextModelKey: AiChatModelKey) {
+    setModelKey(nextModelKey);
+    window.localStorage.setItem(AI_CHAT_MODEL_STORAGE_KEY, nextModelKey);
   }
 
   return (
     <aside
       className={cn(
-        "z-30 flex min-h-0 flex-col border-l border-[var(--color-border)] bg-[var(--color-editor-header-background)] shadow-sm",
+        "z-30 flex min-h-0 flex-col overscroll-contain border-l border-[var(--color-border)] bg-[var(--color-editor-header-background)] shadow-sm",
         isNarrow
           ? "fixed bottom-0 right-0 top-0 w-[min(420px,100vw)]"
           : "sticky top-0 h-screen shrink-0",
       )}
-      style={isNarrow ? undefined : { width: panelWidth }}
+      style={isNarrow ? { overscrollBehavior: "contain" } : { overscrollBehavior: "contain", width: panelWidth }}
     >
       {!isNarrow ? (
         <div
@@ -163,7 +182,7 @@ export function EditorAiChatPanel({
         <label className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
           Model
         </label>
-        <EditorAiModelSelect models={models} onChange={setModelKey} value={modelKey} />
+        <EditorAiModelSelect models={models} onChange={handleModelChange} value={modelKey} />
       </div>
       <Conversation>
         <ConversationContent>
@@ -182,9 +201,15 @@ export function EditorAiChatPanel({
                   onDiscard={() =>
                     setDiscardedIds((current) => new Set(current).add(message.id))
                   }
+                  onEdit={handleEditQuestion}
                   onRegenerate={() =>
                     void regenerate({
-                      body: getChatRequestBody(editor, modelKey, currentUser?.id ?? ""),
+                      body: getChatRequestBody(
+                        editor,
+                        modelKey,
+                        currentUser?.id ?? "",
+                        documentTitle,
+                      ),
                       messageId: message.id,
                     })
                   }
@@ -212,6 +237,7 @@ export function EditorAiChatPanel({
             disabled={busy}
             onChange={(event) => setInput(event.target.value)}
             placeholder="Ask AI about this document"
+            ref={inputRef}
             value={input}
           />
           <PromptInputSubmit disabled={busy || !input.trim()} />
@@ -219,6 +245,16 @@ export function EditorAiChatPanel({
       </PromptInput>
     </aside>
   );
+}
+
+function readStoredModelKey(): AiChatModelKey {
+  if (typeof window === "undefined") {
+    return "primary";
+  }
+
+  const storedModel = window.localStorage.getItem(AI_CHAT_MODEL_STORAGE_KEY);
+
+  return storedModel === "secondary" ? "secondary" : "primary";
 }
 
 function getCurrentSelection(editor: Editor | null): AiChatSelection | null {
@@ -236,9 +272,11 @@ function getChatRequestBody(
   editor: Editor | null,
   modelKey: AiChatModelKey,
   userId: string,
+  documentTitle: string,
 ) {
   return {
     documentText: editor?.getText() ?? "",
+    documentTitle,
     modelKey,
     selection: getCurrentSelection(editor),
     userId,

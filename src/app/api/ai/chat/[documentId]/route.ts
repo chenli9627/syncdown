@@ -28,6 +28,7 @@ type RouteContext = {
 
 type ChatBody = {
   documentText?: string;
+  documentTitle?: string;
   messages?: AiChatMessage[];
   modelKey?: AiChatModelKey;
   selection?: AiChatSelection | null;
@@ -109,6 +110,7 @@ export async function POST(request: Request, context: RouteContext) {
     messages: await convertToModelMessages(messages),
     model: createAiChatModel(modelConfig),
     system: buildDocumentChatSystemPrompt(
+      body.documentTitle ?? "",
       body.documentText ?? "",
       body.selection ?? null,
       modelConfig.name,
@@ -162,10 +164,12 @@ function withChatMetadata(
 }
 
 function buildDocumentChatSystemPrompt(
+  documentTitle: string,
   documentText: string,
   selection: AiChatSelection | null,
   modelName: string,
 ) {
+  const cleanDocumentTitle = documentTitle.trim() || "(untitled document)";
   const cleanDocumentText = documentText.trim() || "(empty document)";
   const selectionText = selection?.text.trim();
 
@@ -177,6 +181,9 @@ function buildDocumentChatSystemPrompt(
     "When the user asks for an edit, return content that can be inserted into the document directly.",
     "Use Markdown when lists, headings, or emphasis make the answer clearer.",
     "Do not claim to have changed the document yourself; the user applies your response with explicit buttons.",
+    "",
+    "Current document title:",
+    cleanDocumentTitle,
     "",
     "Current document plain text:",
     cleanDocumentText,

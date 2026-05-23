@@ -25,6 +25,9 @@ export function Conversation({
 export function ConversationContent({
   className,
   children,
+  onTouchMove,
+  onWheel,
+  style,
   ...props
 }: ComponentPropsWithoutRef<"div">) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -35,8 +38,17 @@ export function ConversationContent({
 
   return (
     <div
-      className={cn("min-h-0 flex-1 overflow-y-auto px-4 py-3", className)}
+      className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3", className)}
+      onTouchMove={(event) => {
+        event.stopPropagation();
+        onTouchMove?.(event);
+      }}
+      onWheel={(event) => {
+        event.stopPropagation();
+        onWheel?.(event);
+      }}
       ref={ref}
+      style={{ overscrollBehavior: "contain", ...style }}
       {...props}
     >
       {children}
