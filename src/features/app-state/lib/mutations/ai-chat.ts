@@ -29,6 +29,28 @@ export function getAiChatThreadForUser(
   state: StoredSyntextState,
   userId: string,
   documentId: string,
+  threadId?: string | null,
+) {
+  const permission = canUseAiChat(state, userId, documentId);
+
+  if (!permission.ok) {
+    return permission;
+  }
+
+  const threads = getUserDocumentThreads(state, userId, documentId);
+
+  return {
+    ok: true as const,
+    thread: threadId
+      ? threads.find((thread) => thread.id === threadId) ?? null
+      : threads[0] ?? null,
+  };
+}
+
+export function getAiChatThreadsForUser(
+  state: StoredSyntextState,
+  userId: string,
+  documentId: string,
 ) {
   const permission = canUseAiChat(state, userId, documentId);
 
@@ -38,10 +60,7 @@ export function getAiChatThreadForUser(
 
   return {
     ok: true as const,
-    thread:
-      state.aiChatThreads?.find(
-        (thread) => thread.userId === userId && thread.documentId === documentId,
-      ) ?? null,
+    threads: getUserDocumentThreads(state, userId, documentId),
   };
 }
 
@@ -50,6 +69,7 @@ export function saveAiChatThreadMessages(
   userId: string,
   documentId: string,
   messages: AiChatMessage[],
+  options?: { threadId?: string | null },
 ) {
   const permission = canUseAiChat(state, userId, documentId);
 
@@ -59,12 +79,18 @@ export function saveAiChatThreadMessages(
 
   const editedAt = now();
   const currentThreads = state.aiChatThreads ?? [];
-  const existingThread =
-    currentThreads.find(
-      (thread) => thread.userId === userId && thread.documentId === documentId,
-    ) ?? null;
+  const requestedThreadId = options?.threadId?.trim();
+  const existingThread = requestedThreadId
+    ? currentThreads.find(
+        (thread) =>
+          thread.id === requestedThreadId &&
+          thread.userId === userId &&
+          thread.documentId === documentId,
+      ) ?? null
+    : getUserDocumentThreads(state, userId, documentId)[0] ?? null;
+  const threadId = existingThread?.id ?? requestedThreadId ?? `ai_chat_${crypto.randomUUID()}`;
   const nextThread = {
-    id: existingThread?.id ?? `ai_chat_${crypto.randomUUID()}`,
+    id: threadId,
     documentId,
     userId,
     messages,
@@ -78,11 +104,21 @@ export function saveAiChatThreadMessages(
       ...state,
       aiChatThreads: [
         ...currentThreads.filter(
-          (thread) => !(thread.userId === userId && thread.documentId === documentId),
+          (thread) => thread.id !== threadId,
         ),
         nextThread,
       ],
     },
     thread: nextThread,
   };
+}
+
+function getUserDocumentThreads(
+  state: StoredSyntextState,
+  userId: string,
+  documentId: string,
+) {
+  return (state.aiChatThreads ?? [])
+    .filter((thread) => thread.userId === userId && thread.documentId === documentId)
+    .toSorted((first, second) => second.updatedAt.localeCompare(first.updatedAt));
 }

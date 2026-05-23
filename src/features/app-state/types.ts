@@ -17,6 +17,7 @@ export type AiChatMessageMetadata = {
   modelKey?: AiChatModelKey;
   modelName?: string;
   selection?: AiChatSelection | null;
+  threadId?: string;
 };
 
 export type AiChatMessage = UIMessage<AiChatMessageMetadata>;

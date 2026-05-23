@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { AiChatMessage, StoredSyntextState } from "../src/features/app-state/types";
 import {
   getAiChatThreadForUser,
+  getAiChatThreadsForUser,
   saveAiChatThreadMessages,
 } from "../src/features/app-state/lib/mutations/ai-chat";
 import { permanentlyDeleteDocumentFromTrashForOwner } from "../src/features/app-state/lib/mutations/document-trash";
@@ -92,6 +93,60 @@ test("AI chat persists by document and user", () => {
   assert.equal(loaded.thread?.documentId, "doc_shared");
   assert.equal(loaded.thread?.userId, "user_owner");
   assert.deepEqual(loaded.thread?.messages, [message]);
+});
+
+test("AI chat supports multiple threads per document and user", () => {
+  const first = saveAiChatThreadMessages(createState(), "user_owner", "doc_shared", [message], {
+    threadId: "ai_chat_first",
+  });
+
+  assert.equal(first.ok, true);
+  if (!first.ok) {
+    return;
+  }
+
+  const secondMessage: AiChatMessage = {
+    ...message,
+    id: "msg_2",
+    parts: [{ text: "Translate this", type: "text" }],
+  };
+  const second = saveAiChatThreadMessages(
+    first.state,
+    "user_owner",
+    "doc_shared",
+    [secondMessage],
+    { threadId: "ai_chat_second" },
+  );
+
+  assert.equal(second.ok, true);
+  if (!second.ok) {
+    return;
+  }
+
+  const threads = getAiChatThreadsForUser(second.state, "user_owner", "doc_shared");
+  assert.equal(threads.ok, true);
+  if (!threads.ok) {
+    return;
+  }
+
+  assert.deepEqual(
+    threads.threads.map((thread) => thread.id).sort(),
+    ["ai_chat_first", "ai_chat_second"],
+  );
+
+  const loadedFirst = getAiChatThreadForUser(
+    second.state,
+    "user_owner",
+    "doc_shared",
+    "ai_chat_first",
+  );
+
+  assert.equal(loadedFirst.ok, true);
+  if (!loadedFirst.ok) {
+    return;
+  }
+
+  assert.deepEqual(loadedFirst.thread?.messages, [message]);
 });
 
 test("view-only guests cannot use AI chat", () => {

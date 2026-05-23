@@ -5,7 +5,6 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import {
   type PointerEvent,
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -28,7 +27,9 @@ import type {
 } from "@/features/app-state/types";
 import { ChatMessage } from "@/features/editor/components/editor-ai-chat-message";
 import { EditorAiChatPanelHeader } from "@/features/editor/components/editor-ai-chat-panel-header";
+import { EditorAiChatThreadSwitcher } from "@/features/editor/components/editor-ai-chat-thread-switcher";
 import { useAiChatAutoDocumentAction } from "@/features/editor/hooks/use-ai-chat-auto-document-action";
+import { useAiChatThreads } from "@/features/editor/hooks/use-ai-chat-threads";
 import { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-actions";
 import {
   AI_CHAT_MODEL_STORAGE_KEY,
@@ -46,11 +47,6 @@ type AiChatPanelProps = {
   onClose: () => void;
   onResizeStart: (event: PointerEvent<HTMLDivElement>) => void;
   panelWidth: number;
-};
-
-type AiModelOption = {
-  key: AiChatModelKey;
-  name: string;
 };
 
 type EditingQuestion = {
@@ -71,7 +67,6 @@ export function EditorAiChatPanel({
   const { t } = useLocale();
   const [input, setInput] = useState("");
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredAiChatModelKey());
-  const [models, setModels] = useState<AiModelOption[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
   const transport = useMemo(
     () =>
@@ -93,43 +88,29 @@ export function EditorAiChatPanel({
     transport,
   });
   const busy = status === "submitted" || status === "streaming";
-  const activeModelName =
-    models.find((model) => model.key === modelKey)?.name ??
-    (modelKey === "primary" ? "Primary model" : "Secondary model");
   const { setPendingAction } = useAiChatAutoDocumentAction({
     busy,
     editor,
     error,
     messages,
   });
-
-  useEffect(() => {
-    if (!currentUser?.id) {
-      return;
-    }
-
-    let ignore = false;
-
-    fetch(`/api/ai/chat/${documentId}?userId=${encodeURIComponent(currentUser.id)}`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { models?: AiModelOption[]; thread?: { messages?: AiChatMessage[] } } | null) => {
-        if (ignore || !payload) {
-          return;
-        }
-
-        setModels(payload.models ?? []);
-        setMessages(payload.thread?.messages ?? []);
-      })
-      .catch(() => {
-        if (!ignore) {
-          setModels([]);
-        }
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [currentUser?.id, documentId, setMessages]);
+  const {
+    activeThreadId,
+    createThreadForSend,
+    handleNewThread,
+    handleSelectThread,
+    models,
+    threads,
+  } = useAiChatThreads({
+    busy,
+    currentUserId: currentUser?.id,
+    documentId,
+    setMessages,
+    stop,
+  });
+  const activeModelName =
+    models.find((model) => model.key === modelKey)?.name ??
+    (modelKey === "primary" ? "Primary model" : "Secondary model");
 
   function handleSubmit({ text }: { text: string }) {
     const trimmed = text.trim();
@@ -139,6 +120,7 @@ export function EditorAiChatPanel({
     }
 
     const documentAction = inferAiChatDocumentAction(trimmed);
+    const threadId = createThreadForSend();
 
     setPendingAction(documentAction);
     setInput("");
@@ -151,6 +133,7 @@ export function EditorAiChatPanel({
           currentUser.id,
           documentTitle,
           documentAction,
+          threadId,
         ),
       },
     );
@@ -178,6 +161,7 @@ export function EditorAiChatPanel({
     }
 
     const documentAction = inferAiChatDocumentAction(trimmed);
+    const threadId = createThreadForSend();
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
 
@@ -195,6 +179,7 @@ export function EditorAiChatPanel({
           currentUser.id,
           documentTitle,
           documentAction,
+          threadId,
         ),
       },
     );
@@ -228,6 +213,18 @@ export function EditorAiChatPanel({
         onModelChange={handleModelChange}
         onResizeStart={onResizeStart}
       />
+      <EditorAiChatThreadSwitcher
+        activeThreadId={activeThreadId}
+        onNewThread={() => {
+          setEditingQuestion(null);
+          handleNewThread();
+        }}
+        onSelectThread={(threadId) => {
+          setEditingQuestion(null);
+          handleSelectThread(threadId);
+        }}
+        threads={threads}
+      />
       <Conversation>
         <ConversationContent>
           {messages.length === 0 ? (
@@ -254,6 +251,8 @@ export function EditorAiChatPanel({
                         modelKey,
                         currentUser?.id ?? "",
                         documentTitle,
+                        null,
+                        activeThreadId,
                       ),
                       messageId: message.id,
                     })

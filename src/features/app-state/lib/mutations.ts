@@ -1,5 +1,6 @@
 export {
   getAiChatThreadForUser,
+  getAiChatThreadsForUser,
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations/ai-chat";
 export {

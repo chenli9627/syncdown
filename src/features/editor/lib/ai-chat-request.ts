@@ -23,6 +23,7 @@ export function getAiChatRequestBody(
   userId: string,
   documentTitle: string,
   documentAction: AiChatDocumentAction | null = null,
+  threadId: string | null = null,
 ) {
   return {
     documentAction,
@@ -30,6 +31,7 @@ export function getAiChatRequestBody(
     documentTitle,
     modelKey,
     selection: getCurrentSelection(editor),
+    threadId,
     userId,
   };
 }

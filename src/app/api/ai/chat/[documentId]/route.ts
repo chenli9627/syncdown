@@ -12,6 +12,7 @@ import type {
 } from "@/features/app-state/types";
 import {
   getAiChatThreadForUser,
+  getAiChatThreadsForUser,
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations";
 import {
@@ -34,31 +35,40 @@ type ChatBody = {
   messages?: AiChatMessage[];
   modelKey?: AiChatModelKey;
   selection?: AiChatSelection | null;
+  threadId?: string | null;
   userId?: string;
 };
 
 export async function GET(request: Request, context: RouteContext) {
   const { documentId } = await context.params;
-  const userId = new URL(request.url).searchParams.get("userId");
+  const url = new URL(request.url);
+  const userId = url.searchParams.get("userId");
+  const threadId = url.searchParams.get("threadId");
 
   if (!userId) {
     return NextResponse.json({ error: "You must be logged in" }, { status: 401 });
   }
 
   const state = await readStoredState();
-  const result = getAiChatThreadForUser(state, userId, documentId);
+  const result = getAiChatThreadsForUser(state, userId, documentId);
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 403 });
   }
 
+  const activeThread = threadId
+    ? result.threads.find((thread) => thread.id === threadId) ?? null
+    : result.threads[0] ?? null;
+
   return NextResponse.json({
     models: getConfiguredAiChatModels().map(({ key, name }) => ({ key, name })),
-    thread: result.thread ?? {
+    thread: activeThread ?? {
       documentId,
+      id: null,
       messages: [],
       userId,
     },
+    threads: result.threads,
   });
 }
 
@@ -82,17 +92,24 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const state = await readStoredState();
-  const threadResult = getAiChatThreadForUser(state, body.userId, documentId);
+  const threadResult = getAiChatThreadForUser(
+    state,
+    body.userId,
+    documentId,
+    body.threadId,
+  );
 
   if (!threadResult.ok) {
     return NextResponse.json({ error: threadResult.error }, { status: 403 });
   }
 
   const requestMessages = body.messages;
+  const threadId = body.threadId?.trim() || null;
   const incomingMessage = withChatMetadata(requestMessages[requestMessages.length - 1], {
     modelKey,
     modelName: modelConfig.name,
     selection: body.selection ?? null,
+    threadId: threadId ?? undefined,
   });
   const messages = [...requestMessages.slice(0, -1), incomingMessage];
   const saveUserMessageResult = saveAiChatThreadMessages(
@@ -100,6 +117,7 @@ export async function POST(request: Request, context: RouteContext) {
     body.userId,
     documentId,
     messages,
+    { threadId },
   );
 
   if (!saveUserMessageResult.ok) {
@@ -107,6 +125,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   await writeStoredState(saveUserMessageResult.state);
+  const activeThreadId = saveUserMessageResult.thread.id;
 
   const result = streamText({
     messages: await convertToModelMessages(messages),
@@ -132,6 +151,7 @@ export async function POST(request: Request, context: RouteContext) {
             modelKey,
             modelName: modelConfig.name,
             selection: body.selection ?? null,
+            threadId: activeThreadId,
           }
         : undefined,
     onFinish: async ({ messages: finishedMessages }) => {
@@ -141,6 +161,7 @@ export async function POST(request: Request, context: RouteContext) {
         body.userId ?? "",
         documentId,
         finishedMessages,
+        { threadId: activeThreadId },
       );
 
       if (saveResult.ok) {
