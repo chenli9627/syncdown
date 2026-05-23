@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import {
   type PointerEvent,
+  useCallback,
   useMemo,
   useState,
 } from "react";
@@ -35,6 +36,7 @@ import {
   getAiChatRequestBody,
   readStoredAiChatModelKey,
 } from "@/features/editor/lib/ai-chat-request";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
 type AiChatPanelProps = {
@@ -65,6 +67,7 @@ export function EditorAiChatPanel({
 }: AiChatPanelProps) {
   const { t } = useLocale();
   const [input, setInput] = useState("");
+  const [appliedNotice, setAppliedNotice] = useState<string | null>(null);
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredAiChatModelKey());
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
   const transport = useMemo(
@@ -87,11 +90,18 @@ export function EditorAiChatPanel({
     transport,
   });
   const busy = status === "submitted" || status === "streaming";
+  const handleDocumentActionApplied = useCallback(
+    (action: AiChatDocumentAction) => {
+      setAppliedNotice(getAppliedNotice(action, t));
+    },
+    [t],
+  );
   const { setPendingAction } = useAiChatAutoDocumentAction({
     busy,
     editor,
     error,
     messages,
+    onApplied: handleDocumentActionApplied,
   });
   const {
     activeThreadId,
@@ -121,6 +131,7 @@ export function EditorAiChatPanel({
     const threadId = createThreadForSend();
 
     setPendingAction(documentAction, messages.length);
+    setAppliedNotice(null);
     setInput("");
     void sendMessage(
       { text: trimmed },
@@ -166,6 +177,7 @@ export function EditorAiChatPanel({
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
 
     setPendingAction(documentAction, nextMessages.length);
+    setAppliedNotice(null);
     flushSync(() => {
       setMessages(nextMessages);
       setEditingQuestion(null);
@@ -272,6 +284,11 @@ export function EditorAiChatPanel({
           {error ? (
             <p className="mt-3 text-xs text-[#dd5b00]">{t("aiRequestFailed")}</p>
           ) : null}
+          {appliedNotice ? (
+            <p className="mt-3 border border-[var(--color-border)] bg-[var(--color-muted)] px-2 py-1.5 text-xs text-[var(--color-muted-foreground)]">
+              {appliedNotice}
+            </p>
+          ) : null}
         </ConversationContent>
       </Conversation>
       <PromptInput onSubmit={handleSubmit} text={input}>
@@ -291,4 +308,20 @@ export function EditorAiChatPanel({
 
 function hasEditorSelection(editor: Editor | null) {
   return Boolean(editor && !editor.state.selection.empty);
+}
+
+function getAppliedNotice(action: AiChatDocumentAction, t: (key: MessageKey) => string) {
+  if (action === "insert_end") {
+    return t("aiAppliedInsertEnd");
+  }
+
+  if (action === "insert_cursor") {
+    return t("aiAppliedInsertCursor");
+  }
+
+  if (action === "replace_selection") {
+    return t("aiAppliedReplaceSelection");
+  }
+
+  return t("aiAppliedReplaceDocument");
 }

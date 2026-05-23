@@ -24,6 +24,7 @@ type UseAiChatAutoDocumentActionArgs = {
   editor: Editor | null;
   error: Error | undefined;
   messages: AiChatMessage[];
+  onApplied?: (action: AiChatDocumentAction) => void;
 };
 
 export function useAiChatAutoDocumentAction({
@@ -31,6 +32,7 @@ export function useAiChatAutoDocumentAction({
   editor,
   error,
   messages,
+  onApplied,
 }: UseAiChatAutoDocumentActionArgs) {
   const pendingActionRef = useRef<PendingDocumentAction | null>(null);
 
@@ -65,23 +67,27 @@ export function useAiChatAutoDocumentAction({
 
     if (documentAction.action === "insert_end") {
       appendAiResponseAsDocumentEndBlocks(editor, responseText);
+      onApplied?.(documentAction.action);
       return;
     }
 
     if (documentAction.action === "insert_cursor") {
       insertAiResponseAtCursor(editor, responseText);
+      onApplied?.(documentAction.action);
       return;
     }
 
     if (documentAction.action === "replace_document") {
       replaceDocumentWithAiResponse(editor, responseText);
+      onApplied?.(documentAction.action);
       return;
     }
 
     if (documentAction.action === "replace_selection") {
       replaceSelectionWithAiResponse(editor, lastMessage, responseText);
+      onApplied?.(documentAction.action);
     }
-  }, [busy, editor, messages]);
+  }, [busy, editor, messages, onApplied]);
 
   useEffect(() => {
     if (error) {
