@@ -5,7 +5,14 @@ import type {
 } from "@/features/app-state/types";
 import { toAiInlineInsertHtml, toAiInsertHtml } from "@/features/editor/lib/ai";
 
-export function inferAiChatDocumentAction(prompt: string): AiChatDocumentAction | null {
+type InferAiChatDocumentActionOptions = {
+  hasSelection?: boolean;
+};
+
+export function inferAiChatDocumentAction(
+  prompt: string,
+  options: InferAiChatDocumentActionOptions = {},
+): AiChatDocumentAction | null {
   const compactPrompt = prompt.toLowerCase().replace(/\s+/g, "");
   const lowerPrompt = prompt.toLowerCase();
 
@@ -17,8 +24,17 @@ export function inferAiChatDocumentAction(prompt: string): AiChatDocumentAction 
     return "insert_cursor";
   }
 
-  if (isReplaceSelectionPrompt(compactPrompt, lowerPrompt)) {
+  if (
+    isReplaceSelectionPrompt(compactPrompt, lowerPrompt) ||
+    (options.hasSelection &&
+      (isDocumentEditPrompt(compactPrompt, lowerPrompt) ||
+        isStandaloneEditPrompt(compactPrompt, lowerPrompt)))
+  ) {
     return "replace_selection";
+  }
+
+  if (isDocumentEditPrompt(compactPrompt, lowerPrompt)) {
+    return "replace_document";
   }
 
   return null;
@@ -70,6 +86,34 @@ function isReplaceSelectionPrompt(compactPrompt: string, lowerPrompt: string) {
       lowerPrompt,
     ) ||
     /\b(?:selection|selected text|selected content|highlighted text)\b[\s\S]{0,120}\b(?:replace|rewrite|revise|edit|improve|translate|summarize|expand|shorten)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isDocumentEditPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:修改|改写|改成|变成|重写|润色|优化|翻译|整理|重排|格式化|清理|修复|纠错|删除|移除|精简|缩写|扩写|转换|统一|替换).{0,24}(?:文档|正文|内容|全文|文章|页面|这篇|当前文档)/.test(
+      compactPrompt,
+    ) ||
+    /(?:文档|正文|内容|全文|文章|页面|这篇|当前文档).{0,24}(?:修改|改写|改成|变成|重写|润色|优化|翻译|整理|重排|格式化|清理|修复|纠错|删除|移除|精简|缩写|扩写|转换|统一|替换)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:edit|change|rewrite|revise|improve|translate|format|reformat|clean|fix|delete|remove|shorten|expand|convert|turn|update|replace)\b[\s\S]{0,120}\b(?:document|doc|page|article|content|text)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:document|doc|page|article|content|text)\b[\s\S]{0,120}\b(?:edit|change|rewrite|revise|improve|translate|format|reformat|clean|fix|delete|remove|shorten|expand|convert|turn|update|replace)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isStandaloneEditPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:修改|改写|改得|改成|变成|重写|润色|优化|翻译|整理|重排|格式化|清理|修复|纠错|删除|移除|精简|缩写|扩写|转换|统一|替换)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:edit|change|rewrite|revise|improve|translate|format|reformat|clean|fix|delete|remove|shorten|expand|convert|turn|update|replace)\b/.test(
       lowerPrompt,
     )
   );
@@ -167,6 +211,15 @@ export function appendAiResponseAsDocumentEndBlocks(editor: Editor | null, text:
     .focus()
     .insertContentAt(editor.state.doc.content.size, toAiInsertHtml(text))
     .run();
+}
+
+export function replaceDocumentWithAiResponse(editor: Editor | null, text: string) {
+  if (!editor) {
+    return;
+  }
+
+  editor.commands.setContent(toAiInsertHtml(text));
+  editor.commands.focus("end");
 }
 
 function getAiInsertContentForRange(

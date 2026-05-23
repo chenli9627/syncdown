@@ -32,7 +32,25 @@ test("infers replace-selection action from selected text edit requests", () => {
   assert.equal(inferAiChatDocumentAction("Translate the selected text to English"), "replace_selection");
 });
 
+test("infers replace-selection action from broad edit prompts when text is selected", () => {
+  assert.equal(
+    inferAiChatDocumentAction("改得更正式一点", { hasSelection: true }),
+    "replace_selection",
+  );
+  assert.equal(
+    inferAiChatDocumentAction("Translate this to English", { hasSelection: true }),
+    "replace_selection",
+  );
+});
+
+test("infers replace-document action from whole document edit requests", () => {
+  assert.equal(inferAiChatDocumentAction("把当前文档整理成会议纪要"), "replace_document");
+  assert.equal(inferAiChatDocumentAction("删除这篇文档里重复的内容"), "replace_document");
+  assert.equal(inferAiChatDocumentAction("Rewrite this document in a more formal tone"), "replace_document");
+});
+
 test("does not infer document actions for ordinary chat prompts", () => {
   assert.equal(inferAiChatDocumentAction("解释一下这篇文档"), null);
   assert.equal(inferAiChatDocumentAction("What are the differences between these models?"), null);
+  assert.equal(inferAiChatDocumentAction("把标题改成项目计划"), null);
 });

@@ -265,6 +265,10 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
     return "The requested automatic action is: insert your answer at the current cursor position. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
   }
 
+  if (documentAction === "replace_document") {
+    return "The requested automatic action is: replace the current document body with your answer. Return the complete new document body in Markdown. Preserve useful existing content unless the user explicitly asks to remove it. Do not explain the change, and do not say you replaced the document.";
+  }
+
   if (documentAction === "replace_selection") {
     return "The requested automatic action is: replace the selected text with your answer. Return only the exact replacement content. Do not quote the original text, do not explain the change, and do not say you replaced it.";
   }

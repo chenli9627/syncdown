@@ -115,7 +115,9 @@ export function EditorAiChatPanel({
       return;
     }
 
-    const documentAction = inferAiChatDocumentAction(trimmed);
+    const documentAction = inferAiChatDocumentAction(trimmed, {
+      hasSelection: hasEditorSelection(editor),
+    });
     const threadId = createThreadForSend();
 
     setPendingAction(documentAction, messages.length);
@@ -156,7 +158,9 @@ export function EditorAiChatPanel({
       return;
     }
 
-    const documentAction = inferAiChatDocumentAction(trimmed);
+    const documentAction = inferAiChatDocumentAction(trimmed, {
+      hasSelection: hasEditorSelection(editor),
+    });
     const threadId = createThreadForSend();
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
@@ -283,4 +287,8 @@ export function EditorAiChatPanel({
       </PromptInput>
     </aside>
   );
+}
+
+function hasEditorSelection(editor: Editor | null) {
+  return Boolean(editor && !editor.state.selection.empty);
 }
