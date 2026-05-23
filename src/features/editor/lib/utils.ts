@@ -8,7 +8,7 @@ import type {
 } from "@/features/editor/lib/types";
 
 export const BLOCK_ELEMENT_SELECTOR =
-  'p, h1, h2, h3, h4, h5, blockquote, pre, ul, ol, hr, img, table, div[data-type="table-of-contents"]';
+  'p, h1, h2, h3, h4, h5, h6, blockquote, pre, ul, ol, hr, img, table, div[data-type="table-of-contents"]';
 
 export function getBlockTransformActiveId(editor: Editor, pos: number) {
   const node = editor.state.doc.nodeAt(pos);

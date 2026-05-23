@@ -208,7 +208,7 @@ export function useSyntextEditor({
       StarterKit.configure({
         codeBlock: false,
         heading: {
-          levels: [1, 2, 3, 4, 5],
+          levels: [1, 2, 3, 4, 5, 6],
         },
         link: false,
         undoRedo: collaborationDocument ? false : undefined,

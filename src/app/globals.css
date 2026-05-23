@@ -207,6 +207,11 @@ button:disabled {
   font-weight: 600;
 }
 
+.syntext-editor h6 {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 .syntext-editor ul,
 .syntext-editor ol {
   list-style-position: outside;

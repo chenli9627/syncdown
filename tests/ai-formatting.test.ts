@@ -22,6 +22,12 @@ test("toAiInsertHtml converts level five markdown headings", () => {
   assert.match(html, /<h5>Details<\/h5>/);
 });
 
+test("toAiInsertHtml converts level six markdown headings", () => {
+  const html = toAiInsertHtml("###### Details");
+
+  assert.match(html, /<h6>Details<\/h6>/);
+});
+
 test("toAiInsertHtml preserves raw html responses", () => {
   const html = toAiInsertHtml("<blockquote><p>Explained</p></blockquote>");
 
