@@ -65,6 +65,14 @@ test("infers block-edit action from targeted block edit requests", () => {
     inferAiChatDocumentAction("把包含“当前方案：Beta。”的段落改成“当前方案：Beta 已升级。”"),
     "edit_blocks",
   );
+  assert.equal(
+    inferAiChatDocumentAction("把列表项目里的 Gamma 改成 Gamma-1，保留列表格式。"),
+    "edit_blocks",
+  );
+  assert.equal(
+    inferAiChatDocumentAction("把粗体里的 Alpha 改成 Alpha-1，保留粗体格式。"),
+    "edit_blocks",
+  );
   assert.equal(inferAiChatDocumentAction("Delete the paragraph containing Gamma"), "edit_blocks");
 });
 

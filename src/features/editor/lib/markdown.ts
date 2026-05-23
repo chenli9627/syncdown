@@ -103,7 +103,7 @@ function htmlBlockToMarkdown(node: Element, headings: MarkdownHeading[] = []): s
     return [Array.from(node.childNodes).map(htmlInlineToMarkdown).join("")];
   }
 
-  if (tag === "H1" || tag === "H2" || tag === "H3" || tag === "H4") {
+  if (tag === "H1" || tag === "H2" || tag === "H3" || tag === "H4" || tag === "H5" || tag === "H6") {
     const level = Number.parseInt(tag[1] ?? "1", 10);
     return [`${"#".repeat(level)} ${Array.from(node.childNodes).map(htmlInlineToMarkdown).join("")}`];
   }

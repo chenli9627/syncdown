@@ -20,6 +20,7 @@ export type AiChatSelection = {
 export type AiChatDocumentBlock = {
   id: string;
   level?: number;
+  markdown?: string;
   text: string;
   type: string;
 };

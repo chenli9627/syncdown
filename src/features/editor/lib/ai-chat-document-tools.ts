@@ -1,8 +1,12 @@
 import type { Editor } from "@tiptap/react";
+import { DOMSerializer } from "@tiptap/pm/model";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import type { AiChatDocumentBlock } from "@/features/app-state/types";
 import { toAiInsertHtml } from "@/features/editor/lib/ai";
+import { editorHtmlToMarkdown } from "@/features/editor/lib/markdown";
 
 type LocalAiDocumentBlock = AiChatDocumentBlock & {
+  node: ProseMirrorNode;
   nodeSize: number;
   pos: number;
 };
@@ -10,7 +14,14 @@ type LocalAiDocumentBlock = AiChatDocumentBlock & {
 type AiDocumentEditOperation = {
   blockId: string;
   content?: string;
-  type: "delete_block" | "insert_after_block" | "insert_before_block" | "replace_block";
+  replacementText?: string;
+  targetText?: string;
+  type:
+    | "delete_block"
+    | "insert_after_block"
+    | "insert_before_block"
+    | "replace_block"
+    | "replace_text_in_block";
 };
 
 type AiDocumentEditPayload = {
@@ -19,9 +30,10 @@ type AiDocumentEditPayload = {
 };
 
 export function getAiDocumentBlocks(editor: Editor | null): AiChatDocumentBlock[] {
-  return getLocalAiDocumentBlocks(editor).map(({ id, level, text, type }) => ({
+  return getLocalAiDocumentBlocks(editor).map(({ id, level, markdown, text, type }) => ({
     id,
     level,
+    markdown,
     text,
     type,
   }));
@@ -47,6 +59,17 @@ export function applyAiDocumentEditToolResponse(editor: Editor | null, responseT
   operations.forEach((operation) => {
     if (operation.type === "delete_block") {
       editor.chain().focus().deleteRange(operation.range).run();
+      return;
+    }
+
+    if (operation.type === "replace_text_in_block") {
+      const transaction = editor.state.tr.insertText(
+        operation.content,
+        operation.range.from,
+        operation.range.to,
+      );
+      editor.view.dispatch(transaction);
+      editor.commands.focus();
       return;
     }
 
@@ -79,12 +102,17 @@ function getLocalAiDocumentBlocks(editor: Editor | null): LocalAiDocumentBlock[]
   const blocks: LocalAiDocumentBlock[] = [];
 
   editor.state.doc.forEach((node, offset, index) => {
+    const text = getNodeText(node);
+    const markdown = getNodeMarkdown(editor, node).trim();
+
     blocks.push({
       id: `block_${index + 1}`,
       level: typeof node.attrs.level === "number" ? node.attrs.level : undefined,
+      markdown: markdown && markdown !== text ? markdown : undefined,
+      node,
       nodeSize: node.nodeSize,
       pos: offset,
-      text: getNodeText(node),
+      text,
       type: node.type.name,
     });
   });
@@ -109,6 +137,28 @@ function toExecutableOperation(
 
   if (!block) {
     return null;
+  }
+
+  if (operation.type === "replace_text_in_block") {
+    const targetText = operation.targetText;
+
+    if (!targetText) {
+      return null;
+    }
+
+    const range = findTextRangeInBlock(block, targetText);
+
+    if (!range) {
+      return null;
+    }
+
+    return {
+      content: operation.replacementText ?? "",
+      index,
+      position: range.from,
+      range,
+      type: operation.type,
+    };
   }
 
   const range = { from: block.pos, to: block.pos + block.nodeSize };
@@ -165,4 +215,64 @@ function getNodeText(node: { textContent: string; type: { name: string } }) {
   }
 
   return "";
+}
+
+function getNodeMarkdown(editor: Editor, node: ProseMirrorNode) {
+  if (typeof document === "undefined" || typeof DOMParser === "undefined") {
+    return "";
+  }
+
+  const container = document.createElement("div");
+  const serializer = DOMSerializer.fromSchema(editor.schema);
+  container.append(serializer.serializeNode(node, { document }));
+
+  return editorHtmlToMarkdown(container.innerHTML);
+}
+
+function findTextRangeInBlock(block: LocalAiDocumentBlock, targetText: string) {
+  const segments: Array<{
+    from: number;
+    textEnd: number;
+    textStart: number;
+    to: number;
+  }> = [];
+  let blockText = "";
+
+  block.node.descendants((node, pos) => {
+    if (!node.isText || !node.text) {
+      return;
+    }
+
+    const textStart = blockText.length;
+    blockText += node.text;
+    segments.push({
+      from: block.pos + 1 + pos,
+      textEnd: blockText.length,
+      textStart,
+      to: block.pos + 1 + pos + node.text.length,
+    });
+  });
+
+  const targetStart = blockText.indexOf(targetText);
+
+  if (targetStart < 0) {
+    return null;
+  }
+
+  const targetEnd = targetStart + targetText.length;
+  const startSegment = segments.find(
+    (segment) => segment.textStart <= targetStart && targetStart < segment.textEnd,
+  );
+  const endSegment = segments.find(
+    (segment) => segment.textStart < targetEnd && targetEnd <= segment.textEnd,
+  );
+
+  if (!startSegment || !endSegment) {
+    return null;
+  }
+
+  return {
+    from: startSegment.from + targetStart - startSegment.textStart,
+    to: endSegment.from + targetEnd - endSegment.textStart,
+  };
 }

@@ -132,10 +132,10 @@ function isSpecificPlacementPrompt(compactPrompt: string, lowerPrompt: string) {
 
 function isTargetedBlockEditPrompt(compactPrompt: string, lowerPrompt: string) {
   return (
-    /(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新).{0,48}(?:包含|含有|这段|这一段|该段|段落|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要)/.test(
+    /(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新).{0,48}(?:包含|含有|这段|这一段|该段|段落|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|代码块|引用|五级标题|六级标题)/.test(
       compactPrompt,
     ) ||
-    /(?:包含|含有|这段|这一段|该段|段落|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要).{0,48}(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新)/.test(
+    /(?:包含|含有|这段|这一段|该段|段落|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|代码块|引用|五级标题|六级标题).{0,48}(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新)/.test(
       compactPrompt,
     ) ||
     /\b(?:delete|remove|replace|change|update|edit|rewrite)\b[\s\S]{0,160}\b(?:containing|contains|paragraph|block|heading|section|part|background|plan|risk|conclusion|summary)\b/.test(

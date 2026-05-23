@@ -48,10 +48,12 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
     return [
       "The requested automatic action is: edit the document with block-level operations.",
       "Return only valid JSON, with no Markdown fences and no prose.",
-      "Schema: {\"summary\":\"short user-facing summary\",\"operations\":[{\"type\":\"insert_after_block|insert_before_block|replace_block|delete_block\",\"blockId\":\"block_1\",\"content\":\"Markdown content, omitted for delete_block\"}]}",
+      "Schema: {\"summary\":\"short user-facing summary\",\"operations\":[{\"type\":\"insert_after_block|insert_before_block|replace_block|delete_block|replace_text_in_block\",\"blockId\":\"block_1\",\"content\":\"Markdown content for insert/replace block\",\"targetText\":\"exact text to replace for replace_text_in_block\",\"replacementText\":\"replacement text for replace_text_in_block\"}]}",
       "Use only blockId values from Current document blocks.",
       "For location requests, choose the closest matching block and use insert_after_block or insert_before_block.",
-      "For content changes, prefer replace_block or delete_block over replacing the whole document.",
+      "For small changes inside an existing formatted block, prefer replace_text_in_block so the original heading, list, link, and inline formatting are preserved.",
+      "For whole-block content changes, prefer replace_block or delete_block over replacing the whole document.",
+      "When replacing a formatted block, preserve the original block's Markdown structure unless the user explicitly asks to remove or change that formatting.",
     ].join(" ");
   }
 
@@ -83,7 +85,10 @@ function formatDocumentBlocks(blocks: AiChatDocumentBlock[]) {
     .map((block) => {
       const level = block.level ? ` level=${block.level}` : "";
       const text = block.text.trim() || "(empty)";
-      return `- ${block.id}: type=${block.type}${level} text=${JSON.stringify(text)}`;
+      const markdown = block.markdown?.trim()
+        ? ` markdown=${JSON.stringify(block.markdown.trim())}`
+        : "";
+      return `- ${block.id}: type=${block.type}${level} text=${JSON.stringify(text)}${markdown}`;
     })
     .join("\n");
 }

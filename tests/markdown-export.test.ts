@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  editorHtmlToMarkdown,
   editorHtmlToMarkdownBundle,
   isLocalMediaSource,
 } from "../src/features/editor/lib/markdown";
@@ -117,6 +118,15 @@ function parseHtmlBody(html: string) {
     return body;
   }
 
+  const headingMatch = trimmed.match(/^<(h[1-6])>(.*?)<\/\1>$/i);
+
+  if (headingMatch) {
+    body.replaceChildren(new TestElement(headingMatch[1] ?? "h1", {}, [
+      new TestTextNode(headingMatch[2] ?? ""),
+    ]));
+    return body;
+  }
+
   throw new Error(`Test DOMParser does not support HTML: ${html}`);
 }
 
@@ -156,6 +166,25 @@ test("treats both relative and absolute api media URLs as local media", () => {
     isLocalMediaSource("http://127.0.0.1:3000/api/media/example.png"),
     true,
   );
+});
+
+test("exports level five and six headings to markdown", () => {
+  const originalDOMParser = globalThis.DOMParser;
+  const originalHTMLElement = globalThis.HTMLElement;
+  const originalNode = globalThis.Node;
+
+  globalThis.DOMParser = TestDOMParser as typeof DOMParser;
+  globalThis.HTMLElement = TestElement as unknown as typeof HTMLElement;
+  globalThis.Node = TestNode as unknown as typeof Node;
+
+  try {
+    assert.equal(editorHtmlToMarkdown("<h5>Details</h5>"), "##### Details");
+    assert.equal(editorHtmlToMarkdown("<h6>More</h6>"), "###### More");
+  } finally {
+    globalThis.DOMParser = originalDOMParser;
+    globalThis.HTMLElement = originalHTMLElement;
+    globalThis.Node = originalNode;
+  }
 });
 
 test("exports absolute api media URLs into markdown zip assets", async () => {
