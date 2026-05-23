@@ -2,13 +2,11 @@
 
 import type { Editor } from "@tiptap/react";
 import { useChat } from "@ai-sdk/react";
-import { Bot, PanelRightClose } from "lucide-react";
 import { DefaultChatTransport } from "ai";
 import {
   type PointerEvent,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { flushSync } from "react-dom";
@@ -26,11 +24,17 @@ import { useLocale } from "@/components/providers/locale-provider";
 import type {
   AiChatMessage,
   AiChatModelKey,
-  AiChatSelection,
   User,
 } from "@/features/app-state/types";
 import { ChatMessage } from "@/features/editor/components/editor-ai-chat-message";
-import { EditorAiModelSelect } from "@/features/editor/components/editor-ai-model-select";
+import { EditorAiChatPanelHeader } from "@/features/editor/components/editor-ai-chat-panel-header";
+import { useAiChatAutoDocumentAction } from "@/features/editor/hooks/use-ai-chat-auto-document-action";
+import { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-actions";
+import {
+  AI_CHAT_MODEL_STORAGE_KEY,
+  getAiChatRequestBody,
+  readStoredAiChatModelKey,
+} from "@/features/editor/lib/ai-chat-request";
 import { cn } from "@/lib/utils";
 
 type AiChatPanelProps = {
@@ -54,8 +58,6 @@ type EditingQuestion = {
   text: string;
 };
 
-const AI_CHAT_MODEL_STORAGE_KEY = "syncdown.aiChatModelKey";
-
 export function EditorAiChatPanel({
   currentUser,
   documentId,
@@ -68,10 +70,9 @@ export function EditorAiChatPanel({
 }: AiChatPanelProps) {
   const { t } = useLocale();
   const [input, setInput] = useState("");
-  const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredModelKey());
+  const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredAiChatModelKey());
   const [models, setModels] = useState<AiModelOption[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const transport = useMemo(
     () =>
       new DefaultChatTransport<AiChatMessage>({
@@ -95,6 +96,12 @@ export function EditorAiChatPanel({
   const activeModelName =
     models.find((model) => model.key === modelKey)?.name ??
     (modelKey === "primary" ? "Primary model" : "Secondary model");
+  const { setPendingAction } = useAiChatAutoDocumentAction({
+    busy,
+    editor,
+    error,
+    messages,
+  });
 
   useEffect(() => {
     if (!currentUser?.id) {
@@ -131,10 +138,21 @@ export function EditorAiChatPanel({
       return;
     }
 
+    const documentAction = inferAiChatDocumentAction(trimmed);
+
+    setPendingAction(documentAction);
     setInput("");
     void sendMessage(
       { text: trimmed },
-      { body: getChatRequestBody(editor, modelKey, currentUser.id, documentTitle) },
+      {
+        body: getAiChatRequestBody(
+          editor,
+          modelKey,
+          currentUser.id,
+          documentTitle,
+          documentAction,
+        ),
+      },
     );
   }
 
@@ -159,16 +177,26 @@ export function EditorAiChatPanel({
       return;
     }
 
+    const documentAction = inferAiChatDocumentAction(trimmed);
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
 
+    setPendingAction(documentAction);
     flushSync(() => {
       setMessages(nextMessages);
       setEditingQuestion(null);
     });
     void sendMessage(
       { text: trimmed },
-      { body: getChatRequestBody(editor, modelKey, currentUser.id, documentTitle) },
+      {
+        body: getAiChatRequestBody(
+          editor,
+          modelKey,
+          currentUser.id,
+          documentTitle,
+          documentAction,
+        ),
+      },
     );
   }
 
@@ -191,43 +219,19 @@ export function EditorAiChatPanel({
           : { overscrollBehavior: "contain", width: panelWidth }
       }
     >
-      {!isNarrow ? (
-        <div
-          className="absolute bottom-0 left-0 top-0 w-1 cursor-col-resize hover:bg-[var(--color-accent)]"
-          onPointerDown={onResizeStart}
-        />
-      ) : null}
-      <div className="flex h-13 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-semibold text-[var(--color-foreground)]">
-            <Bot aria-hidden="true" size={16} />
-            {t("aiChatTitle")}
-          </p>
-          <p className="truncate text-[11px] text-[var(--color-muted-foreground)]">
-            {t("aiModel")}: {activeModelName}
-          </p>
-        </div>
-        <button
-          className="inline-flex h-8 w-8 items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
-          onClick={onClose}
-          title={t("closeAiChat")}
-          type="button"
-        >
-          <PanelRightClose aria-hidden="true" size={16} />
-        </button>
-      </div>
-      <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-2">
-        <label className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
-          {t("aiModel")}
-        </label>
-        <EditorAiModelSelect models={models} onChange={handleModelChange} value={modelKey} />
-      </div>
+      <EditorAiChatPanelHeader
+        activeModelName={activeModelName}
+        isNarrow={isNarrow}
+        modelKey={modelKey}
+        models={models}
+        onClose={onClose}
+        onModelChange={handleModelChange}
+        onResizeStart={onResizeStart}
+      />
       <Conversation>
         <ConversationContent>
           {messages.length === 0 ? (
-            <ConversationEmptyState>
-              {t("aiChatEmpty")}
-            </ConversationEmptyState>
+            <ConversationEmptyState>{t("aiChatEmpty")}</ConversationEmptyState>
           ) : (
             <div className="flex flex-col gap-4">
               {messages.map((message) => (
@@ -245,7 +249,7 @@ export function EditorAiChatPanel({
                   onEditingTextChange={handleEditingQuestionTextChange}
                   onRegenerate={() =>
                     void regenerate({
-                      body: getChatRequestBody(
+                      body: getAiChatRequestBody(
                         editor,
                         modelKey,
                         currentUser?.id ?? "",
@@ -279,7 +283,6 @@ export function EditorAiChatPanel({
             disabled={busy}
             onChange={(event) => setInput(event.target.value)}
             placeholder={t("aiChatPlaceholder")}
-            ref={inputRef}
             value={input}
           />
           <PromptInputSubmit disabled={busy || !input.trim()} />
@@ -287,40 +290,4 @@ export function EditorAiChatPanel({
       </PromptInput>
     </aside>
   );
-}
-
-function readStoredModelKey(): AiChatModelKey {
-  if (typeof window === "undefined") {
-    return "primary";
-  }
-
-  const storedModel = window.localStorage.getItem(AI_CHAT_MODEL_STORAGE_KEY);
-
-  return storedModel === "secondary" ? "secondary" : "primary";
-}
-
-function getCurrentSelection(editor: Editor | null): AiChatSelection | null {
-  if (!editor || editor.state.selection.empty) {
-    return null;
-  }
-
-  const { from, to } = editor.state.selection;
-  const text = editor.state.doc.textBetween(from, to, "\n").trim();
-
-  return text ? { from, text, to } : null;
-}
-
-function getChatRequestBody(
-  editor: Editor | null,
-  modelKey: AiChatModelKey,
-  userId: string,
-  documentTitle: string,
-) {
-  return {
-    documentText: editor?.getText() ?? "",
-    documentTitle,
-    modelKey,
-    selection: getCurrentSelection(editor),
-    userId,
-  };
 }

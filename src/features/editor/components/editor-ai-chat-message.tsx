@@ -22,7 +22,12 @@ import {
 } from "@/components/ai-elements/message";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { AiChatMessage } from "@/features/app-state/types";
-import { toAiInlineInsertHtml, toAiInsertHtml } from "@/features/editor/lib/ai";
+import {
+  getAiChatMessageText,
+  insertAiResponseAtCursor,
+  insertAiResponseAtEnd,
+  replaceSelectionWithAiResponse,
+} from "@/features/editor/lib/ai-chat-actions";
 import { cn } from "@/lib/utils";
 
 type ChatMessageProps = {
@@ -51,7 +56,7 @@ export function ChatMessage({
   onSendEdit,
 }: ChatMessageProps) {
   const { t } = useLocale();
-  const text = getMessageText(message);
+  const text = getAiChatMessageText(message);
   const isAssistant = message.role === "assistant";
   const [copied, setCopied] = useState(false);
   const editInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -105,20 +110,23 @@ export function ChatMessage({
             <ActionLabel>{copied ? t("aiCopied") : t("copy")}</ActionLabel>
           </MessageAction>
           <MessageAction
-            onClick={() => replaceSelection(editor, message, text)}
+            onClick={() => replaceSelectionWithAiResponse(editor, message, text)}
             tooltip={t("aiReplaceSelection")}
           >
             <Replace aria-hidden="true" size={13} />
             <ActionLabel>{t("apply")}</ActionLabel>
           </MessageAction>
           <MessageAction
-            onClick={() => insertAtCursor(editor, text)}
+            onClick={() => insertAiResponseAtCursor(editor, text)}
             tooltip={t("aiInsertAtCursor")}
           >
             <TextCursorInput aria-hidden="true" size={13} />
             <ActionLabel>{t("aiInsertAtCursor")}</ActionLabel>
           </MessageAction>
-          <MessageAction onClick={() => insertAtEnd(editor, text)} tooltip={t("aiInsertAtEnd")}>
+          <MessageAction
+            onClick={() => insertAiResponseAtEnd(editor, text)}
+            tooltip={t("aiInsertAtEnd")}
+          >
             <ListEnd aria-hidden="true" size={13} />
             <ActionLabel>{t("aiInsertAtEnd")}</ActionLabel>
           </MessageAction>
@@ -197,119 +205,4 @@ function ActionLabel({ children }: { children: string }) {
       {children}
     </span>
   );
-}
-
-function getMessageText(message: AiChatMessage) {
-  return message.parts
-    .map((part) => (part.type === "text" ? part.text : ""))
-    .join("")
-    .trim();
-}
-
-function replaceSelection(editor: Editor | null, message: AiChatMessage, text: string) {
-  if (!editor) {
-    return;
-  }
-
-  const currentSelection = editor.state.selection;
-
-  if (!currentSelection.empty) {
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(
-        { from: currentSelection.from, to: currentSelection.to },
-        getAiInsertContentForRange(editor, currentSelection.from, currentSelection.to, text),
-      )
-      .run();
-    return;
-  }
-
-  const originalSelection = message.metadata?.selection;
-
-  if (originalSelection) {
-    const from = Math.max(0, Math.min(originalSelection.from, editor.state.doc.content.size));
-    const to = Math.max(from, Math.min(originalSelection.to, editor.state.doc.content.size));
-
-    editor
-      .chain()
-      .focus()
-      .insertContentAt({ from, to }, getAiInsertContentForRange(editor, from, to, text))
-      .run();
-  }
-}
-
-function insertAtCursor(editor: Editor | null, text: string) {
-  if (!editor) {
-    return;
-  }
-
-  const { from, to } = editor.state.selection;
-
-  editor
-    .chain()
-    .focus()
-    .insertContent(getAiInsertContentForRange(editor, from, to, text))
-    .run();
-}
-
-function insertAtEnd(editor: Editor | null, text: string) {
-  if (!editor) {
-    return;
-  }
-
-  const inlineContent = toAiInlineInsertHtml(text);
-  const lastTextblockEnd = getLastTextblockEndPosition(editor);
-
-  if (lastTextblockEnd != null && !isBlockInsertContent(inlineContent)) {
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(lastTextblockEnd, inlineContent)
-      .run();
-    return;
-  }
-
-  editor
-    .chain()
-    .focus()
-    .insertContentAt(editor.state.doc.content.size, toAiInsertHtml(text))
-    .run();
-}
-
-function getAiInsertContentForRange(
-  editor: Editor,
-  from: number,
-  to: number,
-  text: string,
-) {
-  return canInsertInlineAtRange(editor, from, to)
-    ? toAiInlineInsertHtml(text)
-    : toAiInsertHtml(text);
-}
-
-function canInsertInlineAtRange(editor: Editor, from: number, to: number) {
-  const docSize = editor.state.doc.content.size;
-  const safeFrom = Math.max(0, Math.min(from, docSize));
-  const safeTo = Math.max(safeFrom, Math.min(to, docSize));
-  const $from = editor.state.doc.resolve(safeFrom);
-  const $to = editor.state.doc.resolve(safeTo);
-
-  return $from.parent.isTextblock && $from.sameParent($to);
-}
-
-function getLastTextblockEndPosition(editor: Editor) {
-  let endPosition: number | null = null;
-
-  editor.state.doc.descendants((node, pos) => {
-    if (node.isTextblock) {
-      endPosition = pos + node.nodeSize - 1;
-    }
-  });
-
-  return endPosition;
-}
-
-function isBlockInsertContent(content: string) {
-  return /^<(?:blockquote|h[1-6]|hr|img|ol|p|pre|table|ul)(?:\s|>)/i.test(content.trim());
 }

@@ -5,6 +5,7 @@ import {
   streamText,
 } from "ai";
 import type {
+  AiChatDocumentAction,
   AiChatMessage,
   AiChatModelKey,
   AiChatSelection,
@@ -27,6 +28,7 @@ type RouteContext = {
 };
 
 type ChatBody = {
+  documentAction?: AiChatDocumentAction | null;
   documentText?: string;
   documentTitle?: string;
   messages?: AiChatMessage[];
@@ -114,6 +116,7 @@ export async function POST(request: Request, context: RouteContext) {
       body.documentText ?? "",
       body.selection ?? null,
       modelConfig.name,
+      body.documentAction ?? null,
     ),
     temperature: 0.3,
   });
@@ -168,6 +171,7 @@ function buildDocumentChatSystemPrompt(
   documentText: string,
   selection: AiChatSelection | null,
   modelName: string,
+  documentAction: AiChatDocumentAction | null,
 ) {
   const cleanDocumentTitle = documentTitle.trim() || "(untitled document)";
   const cleanDocumentText = documentText.trim() || "(empty document)";
@@ -178,9 +182,16 @@ function buildDocumentChatSystemPrompt(
     `The currently selected AI model is exactly: ${modelName}.`,
     "If the user asks what model you are, answer with that exact model name and do not claim to be a different model.",
     "You can help the user discuss, rewrite, summarize, expand, translate, and structure the current document.",
-    "When the user asks for an edit, return content that can be inserted into the document directly.",
+    documentAction
+      ? "The frontend will automatically apply your next answer to the current document."
+      : "When the user asks for an edit, return content that can be inserted into the document directly.",
+    documentAction === "insert_end"
+      ? "The requested automatic action is: insert your answer at the end of the document. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content."
+      : "",
     "Use Markdown when lists, headings, or emphasis make the answer clearer.",
-    "Do not claim to have changed the document yourself; the user applies your response with explicit buttons.",
+    documentAction
+      ? "Do not claim that the document has already changed while you are generating the answer."
+      : "Do not claim to have changed the document yourself; the user applies your response with explicit buttons.",
     "",
     "Current document title:",
     cleanDocumentTitle,
