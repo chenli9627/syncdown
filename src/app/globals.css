@@ -202,6 +202,11 @@ button:disabled {
   letter-spacing: -0.01em;
 }
 
+.syntext-editor h5 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 .syntext-editor ul,
 .syntext-editor ol {
   list-style-position: outside;

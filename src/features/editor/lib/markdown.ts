@@ -343,7 +343,7 @@ export function markdownToEditorHtml(markdown: string) {
       continue;
     }
 
-    const headingMatch = trimmed.match(/^(#{1,4})\s+(.*)$/);
+    const headingMatch = trimmed.match(/^(#{1,5})\s+(.*)$/);
 
     if (headingMatch) {
       const level = headingMatch[1]?.length ?? 1;

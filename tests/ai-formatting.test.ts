@@ -16,6 +16,12 @@ test("toAiInsertHtml converts markdown responses into editor html", () => {
   assert.match(html, /<strong>bold<\/strong>/);
 });
 
+test("toAiInsertHtml converts level five markdown headings", () => {
+  const html = toAiInsertHtml("##### Details");
+
+  assert.match(html, /<h5>Details<\/h5>/);
+});
+
 test("toAiInsertHtml preserves raw html responses", () => {
   const html = toAiInsertHtml("<blockquote><p>Explained</p></blockquote>");
 

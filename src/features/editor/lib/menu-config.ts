@@ -42,6 +42,7 @@ const slashItemConfigs: SlashItemConfig[] = [
   { id: "heading-2", labelKey: "heading2", shortcut: "##", run: createHeadingAction(2) },
   { id: "heading-3", labelKey: "heading3", shortcut: "###", run: createHeadingAction(3) },
   { id: "heading-4", labelKey: "heading4", shortcut: "####", run: createHeadingAction(4) },
+  { id: "heading-5", labelKey: "heading5", shortcut: "#####", run: createHeadingAction(5) },
   { id: "bullet-list", labelKey: "bulletedList", shortcut: "-", run: runBulletList },
   { id: "ordered-list", labelKey: "numberedList", shortcut: "1.", run: runOrderedList },
   { id: "todo-list", labelKey: "todoList", shortcut: "[]", run: runTaskList },
@@ -58,6 +59,7 @@ const blockTransformConfigs: BlockTransformConfig[] = [
   { id: "heading-2", labelKey: "heading2", run: createHeadingTransformAction(2) },
   { id: "heading-3", labelKey: "heading3", run: createHeadingTransformAction(3) },
   { id: "heading-4", labelKey: "heading4", run: createHeadingTransformAction(4) },
+  { id: "heading-5", labelKey: "heading5", run: createHeadingTransformAction(5) },
   { id: "bullet-list", labelKey: "bulletedList", run: runBulletList },
   { id: "ordered-list", labelKey: "numberedList", run: runOrderedList },
   { id: "todo-list", labelKey: "todoList", run: runTaskList },
@@ -106,13 +108,13 @@ function runParagraphWithUnwrap(editor: Editor) {
   runParagraph(editor);
 }
 
-function createHeadingAction(level: 1 | 2 | 3 | 4): MenuEditorAction {
+function createHeadingAction(level: 1 | 2 | 3 | 4 | 5): MenuEditorAction {
   return (editor) => {
     editor.chain().focus().setHeading({ level }).run();
   };
 }
 
-function createHeadingTransformAction(level: 1 | 2 | 3 | 4): MenuEditorAction {
+function createHeadingTransformAction(level: 1 | 2 | 3 | 4 | 5): MenuEditorAction {
   return (editor) => {
     if (editor.isActive("blockquote")) {
       editor.chain().focus().lift("blockquote").setHeading({ level }).run();
@@ -276,6 +278,8 @@ function buildReplacementContent(
       return { type: "heading", attrs: { level: 3 }, content: firstLine ? [{ type: "text", text: firstLine }] : [] };
     case "heading-4":
       return { type: "heading", attrs: { level: 4 }, content: firstLine ? [{ type: "text", text: firstLine }] : [] };
+    case "heading-5":
+      return { type: "heading", attrs: { level: 5 }, content: firstLine ? [{ type: "text", text: firstLine }] : [] };
     case "bullet-list":
       return {
         type: "bulletList",
