@@ -1,0 +1,114 @@
+"use client";
+
+import {
+  type ComponentPropsWithoutRef,
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+} from "react";
+import { Send } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export type PromptInputMessage = {
+  text: string;
+};
+
+type PromptInputProps = Omit<ComponentPropsWithoutRef<"form">, "onSubmit"> & {
+  onSubmit: (message: PromptInputMessage) => void;
+  text: string;
+};
+
+export function PromptInput({
+  className,
+  children,
+  onSubmit,
+  text,
+  ...props
+}: PromptInputProps) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!text.trim()) {
+      return;
+    }
+
+    onSubmit({ text });
+  }
+
+  return (
+    <form
+      className={cn(
+        "border-t border-[var(--color-border)] bg-[var(--color-editor-header-background)] p-3",
+        className,
+      )}
+      onSubmit={handleSubmit}
+      {...props}
+    >
+      {children}
+    </form>
+  );
+}
+
+export function PromptInputTextarea({
+  className,
+  onKeyDown,
+  value,
+  ...props
+}: ComponentPropsWithoutRef<"textarea">) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const textarea = ref.current;
+
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = "0px";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 144)}px`;
+  }, [value]);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      event.currentTarget.form?.requestSubmit();
+      return;
+    }
+
+    onKeyDown?.(event);
+  }
+
+  return (
+    <textarea
+      className={cn(
+        "min-h-10 flex-1 resize-none border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm leading-5 text-[var(--color-foreground)] outline-none focus:border-[var(--color-accent)]",
+        className,
+      )}
+      onKeyDown={handleKeyDown}
+      ref={ref}
+      rows={1}
+      value={value}
+      {...props}
+    />
+  );
+}
+
+export function PromptInputSubmit({
+  className,
+  children,
+  ...props
+}: ComponentPropsWithoutRef<"button">) {
+  return (
+    <button
+      className={cn(
+        "inline-flex h-10 w-10 shrink-0 items-center justify-center border border-[var(--color-border)] bg-[var(--color-foreground)] text-[var(--color-surface)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40",
+        className,
+      )}
+      type="submit"
+      {...props}
+    >
+      {children ?? <Send aria-hidden="true" size={16} />}
+    </button>
+  );
+}

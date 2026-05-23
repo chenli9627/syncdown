@@ -1,4 +1,8 @@
 export {
+  getAiChatThreadForUser,
+  saveAiChatThreadMessages,
+} from "@/features/app-state/lib/mutations/ai-chat";
+export {
   changePasswordForUser,
   loginUser,
   registerUser,

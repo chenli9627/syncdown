@@ -1,4 +1,23 @@
+import type { UIMessage } from "ai";
+
 export type Permission = "can_edit" | "can_view";
+
+export type AiChatModelKey = "primary" | "secondary";
+
+export type AiChatSelection = {
+  from: number;
+  text: string;
+  to: number;
+};
+
+export type AiChatMessageMetadata = {
+  createdAt: string;
+  modelKey?: AiChatModelKey;
+  modelName?: string;
+  selection?: AiChatSelection | null;
+};
+
+export type AiChatMessage = UIMessage<AiChatMessageMetadata>;
 
 export type User = {
   id: string;
@@ -71,6 +90,15 @@ export type Session = {
   currentWorkspaceId: string;
 };
 
+export type AiChatThread = {
+  id: string;
+  documentId: string;
+  userId: string;
+  messages: AiChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type SyntextState = {
   users: User[];
   workspaces: Workspace[];
@@ -80,6 +108,7 @@ export type SyntextState = {
 };
 
 export type StoredSyntextState = {
+  aiChatThreads?: AiChatThread[];
   users: StoredUser[];
   workspaces: Workspace[];
   documents: DocumentRecord[];

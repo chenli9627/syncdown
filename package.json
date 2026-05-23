@@ -15,6 +15,8 @@
     "reset-password": "node ./scripts/reset-password.mjs"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.48",
+    "@ai-sdk/react": "^3.0.193",
     "@aws-sdk/client-s3": "^3.1026.0",
     "@hocuspocus/provider": "3.4.4",
     "@hocuspocus/server": "3.4.4",
@@ -32,6 +34,7 @@
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
     "@tiptap/y-tiptap": "3.0.3",
+    "ai": "^6.0.191",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "jszip": "^3.10.1",
@@ -42,6 +45,8 @@
     "pg": "^8.20.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.3.0",
     "ws": "^8.20.0",
     "yjs": "^13.6.30"

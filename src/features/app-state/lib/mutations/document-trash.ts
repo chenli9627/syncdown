@@ -115,6 +115,9 @@ export function permanentlyDeleteDocumentFromTrashForOwner(
       ...state,
       documents: state.documents.filter((item) => item.id !== documentId),
       accesses: state.accesses.filter((access) => access.documentId !== documentId),
+      aiChatThreads: state.aiChatThreads?.filter(
+        (thread) => thread.documentId !== documentId,
+      ),
       recentVisits: state.recentVisits.filter((visit) => visit.documentId !== documentId),
     },
   };
