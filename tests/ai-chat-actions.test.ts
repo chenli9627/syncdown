@@ -59,8 +59,23 @@ test("infers block-edit action from special placement requests", () => {
   );
 });
 
+test("infers block-edit action from targeted block edit requests", () => {
+  assert.equal(inferAiChatDocumentAction("删除包含“临时风险：Gamma。”的段落"), "edit_blocks");
+  assert.equal(
+    inferAiChatDocumentAction("把包含“当前方案：Beta。”的段落改成“当前方案：Beta 已升级。”"),
+    "edit_blocks",
+  );
+  assert.equal(inferAiChatDocumentAction("Delete the paragraph containing Gamma"), "edit_blocks");
+});
+
 test("does not infer document actions for ordinary chat prompts", () => {
   assert.equal(inferAiChatDocumentAction("解释一下这篇文档"), null);
   assert.equal(inferAiChatDocumentAction("What are the differences between these models?"), null);
   assert.equal(inferAiChatDocumentAction("把标题改成项目计划"), null);
+});
+
+test("does not infer document actions from negative edit instructions", () => {
+  assert.equal(inferAiChatDocumentAction("只回答当前文档包含哪些部分，不要修改文档。"), null);
+  assert.equal(inferAiChatDocumentAction("总结一下当前内容，不改动文档"), null);
+  assert.equal(inferAiChatDocumentAction("Only answer what sections exist. Do not edit the document."), null);
 });

@@ -16,6 +16,10 @@ export function inferAiChatDocumentAction(
   const compactPrompt = prompt.toLowerCase().replace(/\s+/g, "");
   const lowerPrompt = prompt.toLowerCase();
 
+  if (isNoDocumentEditPrompt(compactPrompt, lowerPrompt)) {
+    return null;
+  }
+
   if (isInsertEndPrompt(compactPrompt, lowerPrompt)) {
     return "insert_end";
   }
@@ -25,6 +29,10 @@ export function inferAiChatDocumentAction(
   }
 
   if (isSpecificPlacementPrompt(compactPrompt, lowerPrompt)) {
+    return "edit_blocks";
+  }
+
+  if (isTargetedBlockEditPrompt(compactPrompt, lowerPrompt)) {
     return "edit_blocks";
   }
 
@@ -42,6 +50,20 @@ export function inferAiChatDocumentAction(
   }
 
   return null;
+}
+
+function isNoDocumentEditPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:不要|别|无需|不需要|不能|不要再|只回答|仅回答).{0,24}(?:修改|改动|更改|编辑|操作|插入|添加|删除|替换).{0,12}(?:文档|正文|内容|页面|当前文档)/.test(
+      compactPrompt,
+    ) ||
+    /(?:不修改|不改动|不更改|不编辑|不操作).{0,12}(?:文档|正文|内容|页面|当前文档)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:do not|don't|dont|without|no need to|only answer|just answer)\b[\s\S]{0,120}\b(?:modify|change|edit|update|insert|add|delete|replace)\b[\s\S]{0,80}\b(?:document|doc|page|content|text)\b/.test(
+      lowerPrompt,
+    )
+  );
 }
 
 function isInsertEndPrompt(compactPrompt: string, lowerPrompt: string) {
@@ -106,6 +128,23 @@ function isSpecificPlacementPrompt(compactPrompt: string, lowerPrompt: string) {
       /\b(?:before|after|under|below|above|over|between|near|beginning|top|heading|section|paragraph|table|list|summary|background|introduction|goal|plan|risk|conclusion)\b/.test(
         lowerPrompt,
       ))
+}
+
+function isTargetedBlockEditPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新).{0,48}(?:包含|含有|这段|这一段|该段|段落|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要)/.test(
+      compactPrompt,
+    ) ||
+    /(?:包含|含有|这段|这一段|该段|段落|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要).{0,48}(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:delete|remove|replace|change|update|edit|rewrite)\b[\s\S]{0,160}\b(?:containing|contains|paragraph|block|heading|section|part|background|plan|risk|conclusion|summary)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:containing|contains|paragraph|block|heading|section|part|background|plan|risk|conclusion|summary)\b[\s\S]{0,160}\b(?:delete|remove|replace|change|update|edit|rewrite)\b/.test(
+      lowerPrompt,
+    )
+  );
 }
 
 function hasChinesePlacementVerb(compactPrompt: string) {
