@@ -241,6 +241,9 @@ function buildDocumentChatSystemPrompt(
     documentAction
       ? "The frontend will automatically apply your next answer to the current document."
       : "When the user asks for an edit, return content that can be inserted into the document directly.",
+    documentAction
+      ? "Never tell the user to copy, paste, manually insert, or manually apply the answer."
+      : "",
     getAutomaticActionInstruction(documentAction),
     "Use Markdown when lists, headings, or emphasis make the answer clearer.",
     documentAction
