@@ -53,6 +53,7 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "For location requests, choose the closest matching block and use insert_after_block or insert_before_block.",
       "For small changes inside an existing formatted block, prefer replace_text_in_block so the original heading, list, link, and inline formatting are preserved.",
       "For whole-block content changes, prefer replace_block or delete_block over replacing the whole document.",
+      "Operation content can be Markdown or minimal HTML when HTML is necessary to preserve links or strikethrough.",
       "When replacing a formatted block, preserve the original block's Markdown structure unless the user explicitly asks to remove or change that formatting.",
     ].join(" ");
   }
@@ -88,7 +89,8 @@ function formatDocumentBlocks(blocks: AiChatDocumentBlock[]) {
       const markdown = block.markdown?.trim()
         ? ` markdown=${JSON.stringify(block.markdown.trim())}`
         : "";
-      return `- ${block.id}: type=${block.type}${level} text=${JSON.stringify(text)}${markdown}`;
+      const html = block.html?.trim() ? ` html=${JSON.stringify(block.html.trim())}` : "";
+      return `- ${block.id}: type=${block.type}${level} text=${JSON.stringify(text)}${markdown}${html}`;
     })
     .join("\n");
 }

@@ -30,7 +30,8 @@ type AiDocumentEditPayload = {
 };
 
 export function getAiDocumentBlocks(editor: Editor | null): AiChatDocumentBlock[] {
-  return getLocalAiDocumentBlocks(editor).map(({ id, level, markdown, text, type }) => ({
+  return getLocalAiDocumentBlocks(editor).map(({ html, id, level, markdown, text, type }) => ({
+    html,
     id,
     level,
     markdown,
@@ -103,9 +104,11 @@ function getLocalAiDocumentBlocks(editor: Editor | null): LocalAiDocumentBlock[]
 
   editor.state.doc.forEach((node, offset, index) => {
     const text = getNodeText(node);
-    const markdown = getNodeMarkdown(editor, node).trim();
+    const html = getNodeHtml(editor, node).trim();
+    const markdown = html ? editorHtmlToMarkdown(html).trim() : "";
 
     blocks.push({
+      html: hasRichMarkup(html) ? html : undefined,
       id: `block_${index + 1}`,
       level: typeof node.attrs.level === "number" ? node.attrs.level : undefined,
       markdown: markdown && markdown !== text ? markdown : undefined,
@@ -217,7 +220,7 @@ function getNodeText(node: { textContent: string; type: { name: string } }) {
   return "";
 }
 
-function getNodeMarkdown(editor: Editor, node: ProseMirrorNode) {
+function getNodeHtml(editor: Editor, node: ProseMirrorNode) {
   if (typeof document === "undefined" || typeof DOMParser === "undefined") {
     return "";
   }
@@ -226,7 +229,7 @@ function getNodeMarkdown(editor: Editor, node: ProseMirrorNode) {
   const serializer = DOMSerializer.fromSchema(editor.schema);
   container.append(serializer.serializeNode(node, { document }));
 
-  return editorHtmlToMarkdown(container.innerHTML);
+  return container.innerHTML;
 }
 
 function findTextRangeInBlock(block: LocalAiDocumentBlock, targetText: string) {
@@ -275,4 +278,10 @@ function findTextRangeInBlock(block: LocalAiDocumentBlock, targetText: string) {
     from: startSegment.from + targetStart - startSegment.textStart,
     to: endSegment.from + targetEnd - endSegment.textStart,
   };
+}
+
+function hasRichMarkup(html: string) {
+  return /<(?:a|blockquote|code|del|em|h[1-6]|li|ol|pre|s|strike|strong|table|ul)\b/i.test(
+    html,
+  );
 }

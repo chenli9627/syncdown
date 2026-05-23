@@ -83,6 +83,7 @@ export function useSyntextEditor({
         return;
       }
 
+      setStatus("saving");
       const result = await saveDocument(documentId, {
         content: currentEditor.getHTML(),
         versionHistoryMode: "snapshot",
@@ -94,14 +95,23 @@ export function useSyntextEditor({
       }
 
       hasEditorChangesSinceSnapshotRef.current = false;
+      setStatus("saved");
+      window.setTimeout(() => {
+        setStatus("idle");
+      }, 1200);
     }, 2 * 60 * 1000);
   }
 
   async function saveEditorContentNow(
     currentEditor: Editor,
-    options?: { finalizeVersion?: boolean; snapshotVersion?: boolean },
+    options?: { finalizeVersion?: boolean; showStatus?: boolean; snapshotVersion?: boolean },
   ) {
-    setStatus("saving");
+    const showStatus = options?.showStatus ?? false;
+
+    if (showStatus) {
+      setStatus("saving");
+    }
+
     const currentContent = currentEditor.getHTML();
     const result = await saveDocument(documentId, {
       content: currentContent,
@@ -126,10 +136,12 @@ export function useSyntextEditor({
       hasEditorChangesSinceSnapshotRef.current = false;
     }
 
-    setStatus("saved");
-    window.setTimeout(() => {
-      setStatus("idle");
-    }, 1200);
+    if (showStatus) {
+      setStatus("saved");
+      window.setTimeout(() => {
+        setStatus("idle");
+      }, 1200);
+    }
 
     if ((options?.finalizeVersion ?? true) && !options?.snapshotVersion) {
       scheduleVersionFinalize(currentEditor);
@@ -268,6 +280,7 @@ export function useSyntextEditor({
 
           void saveEditorContentNow(currentEditor, {
             finalizeVersion: false,
+            showStatus: true,
             snapshotVersion: hasEditorChangesSinceSnapshotRef.current,
           });
           return true;
@@ -372,7 +385,6 @@ export function useSyntextEditor({
       clearVersionFinalizeTimer();
       hasEditorChangesSinceSnapshotRef.current = true;
 
-      setStatus("saving");
       saveTimeoutRef.current = window.setTimeout(async () => {
         saveTimeoutRef.current = null;
         await saveEditorContentNow(currentEditor);

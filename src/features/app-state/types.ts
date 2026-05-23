@@ -18,6 +18,7 @@ export type AiChatSelection = {
 };
 
 export type AiChatDocumentBlock = {
+  html?: string;
   id: string;
   level?: number;
   markdown?: string;

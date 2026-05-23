@@ -73,6 +73,14 @@ test("infers block-edit action from targeted block edit requests", () => {
     inferAiChatDocumentAction("把粗体里的 Alpha 改成 Alpha-1，保留粗体格式。"),
     "edit_blocks",
   );
+  assert.equal(
+    inferAiChatDocumentAction("把删除线里的 Alpha 改成 Alpha-1，保留删除线格式。"),
+    "edit_blocks",
+  );
+  assert.equal(
+    inferAiChatDocumentAction("把链接里的 Alpha 改成 Alpha-1，保留链接。"),
+    "edit_blocks",
+  );
   assert.equal(inferAiChatDocumentAction("Delete the paragraph containing Gamma"), "edit_blocks");
 });
 
