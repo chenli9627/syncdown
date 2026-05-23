@@ -102,7 +102,7 @@ export function PromptInputSubmit({
   return (
     <button
       className={cn(
-        "inline-flex h-10 w-10 shrink-0 items-center justify-center border border-[var(--color-border)] bg-[var(--color-foreground)] text-[var(--color-surface)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40",
+        "inline-flex h-10 w-10 shrink-0 items-center justify-center border border-[color-mix(in_srgb,var(--color-primary)_38%,var(--color-border))] bg-[var(--color-primary)] text-[var(--color-primary-foreground)] shadow-[var(--shadow-whisper)] transition hover:brightness-95 disabled:border-[var(--color-border)] disabled:bg-[var(--color-muted)] disabled:text-[var(--color-muted-foreground)] disabled:shadow-none",
         className,
       )}
       type="submit"

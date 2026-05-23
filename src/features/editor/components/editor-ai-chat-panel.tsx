@@ -27,6 +27,7 @@ import type {
   User,
 } from "@/features/app-state/types";
 import { ChatMessage } from "@/features/editor/components/editor-ai-chat-message";
+import { EditorAiModelSelect } from "@/features/editor/components/editor-ai-model-select";
 import { cn } from "@/lib/utils";
 
 type AiChatPanelProps = {
@@ -162,14 +163,7 @@ export function EditorAiChatPanel({
         <label className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
           Model
         </label>
-        <select
-          className="min-w-0 flex-1 border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs text-[var(--color-foreground)] outline-none"
-          onChange={(event) => setModelKey(event.target.value as AiChatModelKey)}
-          value={modelKey}
-        >
-          <option value="primary">{models.find((model) => model.key === "primary")?.name ?? "Primary model"}</option>
-          <option value="secondary">{models.find((model) => model.key === "secondary")?.name ?? "Secondary model"}</option>
-        </select>
+        <EditorAiModelSelect models={models} onChange={setModelKey} value={modelKey} />
       </div>
       <Conversation>
         <ConversationContent>

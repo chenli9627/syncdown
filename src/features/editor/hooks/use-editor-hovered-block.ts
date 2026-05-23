@@ -8,6 +8,7 @@ import {
   getHoveredBlockFromPointer,
   getTopLevelBlock,
   getTopLevelBlockInfoFromElement,
+  getTopLevelBlockStartPos,
 } from "@/features/editor/lib/utils";
 
 type UseEditorHoveredBlockArgs = {
@@ -76,6 +77,14 @@ export function useEditorHoveredBlock({
     [editor, editorContainerRef],
   );
 
+  const syncHoveredBlockFromSelection = useCallback(() => {
+    if (!editor) {
+      return;
+    }
+
+    syncHoveredBlockFromPos(getTopLevelBlockStartPos(editor, editor.state.selection.from));
+  }, [editor, syncHoveredBlockFromPos]);
+
   useEffect(() => {
     if (!editor || !canEditBody) {
       return;
@@ -137,17 +146,29 @@ export function useEditorHoveredBlock({
     };
 
     const handlePointerLeave = () => {
-      setHoveredBlock(null);
+      syncHoveredBlockFromSelection();
     };
+    const initialFrame = window.requestAnimationFrame(syncHoveredBlockFromSelection);
 
     container.addEventListener("pointermove", handlePointerMove);
     container.addEventListener("pointerleave", handlePointerLeave);
 
+    editor.on("selectionUpdate", syncHoveredBlockFromSelection);
+
     return () => {
+      window.cancelAnimationFrame(initialFrame);
       container.removeEventListener("pointermove", handlePointerMove);
       container.removeEventListener("pointerleave", handlePointerLeave);
+      editor.off("selectionUpdate", syncHoveredBlockFromSelection);
     };
-  }, [blockControlsRef, blockMenuRef, canEditBody, editor, editorContainerRef]);
+  }, [
+    blockControlsRef,
+    blockMenuRef,
+    canEditBody,
+    editor,
+    editorContainerRef,
+    syncHoveredBlockFromSelection,
+  ]);
 
   useEffect(() => {
     if (!editor || !canEditBody || !hoveredBlock) {
