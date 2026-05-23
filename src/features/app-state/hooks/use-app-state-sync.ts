@@ -10,7 +10,8 @@ import {
 
 const SESSION_STORAGE_KEY = "syncdown.session";
 const STATE_STORAGE_KEY = "syncdown.state";
-const APP_STATE_SYNC_INTERVAL_MS = 10_000;
+const APP_STATE_SYNC_INTERVAL_MS = 30_000;
+const MIN_SILENT_SYNC_GAP_MS = 5_000;
 
 function toFallbackPublicState(): SyntextState {
   const seed = createSeedState();
@@ -146,6 +147,7 @@ export function useAppStateSync({
 
     let cancelled = false;
     let syncInFlight = false;
+    let lastSyncStartedAt = 0;
 
     async function syncSilently() {
       if (syncInFlight) {
@@ -156,6 +158,13 @@ export function useAppStateSync({
         return;
       }
 
+      const now = Date.now();
+
+      if (now - lastSyncStartedAt < MIN_SILENT_SYNC_GAP_MS) {
+        return;
+      }
+
+      lastSyncStartedAt = now;
       syncInFlight = true;
 
       try {

@@ -3,13 +3,16 @@
 import type { Editor } from "@tiptap/react";
 import {
   Check,
-  ChevronRight,
   Copy,
-  CopyPlus,
+  ListEnd,
   Pencil,
   RefreshCw,
+  Replace,
+  Send,
+  TextCursorInput,
+  X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Message,
   MessageAction,
@@ -23,22 +26,51 @@ import { toAiInlineInsertHtml, toAiInsertHtml } from "@/features/editor/lib/ai";
 import { cn } from "@/lib/utils";
 
 type ChatMessageProps = {
+  busy?: boolean;
+  editingText?: string;
   editor: Editor | null;
+  isEditing?: boolean;
   message: AiChatMessage;
+  onCancelEdit?: () => void;
   onEdit?: (messageId: string, text: string) => void;
+  onEditingTextChange?: (value: string) => void;
   onRegenerate: () => void;
+  onSendEdit?: () => void;
 };
 
 export function ChatMessage({
+  busy = false,
+  editingText = "",
   editor,
+  isEditing = false,
   message,
+  onCancelEdit,
   onEdit,
+  onEditingTextChange,
   onRegenerate,
+  onSendEdit,
 }: ChatMessageProps) {
   const { t } = useLocale();
   const text = getMessageText(message);
   const isAssistant = message.role === "assistant";
   const [copied, setCopied] = useState(false);
+  const editInputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (!isEditing) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      editInputRef.current?.focus();
+      editInputRef.current?.setSelectionRange(
+        editInputRef.current.value.length,
+        editInputRef.current.value.length,
+      );
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isEditing]);
 
   function handleCopy() {
     if (!text.trim()) {
@@ -76,19 +108,19 @@ export function ChatMessage({
             onClick={() => replaceSelection(editor, message, text)}
             tooltip={t("aiReplaceSelection")}
           >
-            <Check aria-hidden="true" size={13} />
+            <Replace aria-hidden="true" size={13} />
             <ActionLabel>{t("apply")}</ActionLabel>
           </MessageAction>
           <MessageAction
             onClick={() => insertAtCursor(editor, text)}
             tooltip={t("aiInsertAtCursor")}
           >
-            <ChevronRight aria-hidden="true" size={13} />
-            <ActionLabel>{t("aiCursor")}</ActionLabel>
+            <TextCursorInput aria-hidden="true" size={13} />
+            <ActionLabel>{t("aiInsertAtCursor")}</ActionLabel>
           </MessageAction>
           <MessageAction onClick={() => insertAtEnd(editor, text)} tooltip={t("aiInsertAtEnd")}>
-            <CopyPlus aria-hidden="true" size={13} />
-            <ActionLabel>{t("aiEnd")}</ActionLabel>
+            <ListEnd aria-hidden="true" size={13} />
+            <ActionLabel>{t("aiInsertAtEnd")}</ActionLabel>
           </MessageAction>
           <MessageAction onClick={onRegenerate} tooltip={t("aiRetry")}>
             <RefreshCw aria-hidden="true" size={13} />
@@ -96,7 +128,50 @@ export function ChatMessage({
           </MessageAction>
         </MessageActions>
       ) : null}
-      {!isAssistant && text.trim() ? (
+      {!isAssistant && isEditing ? (
+        <form
+          className="relative ml-auto w-[min(88%,360px)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-whisper)]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSendEdit?.();
+          }}
+        >
+          <textarea
+            className="max-h-36 min-h-20 w-full resize-none bg-[var(--color-surface)] px-3 pb-12 pt-3 text-sm leading-5 text-[var(--color-foreground)] outline-none"
+            disabled={busy}
+            onChange={(event) => onEditingTextChange?.(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || event.shiftKey) {
+                return;
+              }
+
+              event.preventDefault();
+              onSendEdit?.();
+            }}
+            ref={editInputRef}
+            value={editingText}
+          />
+          <div className="absolute bottom-2 right-2 flex gap-2">
+            <button
+              className="inline-flex h-7 w-7 items-center justify-center border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
+              onClick={onCancelEdit}
+              title={t("cancel")}
+              type="button"
+            >
+              <X aria-hidden="true" size={13} />
+            </button>
+            <button
+              className="inline-flex h-7 w-7 items-center justify-center border border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:brightness-95 disabled:opacity-50"
+              disabled={busy || !editingText.trim()}
+              title={t("aiSend")}
+              type="submit"
+            >
+              <Send aria-hidden="true" size={13} />
+            </button>
+          </div>
+        </form>
+      ) : null}
+      {!isAssistant && text.trim() && !isEditing ? (
         <MessageActions className="justify-end">
           <MessageAction onClick={handleCopy} tooltip={t("aiCopyQuestion")}>
             {copied ? (
@@ -183,6 +258,18 @@ function insertAtEnd(editor: Editor | null, text: string) {
     return;
   }
 
+  const inlineContent = toAiInlineInsertHtml(text);
+  const lastTextblockEnd = getLastTextblockEndPosition(editor);
+
+  if (lastTextblockEnd != null && !isBlockInsertContent(inlineContent)) {
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(lastTextblockEnd, inlineContent)
+      .run();
+    return;
+  }
+
   editor
     .chain()
     .focus()
@@ -209,4 +296,20 @@ function canInsertInlineAtRange(editor: Editor, from: number, to: number) {
   const $to = editor.state.doc.resolve(safeTo);
 
   return $from.parent.isTextblock && $from.sameParent($to);
+}
+
+function getLastTextblockEndPosition(editor: Editor) {
+  let endPosition: number | null = null;
+
+  editor.state.doc.descendants((node, pos) => {
+    if (node.isTextblock) {
+      endPosition = pos + node.nodeSize - 1;
+    }
+  });
+
+  return endPosition;
+}
+
+function isBlockInsertContent(content: string) {
+  return /^<(?:blockquote|h[1-6]|hr|img|ol|p|pre|table|ul)(?:\s|>)/i.test(content.trim());
 }

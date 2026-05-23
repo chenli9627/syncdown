@@ -2,7 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import { useChat } from "@ai-sdk/react";
-import { Bot, PanelRightClose, Send } from "lucide-react";
+import { Bot, PanelRightClose } from "lucide-react";
 import { DefaultChatTransport } from "ai";
 import {
   type PointerEvent,
@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   Conversation,
   ConversationContent,
@@ -145,6 +146,12 @@ export function EditorAiChatPanel({
     setEditingQuestion(null);
   }
 
+  function handleEditingQuestionTextChange(value: string) {
+    setEditingQuestion((current) =>
+      current ? { ...current, text: value } : current,
+    );
+  }
+
   function handleSendEditedQuestion() {
     const trimmed = editingQuestion?.text.trim() ?? "";
 
@@ -155,14 +162,14 @@ export function EditorAiChatPanel({
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
 
-    setMessages(nextMessages);
-    setEditingQuestion(null);
-    window.setTimeout(() => {
-      void sendMessage(
-        { text: trimmed },
-        { body: getChatRequestBody(editor, modelKey, currentUser.id, documentTitle) },
-      );
-    }, 0);
+    flushSync(() => {
+      setMessages(nextMessages);
+      setEditingQuestion(null);
+    });
+    void sendMessage(
+      { text: trimmed },
+      { body: getChatRequestBody(editor, modelKey, currentUser.id, documentTitle) },
+    );
   }
 
   function handleModelChange(nextModelKey: AiChatModelKey) {
@@ -225,10 +232,17 @@ export function EditorAiChatPanel({
             <div className="flex flex-col gap-4">
               {messages.map((message) => (
                 <ChatMessage
+                  busy={busy}
+                  editingText={
+                    editingQuestion?.id === message.id ? editingQuestion.text : undefined
+                  }
                   editor={editor}
+                  isEditing={editingQuestion?.id === message.id}
                   key={message.id}
                   message={message}
+                  onCancelEdit={handleCancelEditQuestion}
                   onEdit={handleEditQuestion}
+                  onEditingTextChange={handleEditingQuestionTextChange}
                   onRegenerate={() =>
                     void regenerate({
                       body: getChatRequestBody(
@@ -240,6 +254,7 @@ export function EditorAiChatPanel({
                       messageId: message.id,
                     })
                   }
+                  onSendEdit={handleSendEditedQuestion}
                 />
               ))}
             </div>
@@ -270,47 +285,6 @@ export function EditorAiChatPanel({
           <PromptInputSubmit disabled={busy || !input.trim()} />
         </div>
       </PromptInput>
-      {editingQuestion ? (
-        <div className="absolute inset-0 z-50 flex items-end justify-center bg-[rgba(0,0,0,0.08)] px-4 py-20">
-          <form
-            className="w-full max-w-[360px] border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)]"
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleSendEditedQuestion();
-            }}
-          >
-            <div className="relative">
-              <textarea
-                className="min-h-28 w-full resize-none bg-[var(--color-surface)] px-3 pb-12 pt-3 text-sm leading-5 text-[var(--color-foreground)] outline-none"
-                onChange={(event) =>
-                  setEditingQuestion((current) =>
-                    current ? { ...current, text: event.target.value } : current,
-                  )
-                }
-                placeholder={t("aiEditQuestionPlaceholder")}
-                value={editingQuestion.text}
-              />
-              <div className="absolute bottom-2 right-2 flex gap-2">
-                <button
-                  className="h-7 border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 text-xs text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
-                  onClick={handleCancelEditQuestion}
-                  type="button"
-                >
-                  {t("cancel")}
-                </button>
-                <button
-                  className="inline-flex h-7 items-center gap-1 border border-[var(--color-primary)] bg-[var(--color-primary)] px-2.5 text-xs font-medium text-[var(--color-primary-foreground)] hover:brightness-95 disabled:opacity-50"
-                  disabled={busy || !editingQuestion.text.trim()}
-                  type="submit"
-                >
-                  <Send aria-hidden="true" size={13} />
-                  {t("aiSend")}
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-      ) : null}
     </aside>
   );
 }
