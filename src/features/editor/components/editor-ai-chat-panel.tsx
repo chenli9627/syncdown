@@ -38,6 +38,7 @@ type AiChatPanelProps = {
   documentTitle: string;
   editor: Editor | null;
   isNarrow: boolean;
+  isOverlay?: boolean;
   onClose: () => void;
   onResizeStart: (event: PointerEvent<HTMLDivElement>) => void;
   panelWidth: number;
@@ -61,6 +62,7 @@ export function EditorAiChatPanel({
   documentTitle,
   editor,
   isNarrow,
+  isOverlay = false,
   onClose,
   onResizeStart,
   panelWidth,
@@ -176,9 +178,15 @@ export function EditorAiChatPanel({
         "z-30 flex min-h-0 flex-col overscroll-contain border-l border-[var(--color-border)] bg-[var(--color-editor-header-background)] shadow-sm",
         isNarrow
           ? "fixed bottom-0 right-0 top-0 w-[min(420px,100vw)]"
+          : isOverlay
+            ? "fixed bottom-0 right-0 top-0"
           : "sticky top-0 h-screen shrink-0",
       )}
-      style={isNarrow ? { overscrollBehavior: "contain" } : { overscrollBehavior: "contain", width: panelWidth }}
+      style={
+        isNarrow
+          ? { overscrollBehavior: "contain" }
+          : { overscrollBehavior: "contain", width: panelWidth }
+      }
     >
       {!isNarrow ? (
         <div
