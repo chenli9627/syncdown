@@ -108,10 +108,6 @@ export function EditorAiChatPanel({
     setMessages,
     stop,
   });
-  const activeModelName =
-    models.find((model) => model.key === modelKey)?.name ??
-    (modelKey === "primary" ? "Primary model" : "Secondary model");
-
   function handleSubmit({ text }: { text: string }) {
     const trimmed = text.trim();
 
@@ -206,7 +202,6 @@ export function EditorAiChatPanel({
     >
       <EditorAiChatPanelHeader
         activeThreadId={activeThreadId}
-        activeModelName={activeModelName}
         isNarrow={isNarrow}
         modelKey={modelKey}
         models={models}

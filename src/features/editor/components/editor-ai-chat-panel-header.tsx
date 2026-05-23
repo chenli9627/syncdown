@@ -14,7 +14,6 @@ type AiModelOption = {
 
 type EditorAiChatPanelHeaderProps = {
   activeThreadId: string | null;
-  activeModelName: string;
   isNarrow: boolean;
   modelKey: AiChatModelKey;
   models: AiModelOption[];
@@ -29,7 +28,6 @@ type EditorAiChatPanelHeaderProps = {
 
 export function EditorAiChatPanelHeader({
   activeThreadId,
-  activeModelName,
   isNarrow,
   modelKey,
   models,
@@ -51,8 +49,8 @@ export function EditorAiChatPanelHeader({
           onPointerDown={onResizeStart}
         />
       ) : null}
-      <div className="flex h-13 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4">
-        <div className="flex min-w-0 items-center">
+      <div className="flex h-13 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-border)] px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <EditorAiChatThreadSwitcher
             activeThreadId={activeThreadId}
             onDeleteThread={onDeleteThread}
@@ -60,11 +58,12 @@ export function EditorAiChatPanelHeader({
             onSelectThread={onSelectThread}
             threads={threads}
           />
-        </div>
-        <div className="ml-2 min-w-0 flex-1 text-right">
-          <p className="truncate text-[11px] text-[var(--color-muted-foreground)]">
-            {t("aiModel")}: {activeModelName}
-          </p>
+          <EditorAiModelSelect
+            className="w-36 flex-none sm:w-40"
+            models={models}
+            onChange={onModelChange}
+            value={modelKey}
+          />
         </div>
         <button
           className="inline-flex h-8 w-8 items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
@@ -74,12 +73,6 @@ export function EditorAiChatPanelHeader({
         >
           <PanelRightClose aria-hidden="true" size={16} />
         </button>
-      </div>
-      <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-2">
-        <label className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
-          {t("aiModel")}
-        </label>
-        <EditorAiModelSelect models={models} onChange={onModelChange} value={modelKey} />
       </div>
     </>
   );

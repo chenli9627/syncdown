@@ -60,7 +60,7 @@ export function EditorAiChatThreadSwitcher({
     <div className="relative min-w-0" ref={switcherRef}>
       <button
         aria-expanded={open}
-        className="flex h-8 max-w-52 min-w-0 items-center gap-2 border border-transparent px-1 text-left text-sm font-normal text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+        className="flex h-8 max-w-44 min-w-0 items-center gap-1.5 border border-transparent px-1 text-left text-xs font-normal text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
         onClick={() => setOpen((current) => !current)}
         title={activeLabel}
         type="button"

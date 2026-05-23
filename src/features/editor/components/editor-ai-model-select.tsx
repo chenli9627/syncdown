@@ -11,12 +11,14 @@ type AiModelOption = {
 };
 
 type EditorAiModelSelectProps = {
+  className?: string;
   models: AiModelOption[];
   onChange: (value: AiChatModelKey) => void;
   value: AiChatModelKey;
 };
 
 export function EditorAiModelSelect({
+  className,
   models,
   onChange,
   value,
@@ -66,7 +68,7 @@ export function EditorAiModelSelect({
   }, [open]);
 
   return (
-    <div className="relative min-w-0 flex-1" ref={rootRef}>
+    <div className={cn("relative min-w-0 flex-1", className)} ref={rootRef}>
       <button
         aria-expanded={open}
         className="flex h-8 w-full min-w-0 items-center justify-between gap-2 border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-left text-xs text-[var(--color-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-hover)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-primary)_24%,transparent)]"
