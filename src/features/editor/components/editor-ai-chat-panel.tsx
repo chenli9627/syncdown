@@ -118,7 +118,7 @@ export function EditorAiChatPanel({
     const documentAction = inferAiChatDocumentAction(trimmed);
     const threadId = createThreadForSend();
 
-    setPendingAction(documentAction);
+    setPendingAction(documentAction, messages.length);
     setInput("");
     void sendMessage(
       { text: trimmed },
@@ -161,7 +161,7 @@ export function EditorAiChatPanel({
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
 
-    setPendingAction(documentAction);
+    setPendingAction(documentAction, nextMessages.length);
     flushSync(() => {
       setMessages(nextMessages);
       setEditingQuestion(null);

@@ -13,6 +13,11 @@ import {
   replaceSelectionWithAiResponse,
 } from "@/features/editor/lib/ai-chat-actions";
 
+type PendingDocumentAction = {
+  action: AiChatDocumentAction;
+  submittedMessageCount: number;
+};
+
 type UseAiChatAutoDocumentActionArgs = {
   busy: boolean;
   editor: Editor | null;
@@ -26,7 +31,7 @@ export function useAiChatAutoDocumentAction({
   error,
   messages,
 }: UseAiChatAutoDocumentActionArgs) {
-  const pendingActionRef = useRef<AiChatDocumentAction | null>(null);
+  const pendingActionRef = useRef<PendingDocumentAction | null>(null);
 
   useEffect(() => {
     if (busy || !editor) {
@@ -41,6 +46,10 @@ export function useAiChatAutoDocumentAction({
 
     const lastMessage = messages[messages.length - 1];
 
+    if (messages.length <= documentAction.submittedMessageCount) {
+      return;
+    }
+
     if (!lastMessage || lastMessage.role !== "assistant") {
       return;
     }
@@ -53,17 +62,17 @@ export function useAiChatAutoDocumentAction({
       return;
     }
 
-    if (documentAction === "insert_end") {
+    if (documentAction.action === "insert_end") {
       appendAiResponseAsDocumentEndBlocks(editor, responseText);
       return;
     }
 
-    if (documentAction === "insert_cursor") {
+    if (documentAction.action === "insert_cursor") {
       insertAiResponseAtCursor(editor, responseText);
       return;
     }
 
-    if (documentAction === "replace_selection") {
+    if (documentAction.action === "replace_selection") {
       replaceSelectionWithAiResponse(editor, lastMessage, responseText);
     }
   }, [busy, editor, messages]);
@@ -74,8 +83,13 @@ export function useAiChatAutoDocumentAction({
     }
   }, [error]);
 
-  function setPendingAction(action: AiChatDocumentAction | null) {
-    pendingActionRef.current = action;
+  function setPendingAction(action: AiChatDocumentAction | null, submittedMessageCount: number) {
+    pendingActionRef.current = action
+      ? {
+          action,
+          submittedMessageCount,
+        }
+      : null;
   }
 
   return {
