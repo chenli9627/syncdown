@@ -46,20 +46,25 @@ export function useEditorTitleState({
 
     let timeoutId = 0;
     let attempts = 0;
+    const initialTitleValue = documentTitle;
 
     const applyFocus = () => {
       const input = titleInputRef.current;
 
       if (input) {
+        if (shouldApplyInitialFocus && input.value !== initialTitleValue) {
+          return;
+        }
+
         input.focus({ preventScroll: true });
         input.select();
 
-        if (document.activeElement === input) {
+        if (document.activeElement === input && !shouldApplyInitialFocus) {
           return;
         }
       }
 
-      if (attempts >= 10) {
+      if (attempts >= 20) {
         return;
       }
 

@@ -43,13 +43,13 @@ function HomeRow({
 }) {
   const { t } = useLocale();
   return (
-    <div className="flex items-center gap-2 border border-transparent bg-[var(--color-sidebar-panel)] px-3.5 py-3 text-sm font-medium shadow-[var(--shadow-whisper)]">
+    <div className="flex min-w-0 items-center gap-2 border border-transparent bg-[var(--color-sidebar-panel)] px-3 py-3 text-sm font-medium shadow-[var(--shadow-whisper)]">
       <Link
         className="flex min-w-0 flex-1 items-center gap-3 transition hover:text-[var(--color-foreground)]"
         href="/home"
       >
-        <House className="size-4 text-[var(--color-muted-foreground)]" />
-        {t("home")}
+        <House className="size-4 shrink-0 text-[var(--color-muted-foreground)]" />
+        <span className="min-w-0 truncate">{t("home")}</span>
       </Link>
       {canManageCurrentWorkspace ? (
         <>
@@ -148,13 +148,13 @@ export function ShellSidebarSections({
       </nav>
       {canManageCurrentWorkspace ? (
         <button
-          className="mt-3 flex w-full items-center gap-3 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3.5 py-3 text-left text-sm font-medium shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-card)]"
+          className="mt-3 flex w-full min-w-0 items-center gap-3 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3 py-3 text-left text-sm font-medium shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-card)]"
           onClick={onTrashOpen}
           type="button"
         >
-          <div className="flex items-center gap-3">
-            <Trash2 className="size-4 text-[var(--color-muted-foreground)]" />
-            {t("trash")}
+          <div className="flex min-w-0 items-center gap-3">
+            <Trash2 className="size-4 shrink-0 text-[var(--color-muted-foreground)]" />
+            <span className="min-w-0 truncate">{t("trash")}</span>
           </div>
         </button>
       ) : null}

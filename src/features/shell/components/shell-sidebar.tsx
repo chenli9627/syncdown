@@ -69,7 +69,7 @@ function WorkspaceCard({
   const { t } = useLocale();
   return (
     <button
-      className="flex w-full items-center gap-3 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3 py-3 text-left shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-card)]"
+      className="flex w-full min-w-0 items-center gap-2.5 border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] px-3 py-3 text-left shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-card)]"
       ref={workspaceTriggerRef}
       onClick={onToggle}
       type="button"
@@ -77,19 +77,21 @@ function WorkspaceCard({
       {currentUser.avatarUrl ? (
         <Image
           alt={currentUser.name}
-          className="size-10 rounded-full object-cover"
+          className="size-9 shrink-0 rounded-full object-cover"
           height={40}
           src={currentUser.avatarUrl}
           unoptimized
           width={40}
         />
       ) : (
-        <div className="flex size-10 items-center justify-center rounded-full bg-[#2563eb] text-sm font-semibold text-white">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-sm font-semibold text-white">
           {currentUser.name.slice(0, 1).toUpperCase()}
         </div>
       )}
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <p className="truncate text-[15px] font-semibold">{currentWorkspace.name}</p>
+        <p className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+          {currentWorkspace.name}
+        </p>
         {isGuest ? <span className={guestBadgeClass}>{t("guest")}</span> : null}
       </div>
     </button>
@@ -149,7 +151,7 @@ export function ShellSidebar({
   }
 
   return (
-    <aside className="relative z-20 flex h-screen min-h-0 flex-col overflow-visible border-r border-[var(--color-border)] bg-[var(--color-sidebar)] p-2.5 text-[var(--color-sidebar-foreground)]">
+    <aside className="relative z-20 flex h-screen min-h-0 min-w-0 flex-col overflow-visible border-r border-[var(--color-border)] bg-[var(--color-sidebar)] p-2.5 text-[var(--color-sidebar-foreground)]">
       <div className="relative z-30">
         <WorkspaceCard
           currentUser={currentUser}

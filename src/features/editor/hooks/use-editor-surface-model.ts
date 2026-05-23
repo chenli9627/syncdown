@@ -23,6 +23,7 @@ import { closeSlashMenu } from "@/features/editor/lib/slash-menu";
 
 type UseEditorSurfaceModelArgs = {
   document: DocumentRecord;
+  initialFocusTitle?: boolean;
   permission: "owner" | "can_edit" | "can_view";
   routerPushHome: () => void;
   saveDocument: ReturnType<typeof useAppState>["saveDocument"];
@@ -30,6 +31,7 @@ type UseEditorSurfaceModelArgs = {
 
 export function useEditorSurfaceModel({
   document,
+  initialFocusTitle = false,
   permission,
   routerPushHome,
   saveDocument,
@@ -58,6 +60,7 @@ export function useEditorSurfaceModel({
       canEditTitle,
       documentId: document.id,
       documentTitle: document.title,
+      initialFocusTitle,
       saveDocument,
       setStatus: ui.setStatus,
     });

@@ -82,7 +82,7 @@ export function ShellFrame({ children }: ShellFrameProps) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--color-background)]">
-      <div className="grid h-screen w-full grid-cols-1 bg-[var(--color-card)] md:grid-cols-[272px_minmax(0,1fr)]">
+      <div className="grid h-screen w-full grid-cols-1 bg-[var(--color-card)] md:grid-cols-[248px_minmax(0,1fr)]">
         <ShellSidebar
           accessibleWorkspaces={accessibleWorkspaces}
           buckets={buckets}

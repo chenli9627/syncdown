@@ -37,7 +37,10 @@ export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
     return null;
   }
 
-  const initialFocusTitle = searchParams.get("focus") === "title";
+  const initialFocusTitle =
+    searchParams.get("focus") === "title" ||
+    (typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("focus") === "title");
 
   return (
     <EditorSurface

@@ -70,14 +70,14 @@ export function SidebarSection({
 
   return (
     <section className="flex min-h-0 flex-col border border-[var(--color-border)] bg-[var(--color-sidebar-panel)] shadow-[var(--shadow-whisper)]">
-      <header className="flex items-center justify-between px-3.5 py-3">
+      <header className="flex min-w-0 items-center justify-between gap-2 px-3 py-3">
         <div className="flex min-w-0 items-center gap-2 text-left">
-          <Icon className="size-4 text-[var(--color-muted-foreground)]" />
-          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">
+          <Icon className="size-4 shrink-0 text-[var(--color-muted-foreground)]" />
+          <h2 className="min-w-0 truncate text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-muted-foreground)]">
             {title}
           </h2>
         </div>
-        <div className="relative flex items-center gap-3 text-xs text-[var(--color-muted-foreground)]">
+        <div className="relative flex shrink-0 items-center gap-2.5 text-xs text-[var(--color-muted-foreground)]">
           {showCreate ? (
             <button
               className="transition hover:text-[var(--color-foreground)]"
@@ -130,14 +130,14 @@ export function SidebarSection({
           {visibleItems.length ? (
             visibleItems.map((item) => (
               <button
-                className="flex items-center px-2.5 py-2 text-left text-sm transition hover:bg-[var(--color-muted)]"
+                className="flex w-full min-w-0 items-center px-2.5 py-2 text-left text-sm transition hover:bg-[var(--color-muted)]"
                 key={item.id}
                 onClick={() => {
                   onOpenItem?.(item.id);
                 }}
                 type="button"
               >
-                <span className="truncate">{item.title}</span>
+                <span className="min-w-0 flex-1 truncate">{item.title}</span>
               </button>
             ))
           ) : (

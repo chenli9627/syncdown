@@ -82,7 +82,7 @@ export function EditorVersionHistoryPanel({
   }
 
   return (
-    <aside className="fixed bottom-4 left-4 right-4 top-4 z-[45] flex min-h-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] md:left-[288px]">
+    <aside className="fixed bottom-4 left-4 right-4 top-4 z-[45] flex min-h-0 overflow-hidden border border-[var(--color-border)] bg-[var(--color-card)] shadow-[var(--shadow-soft-card)] md:left-[264px]">
       <EditorVersionHistoryPreview
         currentContent={versionComparison.currentContent}
         previousContent={versionComparison.previousContent}

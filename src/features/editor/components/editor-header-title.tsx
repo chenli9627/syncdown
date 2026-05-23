@@ -35,7 +35,36 @@ export function EditorHeaderTitle({
   const pendingInitialSelectionDocumentIdRef = useRef<string | null>(null);
   const selectionGuardTimeoutRef = useRef<number | null>(null);
   const shouldInitialFocus =
-    initialFocusTitle || searchParams.get("focus") === "title";
+    initialFocusTitle ||
+    searchParams.get("focus") === "title" ||
+    (typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("focus") === "title");
+  const titleInputRefCallback = useCallback(
+    (input: HTMLInputElement | null) => {
+      titleInputRef.current = input;
+
+      if (!input || !canEditTitle || !shouldInitialFocus) {
+        return;
+      }
+
+      const initialTitleValue = titleDraft;
+      const selectTitle = () => {
+        if (input.value !== initialTitleValue) {
+          return;
+        }
+
+        input.focus({ preventScroll: true });
+        input.select();
+      };
+
+      selectTitle();
+      window.requestAnimationFrame(selectTitle);
+      [50, 120, 240, 480, 800].forEach((delay) => {
+        window.setTimeout(selectTitle, delay);
+      });
+    },
+    [canEditTitle, shouldInitialFocus, titleDraft, titleInputRef],
+  );
 
   const startSelectionGuard = useCallback(() => {
     if (selectionGuardTimeoutRef.current) {
@@ -62,9 +91,20 @@ export function EditorHeaderTitle({
       }
 
       input.focus({ preventScroll: true });
-      input.setSelectionRange(0, input.value.length);
+      input.select();
+      window.requestAnimationFrame(() => {
+        if (
+          pendingInitialSelectionDocumentIdRef.current !== documentId ||
+          input.value !== initialTitleValue
+        ) {
+          return;
+        }
+
+        input.select();
+      });
 
       if (attempts >= 40) {
+        pendingInitialSelectionDocumentIdRef.current = null;
         return;
       }
 
@@ -154,6 +194,16 @@ export function EditorHeaderTitle({
             event.currentTarget.select();
             startSelectionGuard();
           }}
+          onPointerDown={(event) => {
+            if (pendingInitialSelectionDocumentIdRef.current !== documentId) {
+              return;
+            }
+
+            event.preventDefault();
+            event.currentTarget.focus({ preventScroll: true });
+            event.currentTarget.select();
+            startSelectionGuard();
+          }}
           onKeyDown={(event) => {
             if (event.key !== "Enter") {
               return;
@@ -163,7 +213,8 @@ export function EditorHeaderTitle({
             editor?.commands.focus("end");
           }}
           placeholder={t("untitled")}
-          ref={titleInputRef}
+          ref={titleInputRefCallback}
+          data-initial-focus-title={shouldInitialFocus ? "true" : undefined}
           value={titleDraft}
         />
       </div>

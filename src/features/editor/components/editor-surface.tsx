@@ -42,6 +42,7 @@ export function EditorSurface({
   const [restoreBusy, setRestoreBusy] = useState(false);
   const model = useEditorSurfaceModel({
     document,
+    initialFocusTitle,
     permission,
     routerPushHome: () => router.push("/home"),
     saveDocument,
@@ -271,7 +272,6 @@ export function EditorSurface({
           documentTitle={model.titleDraft || document.title}
           editor={model.editor}
           isNarrow={isNarrowAiLayout}
-          isOverlay={!isNarrowAiLayout}
           onClose={() => setAiChatOpen(false)}
           onResizeStart={handleAiPanelResizeStart}
           panelWidth={aiPanelWidth}
