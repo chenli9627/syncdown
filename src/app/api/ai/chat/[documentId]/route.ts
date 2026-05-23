@@ -269,7 +269,7 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
   }
 
   if (documentAction === "replace_document") {
-    return "The requested automatic action is: replace the current document body with your answer. Return the complete new document body in Markdown. Preserve useful existing content unless the user explicitly asks to remove it. Do not explain the change, and do not say you replaced the document.";
+    return "The requested automatic action is: replace the current document body with your answer. Return the complete new document body in Markdown. If the user requested a specific location, place the generated or modified content at that location in the full document. Preserve useful existing content unless the user explicitly asks to remove it. Do not explain the change, and do not say you replaced the document.";
   }
 
   if (documentAction === "replace_selection") {

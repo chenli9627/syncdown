@@ -24,6 +24,10 @@ export function inferAiChatDocumentAction(
     return "insert_cursor";
   }
 
+  if (isSpecificPlacementPrompt(compactPrompt, lowerPrompt)) {
+    return "replace_document";
+  }
+
   if (
     isReplaceSelectionPrompt(compactPrompt, lowerPrompt) ||
     (options.hasSelection &&
@@ -88,6 +92,25 @@ function isReplaceSelectionPrompt(compactPrompt: string, lowerPrompt: string) {
     /\b(?:selection|selected text|selected content|highlighted text)\b[\s\S]{0,120}\b(?:replace|rewrite|revise|edit|improve|translate|summarize|expand|shorten)\b/.test(
       lowerPrompt,
     )
+  );
+}
+
+function isSpecificPlacementPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    hasChinesePlacementVerb(compactPrompt) &&
+      /(?:开头|顶部|前面|后面|之前|之后|上面|下面|上方|下方|中间|之间|标题|段落|第[一二三四五六七八九十\d]+段|小节|章节|部分|表格|列表|清单|摘要|背景|引言|目标|方案|风险|结论)/.test(
+        compactPrompt,
+      )
+  ) ||
+    (/\b(?:add|insert|place|put|move|append|write|create|generate)\b/.test(lowerPrompt) &&
+      /\b(?:before|after|under|below|above|over|between|near|beginning|top|heading|section|paragraph|table|list|summary|background|introduction|goal|plan|risk|conclusion)\b/.test(
+        lowerPrompt,
+      ))
+}
+
+function hasChinesePlacementVerb(compactPrompt: string) {
+  return /(?:生成|写|创建|新增|添加|加入|插入|放到|放入|放进|放在|写入|移动|挪到|追加)/.test(
+    compactPrompt,
   );
 }
 
