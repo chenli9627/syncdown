@@ -32,6 +32,7 @@ export function EditorHeaderTitle({
   const { t } = useLocale();
   const searchParams = useSearchParams();
   const initialFocusDocumentIdRef = useRef<string | null>(null);
+  const refInitialSelectionDocumentIdRef = useRef<string | null>(null);
   const pendingInitialSelectionDocumentIdRef = useRef<string | null>(null);
   const selectionGuardTimeoutRef = useRef<number | null>(null);
   const shouldInitialFocus =
@@ -47,7 +48,12 @@ export function EditorHeaderTitle({
         return;
       }
 
-      const initialTitleValue = titleDraft;
+      if (refInitialSelectionDocumentIdRef.current === documentId) {
+        return;
+      }
+
+      refInitialSelectionDocumentIdRef.current = documentId;
+      const initialTitleValue = input.value;
       const selectTitle = () => {
         if (input.value !== initialTitleValue) {
           return;
@@ -63,8 +69,17 @@ export function EditorHeaderTitle({
         window.setTimeout(selectTitle, delay);
       });
     },
-    [canEditTitle, shouldInitialFocus, titleDraft, titleInputRef],
+    [canEditTitle, documentId, shouldInitialFocus, titleInputRef],
   );
+
+  const stopInitialSelectionGuard = useCallback(() => {
+    pendingInitialSelectionDocumentIdRef.current = null;
+
+    if (selectionGuardTimeoutRef.current) {
+      window.clearTimeout(selectionGuardTimeoutRef.current);
+      selectionGuardTimeoutRef.current = null;
+    }
+  }, []);
 
   const startSelectionGuard = useCallback(() => {
     if (selectionGuardTimeoutRef.current) {
@@ -185,7 +200,10 @@ export function EditorHeaderTitle({
           disabled={!canEditTitle}
           name="document-title"
           onBlur={() => void commitTitle()}
-          onChange={(event) => setTitleDraft(event.target.value)}
+          onChange={(event) => {
+            stopInitialSelectionGuard();
+            setTitleDraft(event.target.value);
+          }}
           onFocus={(event) => {
             if (pendingInitialSelectionDocumentIdRef.current !== documentId) {
               return;
