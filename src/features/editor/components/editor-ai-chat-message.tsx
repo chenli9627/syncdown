@@ -32,6 +32,7 @@ import { getAiDocumentEditToolSummary } from "@/features/editor/lib/ai-chat-docu
 import { cn } from "@/lib/utils";
 
 type ChatMessageProps = {
+  appliedNotice?: string;
   busy?: boolean;
   editingText?: string;
   editor: Editor | null;
@@ -45,6 +46,7 @@ type ChatMessageProps = {
 };
 
 export function ChatMessage({
+  appliedNotice,
   busy = false,
   editingText = "",
   editor,
@@ -101,6 +103,11 @@ export function ChatMessage({
         )}
       >
         {isAssistant ? <MessageResponse>{displayText}</MessageResponse> : text}
+        {isAssistant && appliedNotice ? (
+          <p className="mt-2 border-t border-[var(--color-border)] pt-2 text-xs text-[var(--color-muted-foreground)]">
+            {appliedNotice}
+          </p>
+        ) : null}
       </MessageContent>
       {isAssistant && text.trim() ? (
         <MessageActions>

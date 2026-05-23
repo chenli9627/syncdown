@@ -5,8 +5,10 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import {
   type PointerEvent,
+  type RefObject,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { flushSync } from "react-dom";
@@ -67,9 +69,10 @@ export function EditorAiChatPanel({
 }: AiChatPanelProps) {
   const { t } = useLocale();
   const [input, setInput] = useState("");
-  const [appliedNotice, setAppliedNotice] = useState<string | null>(null);
+  const [appliedNotices, setAppliedNotices] = useState<Record<string, string>>({});
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredAiChatModelKey());
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const transport = useMemo(
     () =>
       new DefaultChatTransport<AiChatMessage>({
@@ -91,8 +94,12 @@ export function EditorAiChatPanel({
   });
   const busy = status === "submitted" || status === "streaming";
   const handleDocumentActionApplied = useCallback(
-    (action: AiChatDocumentAction) => {
-      setAppliedNotice(getAppliedNotice(action, t));
+    (action: AiChatDocumentAction, messageId: string) => {
+      setAppliedNotices((current) => ({
+        ...current,
+        [messageId]: getAppliedNotice(action, t),
+      }));
+      focusPromptInput(inputRef);
     },
     [t],
   );
@@ -131,8 +138,8 @@ export function EditorAiChatPanel({
     const threadId = createThreadForSend();
 
     setPendingAction(documentAction, messages.length);
-    setAppliedNotice(null);
     setInput("");
+    focusPromptInput(inputRef);
     void sendMessage(
       { text: trimmed },
       {
@@ -177,11 +184,11 @@ export function EditorAiChatPanel({
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
 
     setPendingAction(documentAction, nextMessages.length);
-    setAppliedNotice(null);
     flushSync(() => {
       setMessages(nextMessages);
       setEditingQuestion(null);
     });
+    focusPromptInput(inputRef);
     void sendMessage(
       { text: trimmed },
       {
@@ -243,6 +250,7 @@ export function EditorAiChatPanel({
             <div className="flex flex-col gap-4">
               {messages.map((message) => (
                 <ChatMessage
+                  appliedNotice={appliedNotices[message.id]}
                   busy={busy}
                   editingText={
                     editingQuestion?.id === message.id ? editingQuestion.text : undefined
@@ -284,19 +292,14 @@ export function EditorAiChatPanel({
           {error ? (
             <p className="mt-3 text-xs text-[#dd5b00]">{t("aiRequestFailed")}</p>
           ) : null}
-          {appliedNotice ? (
-            <p className="mt-3 border border-[var(--color-border)] bg-[var(--color-muted)] px-2 py-1.5 text-xs text-[var(--color-muted-foreground)]">
-              {appliedNotice}
-            </p>
-          ) : null}
         </ConversationContent>
       </Conversation>
       <PromptInput onSubmit={handleSubmit} text={input}>
         <div className="flex items-end gap-2">
           <PromptInputTextarea
-            disabled={busy}
             onChange={(event) => setInput(event.target.value)}
             placeholder={t("aiChatPlaceholder")}
+            ref={inputRef}
             value={input}
           />
           <PromptInputSubmit disabled={busy || !input.trim()} />
@@ -308,6 +311,12 @@ export function EditorAiChatPanel({
 
 function hasEditorSelection(editor: Editor | null) {
   return Boolean(editor && !editor.state.selection.empty);
+}
+
+function focusPromptInput(inputRef: RefObject<HTMLTextAreaElement | null>) {
+  window.requestAnimationFrame(() => {
+    inputRef.current?.focus();
+  });
 }
 
 function getAppliedNotice(action: AiChatDocumentAction, t: (key: MessageKey) => string) {

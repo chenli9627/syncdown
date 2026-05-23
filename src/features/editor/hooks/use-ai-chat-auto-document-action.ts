@@ -25,7 +25,7 @@ type UseAiChatAutoDocumentActionArgs = {
   editor: Editor | null;
   error: Error | undefined;
   messages: AiChatMessage[];
-  onApplied?: (action: AiChatDocumentAction) => void;
+  onApplied?: (action: AiChatDocumentAction, messageId: string) => void;
 };
 
 export function useAiChatAutoDocumentAction({
@@ -70,32 +70,32 @@ export function useAiChatAutoDocumentAction({
       const appliedCount = applyAiDocumentEditToolResponse(editor, responseText);
 
       if (appliedCount > 0) {
-        onApplied?.(documentAction.action);
+        onApplied?.(documentAction.action, lastMessage.id);
       }
       return;
     }
 
     if (documentAction.action === "insert_end") {
       appendAiResponseAsDocumentEndBlocks(editor, responseText);
-      onApplied?.(documentAction.action);
+      onApplied?.(documentAction.action, lastMessage.id);
       return;
     }
 
     if (documentAction.action === "insert_cursor") {
       insertAiResponseAtCursor(editor, responseText);
-      onApplied?.(documentAction.action);
+      onApplied?.(documentAction.action, lastMessage.id);
       return;
     }
 
     if (documentAction.action === "replace_document") {
       replaceDocumentWithAiResponse(editor, responseText);
-      onApplied?.(documentAction.action);
+      onApplied?.(documentAction.action, lastMessage.id);
       return;
     }
 
     if (documentAction.action === "replace_selection") {
       replaceSelectionWithAiResponse(editor, lastMessage, responseText);
-      onApplied?.(documentAction.action);
+      onApplied?.(documentAction.action, lastMessage.id);
     }
   }, [busy, editor, messages, onApplied]);
 
