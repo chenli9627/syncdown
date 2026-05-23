@@ -125,7 +125,7 @@ export function MessageAction({
   return (
     <button
       className={cn(
-        "group/action inline-flex h-7 w-7 items-center justify-center gap-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] px-0 text-[11px] font-medium text-[var(--color-muted-foreground)] transition-all hover:w-auto hover:bg-[var(--color-muted)] hover:px-2 hover:text-[var(--color-foreground)] focus-visible:w-auto focus-visible:px-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "group/action relative inline-flex h-7 w-7 items-center justify-center border border-[var(--color-border)] bg-[var(--color-surface)] text-[11px] font-medium text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       title={tooltip}

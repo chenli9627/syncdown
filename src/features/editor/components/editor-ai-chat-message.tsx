@@ -127,7 +127,7 @@ export function ChatMessage({
 
 function ActionLabel({ children }: { children: string }) {
   return (
-    <span className="hidden whitespace-nowrap group-hover/action:inline group-focus-visible/action:inline">
+    <span className="pointer-events-none absolute bottom-[calc(100%+6px)] left-1/2 z-20 hidden -translate-x-1/2 whitespace-nowrap border border-[var(--color-border)] bg-[var(--color-card)] px-2 py-1 text-[11px] text-[var(--color-foreground)] shadow-[var(--shadow-whisper)] group-hover/action:block group-focus-visible/action:block">
       {children}
     </span>
   );
