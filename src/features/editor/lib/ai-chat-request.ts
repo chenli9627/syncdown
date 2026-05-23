@@ -4,6 +4,7 @@ import type {
   AiChatModelKey,
   AiChatSelection,
 } from "@/features/app-state/types";
+import { getAiDocumentBlocks } from "@/features/editor/lib/ai-chat-document-tools";
 
 export const AI_CHAT_MODEL_STORAGE_KEY = "syncdown.aiChatModelKey";
 
@@ -27,6 +28,7 @@ export function getAiChatRequestBody(
 ) {
   return {
     documentAction,
+    documentBlocks: documentAction === "edit_blocks" ? getAiDocumentBlocks(editor) : [],
     documentText: editor?.getText() ?? "",
     documentTitle,
     modelKey,

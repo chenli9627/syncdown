@@ -5,6 +5,7 @@ import {
   streamText,
 } from "ai";
 import type {
+  AiChatDocumentBlock,
   AiChatDocumentAction,
   AiChatMessage,
   AiChatModelKey,
@@ -22,6 +23,7 @@ import {
   getConfiguredAiChatModels,
 } from "@/lib/server/ai-models";
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
+import { buildDocumentChatSystemPrompt } from "./prompt";
 
 export const maxDuration = 60;
 
@@ -31,6 +33,7 @@ type RouteContext = {
 
 type ChatBody = {
   documentAction?: AiChatDocumentAction | null;
+  documentBlocks?: AiChatDocumentBlock[];
   documentText?: string;
   documentTitle?: string;
   messages?: AiChatMessage[];
@@ -134,6 +137,7 @@ export async function POST(request: Request, context: RouteContext) {
     system: buildDocumentChatSystemPrompt(
       body.documentTitle ?? "",
       body.documentText ?? "",
+      body.documentBlocks ?? [],
       body.selection ?? null,
       modelConfig.name,
       body.documentAction ?? null,
@@ -220,61 +224,4 @@ function withChatMetadata(
       createdAt: message.metadata?.createdAt ?? new Date().toISOString(),
     },
   };
-}
-
-function buildDocumentChatSystemPrompt(
-  documentTitle: string,
-  documentText: string,
-  selection: AiChatSelection | null,
-  modelName: string,
-  documentAction: AiChatDocumentAction | null,
-) {
-  const cleanDocumentTitle = documentTitle.trim() || "(untitled document)";
-  const cleanDocumentText = documentText.trim() || "(empty document)";
-  const selectionText = selection?.text.trim();
-
-  return [
-    "You are Syncdown's document assistant.",
-    `The currently selected AI model is exactly: ${modelName}.`,
-    "If the user asks what model you are, answer with that exact model name and do not claim to be a different model.",
-    "You can help the user discuss, rewrite, summarize, expand, translate, and structure the current document.",
-    documentAction
-      ? "The frontend will automatically apply your next answer to the current document."
-      : "When the user asks for an edit, return content that can be inserted into the document directly.",
-    documentAction
-      ? "Never tell the user to copy, paste, manually insert, or manually apply the answer."
-      : "",
-    getAutomaticActionInstruction(documentAction),
-    "Use Markdown when lists, headings, or emphasis make the answer clearer.",
-    documentAction
-      ? "Do not claim that the document has already changed while you are generating the answer."
-      : "Do not claim to have changed the document yourself; the user applies your response with explicit buttons.",
-    "",
-    "Current document title:",
-    cleanDocumentTitle,
-    "",
-    "Current document plain text:",
-    cleanDocumentText,
-    selectionText ? "\nCurrent selected text:\n" + selectionText : "",
-  ].join("\n");
-}
-
-function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | null) {
-  if (documentAction === "insert_end") {
-    return "The requested automatic action is: insert your answer at the end of the document. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
-  }
-
-  if (documentAction === "insert_cursor") {
-    return "The requested automatic action is: insert your answer at the current cursor position. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
-  }
-
-  if (documentAction === "replace_document") {
-    return "The requested automatic action is: replace the current document body with your answer. Return the complete new document body in Markdown. If the user requested a specific location, place the generated or modified content at that location in the full document. Preserve useful existing content unless the user explicitly asks to remove it. Do not explain the change, and do not say you replaced the document.";
-  }
-
-  if (documentAction === "replace_selection") {
-    return "The requested automatic action is: replace the selected text with your answer. Return only the exact replacement content. Do not quote the original text, do not explain the change, and do not say you replaced it.";
-  }
-
-  return "";
 }

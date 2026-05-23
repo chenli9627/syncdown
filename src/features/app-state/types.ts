@@ -5,6 +5,7 @@ export type Permission = "can_edit" | "can_view";
 export type AiChatModelKey = "primary" | "secondary";
 
 export type AiChatDocumentAction =
+  | "edit_blocks"
   | "insert_cursor"
   | "insert_end"
   | "replace_document"
@@ -14,6 +15,13 @@ export type AiChatSelection = {
   from: number;
   text: string;
   to: number;
+};
+
+export type AiChatDocumentBlock = {
+  id: string;
+  level?: number;
+  text: string;
+  type: string;
 };
 
 export type AiChatMessageMetadata = {

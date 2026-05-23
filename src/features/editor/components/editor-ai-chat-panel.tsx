@@ -311,6 +311,10 @@ function hasEditorSelection(editor: Editor | null) {
 }
 
 function getAppliedNotice(action: AiChatDocumentAction, t: (key: MessageKey) => string) {
+  if (action === "edit_blocks") {
+    return t("aiAppliedBlockEdit");
+  }
+
   if (action === "insert_end") {
     return t("aiAppliedInsertEnd");
   }

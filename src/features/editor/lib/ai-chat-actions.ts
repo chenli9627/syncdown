@@ -25,7 +25,7 @@ export function inferAiChatDocumentAction(
   }
 
   if (isSpecificPlacementPrompt(compactPrompt, lowerPrompt)) {
-    return "replace_document";
+    return "edit_blocks";
   }
 
   if (

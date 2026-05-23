@@ -50,12 +50,12 @@ test("infers replace-document action from whole document edit requests", () => {
   assert.equal(inferAiChatDocumentAction("Rewrite this document in a more formal tone"), "replace_document");
 });
 
-test("infers replace-document action from special placement requests", () => {
-  assert.equal(inferAiChatDocumentAction("生成一个风险表格，放到方案下面"), "replace_document");
-  assert.equal(inferAiChatDocumentAction("在第二段之前插入一个摘要"), "replace_document");
+test("infers block-edit action from special placement requests", () => {
+  assert.equal(inferAiChatDocumentAction("生成一个风险表格，放到方案下面"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("在第二段之前插入一个摘要"), "edit_blocks");
   assert.equal(
     inferAiChatDocumentAction("Create a comparison table under the Background section"),
-    "replace_document",
+    "edit_blocks",
   );
 });
 

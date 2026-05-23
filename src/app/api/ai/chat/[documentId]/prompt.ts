@@ -1,0 +1,89 @@
+import type {
+  AiChatDocumentAction,
+  AiChatDocumentBlock,
+  AiChatSelection,
+} from "@/features/app-state/types";
+
+export function buildDocumentChatSystemPrompt(
+  documentTitle: string,
+  documentText: string,
+  documentBlocks: AiChatDocumentBlock[],
+  selection: AiChatSelection | null,
+  modelName: string,
+  documentAction: AiChatDocumentAction | null,
+) {
+  const cleanDocumentTitle = documentTitle.trim() || "(untitled document)";
+  const cleanDocumentText = documentText.trim() || "(empty document)";
+  const selectionText = selection?.text.trim();
+
+  return [
+    "You are Syncdown's document assistant.",
+    `The currently selected AI model is exactly: ${modelName}.`,
+    "If the user asks what model you are, answer with that exact model name and do not claim to be a different model.",
+    "You can help the user discuss, rewrite, summarize, expand, translate, and structure the current document.",
+    documentAction
+      ? "The frontend will automatically apply your next answer to the current document."
+      : "When the user asks for an edit, return content that can be inserted into the document directly.",
+    documentAction
+      ? "Never tell the user to copy, paste, manually insert, or manually apply the answer."
+      : "",
+    getAutomaticActionInstruction(documentAction),
+    "Use Markdown when lists, headings, or emphasis make the answer clearer.",
+    documentAction
+      ? "Do not claim that the document has already changed while you are generating the answer."
+      : "Do not claim to have changed the document yourself; the user applies your response with explicit buttons.",
+    "",
+    "Current document title:",
+    cleanDocumentTitle,
+    "",
+    "Current document plain text:",
+    cleanDocumentText,
+    documentAction === "edit_blocks" ? "\nCurrent document blocks:\n" + formatDocumentBlocks(documentBlocks) : "",
+    selectionText ? "\nCurrent selected text:\n" + selectionText : "",
+  ].join("\n");
+}
+
+function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | null) {
+  if (documentAction === "edit_blocks") {
+    return [
+      "The requested automatic action is: edit the document with block-level operations.",
+      "Return only valid JSON, with no Markdown fences and no prose.",
+      "Schema: {\"summary\":\"short user-facing summary\",\"operations\":[{\"type\":\"insert_after_block|insert_before_block|replace_block|delete_block\",\"blockId\":\"block_1\",\"content\":\"Markdown content, omitted for delete_block\"}]}",
+      "Use only blockId values from Current document blocks.",
+      "For location requests, choose the closest matching block and use insert_after_block or insert_before_block.",
+      "For content changes, prefer replace_block or delete_block over replacing the whole document.",
+    ].join(" ");
+  }
+
+  if (documentAction === "insert_end") {
+    return "The requested automatic action is: insert your answer at the end of the document. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
+  }
+
+  if (documentAction === "insert_cursor") {
+    return "The requested automatic action is: insert your answer at the current cursor position. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
+  }
+
+  if (documentAction === "replace_document") {
+    return "The requested automatic action is: replace the current document body with your answer. Return the complete new document body in Markdown. Preserve useful existing content unless the user explicitly asks to remove it. Do not explain the change, and do not say you replaced the document.";
+  }
+
+  if (documentAction === "replace_selection") {
+    return "The requested automatic action is: replace the selected text with your answer. Return only the exact replacement content. Do not quote the original text, do not explain the change, and do not say you replaced it.";
+  }
+
+  return "";
+}
+
+function formatDocumentBlocks(blocks: AiChatDocumentBlock[]) {
+  if (!blocks.length) {
+    return "(empty)";
+  }
+
+  return blocks
+    .map((block) => {
+      const level = block.level ? ` level=${block.level}` : "";
+      const text = block.text.trim() || "(empty)";
+      return `- ${block.id}: type=${block.type}${level} text=${JSON.stringify(text)}`;
+    })
+    .join("\n");
+}

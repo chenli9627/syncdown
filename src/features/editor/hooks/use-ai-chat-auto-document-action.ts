@@ -13,6 +13,7 @@ import {
   replaceDocumentWithAiResponse,
   replaceSelectionWithAiResponse,
 } from "@/features/editor/lib/ai-chat-actions";
+import { applyAiDocumentEditToolResponse } from "@/features/editor/lib/ai-chat-document-tools";
 
 type PendingDocumentAction = {
   action: AiChatDocumentAction;
@@ -62,6 +63,15 @@ export function useAiChatAutoDocumentAction({
     pendingActionRef.current = null;
 
     if (!responseText) {
+      return;
+    }
+
+    if (documentAction.action === "edit_blocks") {
+      const appliedCount = applyAiDocumentEditToolResponse(editor, responseText);
+
+      if (appliedCount > 0) {
+        onApplied?.(documentAction.action);
+      }
       return;
     }
 
