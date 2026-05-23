@@ -144,6 +144,8 @@ General engineering expectations:
 - do not use `agent-browser`; use Chrome DevTools tooling for browser verification instead
 - successful modifications must be recorded with git
 - run lint after changes
+- when `pnpm dev` is already running, rely on its hot reload for development checks
+- do not run `pnpm build` after every small change; reserve it for larger features, API/route/dependency changes, or pre-commit final verification
 
 Code structure constraints:
 
@@ -291,3 +293,4 @@ When starting a new session:
 3. inspect current Git status before editing
 4. preserve unrelated user changes
 5. run `pnpm lint` and relevant tests before finishing
+6. run `pnpm build` only when the change is large, touches API/routes/dependencies, or needs final production-build verification
