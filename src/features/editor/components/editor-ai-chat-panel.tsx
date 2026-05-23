@@ -208,7 +208,6 @@ export function EditorAiChatPanel({
       </Conversation>
       <PromptInput onSubmit={handleSubmit} text={input}>
         <div className="flex items-end gap-2">
-          <UserAvatar user={currentUser} />
           <PromptInputTextarea
             disabled={busy}
             onChange={(event) => setInput(event.target.value)}
@@ -219,23 +218,6 @@ export function EditorAiChatPanel({
         </div>
       </PromptInput>
     </aside>
-  );
-}
-
-function UserAvatar({ user }: { user: User | null }) {
-  const initial = (user?.name || user?.username || "?").trim().slice(0, 1).toUpperCase();
-
-  if (user?.avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img alt="" className="h-8 w-8 shrink-0 border border-[var(--color-border)] object-cover" src={user.avatarUrl} />
-    );
-  }
-
-  return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-[var(--color-border)] bg-[var(--color-muted)] text-xs font-semibold text-[var(--color-muted-foreground)]">
-      {initial}
-    </div>
   );
 }
 

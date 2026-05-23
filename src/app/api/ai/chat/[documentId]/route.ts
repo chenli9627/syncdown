@@ -108,7 +108,11 @@ export async function POST(request: Request, context: RouteContext) {
   const result = streamText({
     messages: await convertToModelMessages(messages),
     model: createAiChatModel(modelConfig),
-    system: buildDocumentChatSystemPrompt(body.documentText ?? "", body.selection ?? null),
+    system: buildDocumentChatSystemPrompt(
+      body.documentText ?? "",
+      body.selection ?? null,
+      modelConfig.name,
+    ),
     temperature: 0.3,
   });
 
@@ -157,12 +161,18 @@ function withChatMetadata(
   };
 }
 
-function buildDocumentChatSystemPrompt(documentText: string, selection: AiChatSelection | null) {
+function buildDocumentChatSystemPrompt(
+  documentText: string,
+  selection: AiChatSelection | null,
+  modelName: string,
+) {
   const cleanDocumentText = documentText.trim() || "(empty document)";
   const selectionText = selection?.text.trim();
 
   return [
     "You are Syncdown's document assistant.",
+    `The currently selected AI model is exactly: ${modelName}.`,
+    "If the user asks what model you are, answer with that exact model name and do not claim to be a different model.",
     "You can help the user discuss, rewrite, summarize, expand, translate, and structure the current document.",
     "When the user asks for an edit, return content that can be inserted into the document directly.",
     "Use Markdown when lists, headings, or emphasis make the answer clearer.",

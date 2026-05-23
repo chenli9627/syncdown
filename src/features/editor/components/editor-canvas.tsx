@@ -689,7 +689,7 @@ export function EditorCanvas({
   }, [tableAxisMenu?.open]);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-10 py-8">
+    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col py-8 pl-20 pr-10">
       <input
         accept=".md,.zip,text/markdown,application/zip"
         className="hidden"

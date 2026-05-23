@@ -1,9 +1,16 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import net from "node:net";
 
 const mode = process.argv[2] === "start" ? "start" : "dev";
 const collabHost = process.env.COLLAB_HOST ?? "0.0.0.0";
 const collabPort = process.env.COLLAB_PORT ?? "1234";
+const devMemoryGuardEnabled =
+  mode === "dev" && process.env.SYNCDOWN_DEV_MEMORY_GUARD !== "0";
+const devAppMaxRssMb = Number(process.env.SYNCDOWN_DEV_APP_MAX_RSS_MB ?? "3072");
+const devAppMemoryCheckMs = Number(
+  process.env.SYNCDOWN_DEV_MEMORY_CHECK_MS ?? "15000",
+);
 
 function canConnect(host, port) {
   return new Promise((resolve) => {
@@ -39,18 +46,42 @@ const collab = collabAlreadyRunning
       },
     );
 
-const app = spawn("pnpm", ["run", mode === "dev" ? "dev:app" : "start:app"], {
-  cwd: process.cwd(),
-  env: process.env,
-  stdio: "inherit",
-});
+let appRestarting = false;
+let app = startApp();
+let memoryGuard = null;
+
+if (devMemoryGuardEnabled && Number.isFinite(devAppMaxRssMb) && devAppMaxRssMb > 0) {
+  memoryGuard = setInterval(checkAppMemory, devAppMemoryCheckMs);
+  memoryGuard.unref();
+}
+
+function startApp() {
+  const child = spawn("pnpm", ["run", mode === "dev" ? "dev:app" : "start:app"], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit",
+  });
+
+  child.on("exit", (code) => {
+    if (appRestarting) {
+      appRestarting = false;
+      app = startApp();
+      return;
+    }
+
+    terminateChildren("SIGTERM");
+    process.exit(code ?? 0);
+  });
+
+  return child;
+}
 
 function terminateChildren(signal = "SIGTERM") {
   if (collab && !collab.killed) {
     collab.kill(signal);
   }
   if (!app.killed) {
-    app.kill(signal);
+    terminateProcessTree(app.pid, signal);
   }
 }
 
@@ -61,15 +92,133 @@ collab?.on("exit", (code) => {
   }
 });
 
-app.on("exit", (code) => {
-  terminateChildren("SIGTERM");
-  process.exit(code ?? 0);
-});
-
 process.on("SIGINT", () => {
+  clearMemoryGuard();
   terminateChildren("SIGINT");
 });
 
 process.on("SIGTERM", () => {
+  clearMemoryGuard();
   terminateChildren("SIGTERM");
 });
+
+function checkAppMemory() {
+  if (!app.pid || app.killed) {
+    return;
+  }
+
+  const rssMb = getProcessTreeRssMb(app.pid);
+
+  if (rssMb == null) {
+    return;
+  }
+
+  if (rssMb < devAppMaxRssMb) {
+    return;
+  }
+
+  console.warn(
+    `[syncdown] dev app RSS reached ${rssMb.toFixed(0)} MB; restarting app process ` +
+      `(limit ${devAppMaxRssMb} MB).`,
+  );
+  appRestarting = true;
+  terminateProcessTree(app.pid, "SIGTERM");
+}
+
+function clearMemoryGuard() {
+  if (memoryGuard) {
+    clearInterval(memoryGuard);
+    memoryGuard = null;
+  }
+}
+
+function terminateProcessTree(rootPid, signal) {
+  for (const pid of getProcessTreePids(rootPid).reverse()) {
+    try {
+      process.kill(pid, signal);
+    } catch {
+      // Process already exited.
+    }
+  }
+}
+
+function getProcessTreeRssMb(rootPid) {
+  const pids = getProcessTreePids(rootPid);
+
+  if (pids.length === 0) {
+    return null;
+  }
+
+  const rssKb = pids.reduce((total, pid) => total + getProcessRssKb(pid), 0);
+
+  return rssKb / 1024;
+}
+
+function getProcessTreePids(rootPid) {
+  const parentByPid = getParentPidMap();
+  const childrenByParent = new Map();
+
+  for (const [pid, parentPid] of parentByPid.entries()) {
+    const children = childrenByParent.get(parentPid) ?? [];
+    children.push(pid);
+    childrenByParent.set(parentPid, children);
+  }
+
+  const pids = [];
+  const queue = [rootPid];
+
+  while (queue.length > 0) {
+    const pid = queue.shift();
+
+    if (!pid || pids.includes(pid)) {
+      continue;
+    }
+
+    pids.push(pid);
+    queue.push(...(childrenByParent.get(pid) ?? []));
+  }
+
+  return pids;
+}
+
+function getParentPidMap() {
+  const parentByPid = new Map();
+
+  for (const entry of fs.readdirSync("/proc", { withFileTypes: true })) {
+    if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) {
+      continue;
+    }
+
+    const pid = Number(entry.name);
+    const stat = readProcFile(pid, "stat");
+    const endOfCommand = stat.lastIndexOf(")");
+
+    if (endOfCommand === -1) {
+      continue;
+    }
+
+    const fields = stat.slice(endOfCommand + 2).split(" ");
+    const parentPid = Number(fields[1]);
+
+    if (Number.isFinite(parentPid)) {
+      parentByPid.set(pid, parentPid);
+    }
+  }
+
+  return parentByPid;
+}
+
+function getProcessRssKb(pid) {
+  const status = readProcFile(pid, "status");
+  const match = status.match(/^VmRSS:\s+(\d+)\s+kB$/m);
+
+  return match ? Number(match[1]) : 0;
+}
+
+function readProcFile(pid, fileName) {
+  try {
+    return fs.readFileSync(`/proc/${pid}/${fileName}`, "utf8");
+  } catch {
+    return "";
+  }
+}

@@ -68,10 +68,10 @@ export function EditorBlockControls({
 
   return (
     <div
-      className="absolute left-[-50px] z-10 flex items-center gap-1"
+      className="absolute left-[-70px] z-10 flex items-center gap-1"
       ref={blockControlsRef}
       style={{
-        left: `${-(50 + avatarLaneWidth + (avatarLaneWidth > 0 ? 4 : 0))}px`,
+        left: `${-(66 + avatarLaneWidth + (avatarLaneWidth > 0 ? 4 : 0))}px`,
         top: `${Math.max(0, hoveredBlock.top + hoveredBlock.height / 2 - 14)}px`,
       }}
     >
