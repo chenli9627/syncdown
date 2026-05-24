@@ -27,6 +27,7 @@ import { toEditorContent } from "@/features/editor/lib/content";
 import { EDITOR_LINK_CLASS } from "@/features/editor/lib/editor-link-styles";
 import { insertImageFile } from "@/features/editor/lib/image";
 import { insertMarkdownPaste } from "@/features/editor/lib/markdown-paste";
+import { resolveHrefForNavigation } from "@/features/editor/components/editor-link-popover";
 
 type SaveDocument = (
   documentId: string,
@@ -267,7 +268,14 @@ export function useSyntextEditor({
         }
 
         event.preventDefault();
-        window.open(link.href, "_blank", "noopener,noreferrer");
+        const rawHref = link.getAttribute("href") ?? "";
+        const resolvedHref = resolveHrefForNavigation(rawHref);
+
+        if (!resolvedHref) {
+          return true;
+        }
+
+        window.open(resolvedHref, "_blank", "noopener,noreferrer");
         return true;
       },
       handleKeyDown: (_view, event) => {

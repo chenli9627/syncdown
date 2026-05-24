@@ -142,7 +142,13 @@ function HoverLinkPopoverContent({
       <button
         className="min-w-0 flex-1 truncate border border-[var(--color-border)] px-2 py-1 text-left text-[12px] text-[var(--color-primary)] transition hover:bg-[var(--color-hover)]"
         onClick={() => {
-          window.open(href, "_blank", "noopener,noreferrer");
+          const resolvedHref = resolveHrefForNavigation(href);
+
+          if (!resolvedHref) {
+            return;
+          }
+
+          window.open(resolvedHref, "_blank", "noopener,noreferrer");
         }}
         title={href}
         type="button"
@@ -295,17 +301,7 @@ export function getLinkRange(editor: Editor, anchor: HTMLAnchorElement) {
 }
 
 export function normalizeHref(value: string) {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return "";
-  }
-
-  if (/^(https?:|mailto:|tel:|#|\/)/i.test(trimmed)) {
-    return trimmed;
-  }
-
-  return `https://${trimmed}`;
+  return value.trim();
 }
 
 export function getPreferredLinkText(
@@ -324,6 +320,20 @@ export function getPreferredLinkText(
   }
 
   return draftHref.trim();
+}
+
+export function resolveHrefForNavigation(href: string) {
+  const trimmed = href.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  if (/^(https?:|mailto:|tel:|#|\/)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `https://${trimmed}`;
 }
 
 function getAnchorTextNodes(anchor: HTMLAnchorElement) {
