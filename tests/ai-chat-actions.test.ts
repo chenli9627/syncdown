@@ -53,7 +53,11 @@ test("infers block-edit action from document-scoped local deletions", () => {
   assert.equal(inferAiChatDocumentAction("删除这篇文档里重复的内容"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("删除北京简介里的引用标注"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("删除当前文档中的最后一段"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("删掉这个东西"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("删除它"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("去掉这些引用标注"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("Remove duplicate paragraphs from this document"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("Delete it"), "edit_blocks");
 });
 
 test("infers block-edit action from special placement requests", () => {

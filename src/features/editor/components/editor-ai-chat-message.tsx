@@ -66,9 +66,17 @@ export function ChatMessage({
   const { t } = useLocale();
   const text = getAiChatMessageText(message, message.metadata?.documentAction ?? null);
   const isAssistant = message.role === "assistant";
+  const isAutomaticDocumentAction = isAssistant && Boolean(message.metadata?.documentAction);
   const toolSummary = isAssistant ? getAiDocumentEditToolSummary(text) : null;
   const isNotChangedNotice = isDocumentNotChangedNotice(appliedNotice);
-  const displayText = isNotChangedNotice ? (appliedNotice ?? "") : (toolSummary ?? text);
+  const displayText = getDisplayText({
+    appliedNotice,
+    fallbackNotice: t("aiApplyingDocumentAction"),
+    isAutomaticDocumentAction,
+    isNotChangedNotice,
+    text,
+    toolSummary,
+  });
   const [copied, setCopied] = useState(false);
   const editInputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -111,7 +119,7 @@ export function ChatMessage({
         )}
       >
         {isAssistant ? <MessageResponse>{displayText}</MessageResponse> : text}
-        {isAssistant && appliedNotice && !isNotChangedNotice ? (
+        {isAssistant && appliedNotice && !isAutomaticDocumentAction && !isNotChangedNotice ? (
           <p className="mt-2 border-t border-[var(--color-border)] pt-2 text-xs text-[var(--color-muted-foreground)]">
             {appliedNotice}
           </p>
@@ -139,7 +147,7 @@ export function ChatMessage({
               )}
               <ActionLabel>{copied ? t("aiCopied") : t("copy")}</ActionLabel>
             </MessageAction>
-            {!toolSummary ? (
+            {!isAutomaticDocumentAction && !toolSummary ? (
               <>
                 <MessageAction
                   onClick={() => replaceSelectionWithAiResponse(editor, message, text)}
@@ -244,4 +252,26 @@ function ActionLabel({ children }: { children: string }) {
 
 function isDocumentNotChangedNotice(notice: string | undefined) {
   return Boolean(notice && /^(未修改文档|Document was not changed)/i.test(notice.trim()));
+}
+
+function getDisplayText({
+  appliedNotice,
+  fallbackNotice,
+  isAutomaticDocumentAction,
+  isNotChangedNotice,
+  text,
+  toolSummary,
+}: {
+  appliedNotice?: string;
+  fallbackNotice: string;
+  isAutomaticDocumentAction: boolean;
+  isNotChangedNotice: boolean;
+  text: string;
+  toolSummary: string | null;
+}) {
+  if (isAutomaticDocumentAction) {
+    return appliedNotice ?? fallbackNotice;
+  }
+
+  return isNotChangedNotice ? (appliedNotice ?? "") : (toolSummary ?? text);
 }

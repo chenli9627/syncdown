@@ -28,7 +28,8 @@ export function inferAiChatDocumentAction(
     isSpecialFormatEditPrompt(compactPrompt, lowerPrompt) ||
     isDocumentStructureEditPrompt(compactPrompt, lowerPrompt) ||
     isSpecificPlacementPrompt(compactPrompt, lowerPrompt) ||
-    isTargetedBlockEditPrompt(compactPrompt, lowerPrompt)
+    isTargetedBlockEditPrompt(compactPrompt, lowerPrompt) ||
+    isImplicitDocumentMutationPrompt(compactPrompt, lowerPrompt)
   ) {
     return "edit_blocks";
   }
@@ -158,6 +159,23 @@ function isTargetedBlockEditPrompt(compactPrompt: string, lowerPrompt: string) {
       lowerPrompt,
     ) ||
     /\b(?:original|existing|current|this|that)\b[\s\S]{0,80}\b(?:paragraph|table|block|heading|section|list)\b[\s\S]{0,160}\b(?:delete|remove|replace|change|update|edit|rewrite)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isImplicitDocumentMutationPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /^(?:删除|移除|删掉|去掉|清除|替换|修改|调整|更新).{0,80}(?:这个|这个东西|这部分|这些|那个|那些|它|其中|重复|引用标注|引用|脚注|参考文献|最后一段|第[一二三四五六七八九十\d]+段|段落|表格|列表|清单|任务项|小节|章节|部分|内容|文字|句子)/.test(
+      compactPrompt,
+    ) ||
+    /(?:这个|这个东西|这部分|这些|那个|那些|它|其中|重复|引用标注|引用|脚注|参考文献|最后一段|第[一二三四五六七八九十\d]+段|段落|表格|列表|清单|任务项|小节|章节|部分|内容|文字|句子).{0,80}(?:删除|移除|删掉|去掉|清除|替换|修改|调整|更新)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:delete|remove|clear|replace|change|update|edit)\b[\s\S]{0,160}\b(?:this|that|it|duplicate|duplicates|citation|citations|reference|references|footnote|footnotes|last paragraph|paragraph|table|list|task item|section|part|content|text|sentence)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:this|that|it|duplicate|duplicates|citation|citations|reference|references|footnote|footnotes|last paragraph|paragraph|table|list|task item|section|part|content|text|sentence)\b[\s\S]{0,160}\b(?:delete|remove|clear|replace|change|update|edit)\b/.test(
       lowerPrompt,
     )
   );
