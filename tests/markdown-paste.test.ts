@@ -40,6 +40,16 @@ test("does not treat ordinary multiline prose as markdown paste", () => {
   );
 });
 
+test("detects multiline markdown with inline syntax from plain-text clipboard", () => {
+  const markdown = `北京旅行计划
+
+官网：[北京文旅](https://example.com)
+
+~~旧计划：去动物园~~`;
+
+  assert.equal(shouldParseMarkdownPaste(markdown), true);
+});
+
 test("does not parse markdown paste with local image assets", () => {
   assert.equal(
     shouldParseMarkdownPaste("![Local](assets/example.png)"),

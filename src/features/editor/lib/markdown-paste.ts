@@ -53,7 +53,11 @@ function looksLikeStructuredMarkdown(text: string) {
   const bulletCount = text.match(/^(?:- |\* )\S.+$/gm)?.length ?? 0;
   const orderedCount = text.match(/^\d+\.\s+\S.+$/gm)?.length ?? 0;
 
-  return bulletCount >= 2 || orderedCount >= 2;
+  if (bulletCount >= 2 || orderedCount >= 2) {
+    return true;
+  }
+
+  return hasMultilineMarkdownSignals(text);
 }
 
 function isMarkdownTable(text: string) {
@@ -73,4 +77,24 @@ function isMarkdownTable(text: string) {
   }
 
   return false;
+}
+
+function hasMultilineMarkdownSignals(text: string) {
+  if (!text.includes("\n")) {
+    return false;
+  }
+
+  const inlineMarkdownPattern =
+    /(?<!!)\[[^\]]+\]\((?:[^)\s]+)\)|~~[^~]+~~|\*\*[^*]+\*\*|`[^`]+`|(?:^|\s)_(?:[^_\n]+)_(?=\s|$)|(?:^|\s)\*(?:[^*\n]+)\*(?=\s|$)/m;
+
+  if (!inlineMarkdownPattern.test(text)) {
+    return false;
+  }
+
+  const nonEmptyLines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return nonEmptyLines.length >= 2;
 }
