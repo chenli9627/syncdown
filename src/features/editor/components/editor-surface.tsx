@@ -265,6 +265,7 @@ export function EditorSurface({
           style={{
             backgroundColor: isDarkTheme ? "#000000" : "#ffffff",
             borderColor: isDarkTheme ? "#f6f5f4" : "#111111",
+            borderWidth: 0.5,
             color: isDarkTheme ? "#f6f5f4" : "#111111",
           }}
           title={t("aiOpenChat")}
