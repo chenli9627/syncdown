@@ -31,6 +31,10 @@ export function inferAiChatDocumentAction(
     return "edit_blocks";
   }
 
+  if (isErrorCorrectionDocumentEditPrompt(compactPrompt, lowerPrompt)) {
+    return "edit_blocks";
+  }
+
   if (
     isHeadingLevelEditPrompt(compactPrompt, lowerPrompt) ||
     isSpecialFormatEditPrompt(compactPrompt, lowerPrompt) ||
@@ -146,6 +150,26 @@ function isDocumentEditFollowUpPrompt(compactPrompt: string, lowerPrompt: string
       lowerPrompt,
     ) ||
     /\b(?:that|this|it|the change|the edit|the fix|your suggestion)\b[\s\S]{0,160}\b(?:fix|correct|repair|redo|retry|try again|apply|run|execute|make)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isErrorCorrectionDocumentEditPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:修改|修复|修正|纠正|改正|处理|解决|调整|改掉|删掉|去掉).{0,48}(?:错误|错处|错别字|病句|问题|bug|异常|不对的地方|不正确的地方)/i.test(
+      compactPrompt,
+    ) ||
+    /(?:错误|错处|错别字|病句|问题|bug|异常|不对的地方|不正确的地方).{0,48}(?:修改|修复|修正|纠正|改正|处理|解决|调整|改掉|删掉|去掉)/i.test(
+      compactPrompt,
+    ) ||
+    /(?:把|将).{0,48}(?:错误|错处|错别字|病句|问题|bug|异常|不对的地方|不正确的地方).{0,48}(?:改|修改|修复|修正|纠正|改正|处理|解决|调整|改掉|删掉|去掉)/i.test(
+      compactPrompt,
+    ) ||
+    /\b(?:fix|correct|repair|resolve|address|update|change|remove)\b[\s\S]{0,160}\b(?:error|errors|mistake|mistakes|typo|typos|bug|bugs|issue|issues|wrong|incorrect)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:error|errors|mistake|mistakes|typo|typos|bug|bugs|issue|issues|wrong|incorrect)\b[\s\S]{0,160}\b(?:fix|correct|repair|resolve|address|update|change|remove)\b/.test(
       lowerPrompt,
     )
   );

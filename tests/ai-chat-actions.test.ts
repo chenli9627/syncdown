@@ -65,6 +65,13 @@ test("infers block-edit action from follow-up repair prompts after document edit
   );
 });
 
+test("infers block-edit action from explicit error correction requests", () => {
+  assert.equal(inferAiChatDocumentAction("修改错误"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把错误改掉"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("修复文档里的问题"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("Fix the mistakes in the document"), "edit_blocks");
+});
+
 test("infers block-edit action from document-scoped local deletions", () => {
   assert.equal(inferAiChatDocumentAction("删除这篇文档里重复的内容"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("删除北京简介里的引用标注"), "edit_blocks");

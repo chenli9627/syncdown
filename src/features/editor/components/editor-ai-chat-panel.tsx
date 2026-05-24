@@ -354,6 +354,16 @@ function hasEditorSelection(editor: Editor | null) {
 }
 
 function hasRecentAiDocumentAction(messages: AiChatMessage[]) {
+  const recentMessages = messages.slice(-8);
+
+  for (let index = recentMessages.length - 1; index >= 0; index -= 1) {
+    const message = recentMessages[index];
+
+    if (message?.metadata?.documentAction) {
+      return true;
+    }
+  }
+
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
 

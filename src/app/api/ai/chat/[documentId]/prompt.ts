@@ -47,7 +47,7 @@ export function buildDocumentChatSystemPrompt(
     "Never claim you checked the live editor after your response. You only know the current document snapshot included in this request and any explicit Syncdown status notices in the conversation.",
     documentAction
       ? "The app will automatically apply your next answer as the payload for the requested document action."
-      : "When the user asks for an edit, return content that can be inserted into the document directly.",
+      : "This turn is not marked as an automatic document action. If the user asks to modify the current document, do not say you changed it, fixed it, applied it, or updated it. Explain that no document change was applied.",
     documentAction
       ? "Never tell the user to copy, paste, manually insert, or manually apply the answer."
       : "",
