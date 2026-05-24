@@ -167,6 +167,9 @@ test("infers block-edit action from targeted block edit requests", () => {
   assert.equal(inferAiChatDocumentAction("给文档添加小标题"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("把文档加上小标题"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("Add subheadings to this document"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("给每段加一个三级标题"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把每个段弄一个三级heading"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("Add an H3 before every paragraph"), "edit_blocks");
 });
 
 test("infers block-edit action from exact replacements that match current document text", () => {

@@ -332,10 +332,25 @@ function isSectionHeadingEditPrompt(compactPrompt: string, lowerPrompt: string) 
     /(?:添加|新增|加入|加上|补充|生成|插入|加|补).{0,48}(?:小标题|子标题|章节标题|分段标题|段落标题|sectionheading|subheading)/i.test(
       compactPrompt,
     ) ||
+    /(?:给|为|把).{0,16}(?:每个?|所有)?(?:段|段落).{0,32}(?:加|添加|新增|插入|补|弄).{0,24}(?:一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|h[1-6]|heading|小标题|子标题)/i.test(
+      compactPrompt,
+    ) ||
+    /(?:每个?|所有)?(?:段|段落).{0,32}(?:加|添加|新增|插入|补|弄).{0,24}(?:一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|h[1-6]|heading|小标题|子标题)/i.test(
+      compactPrompt,
+    ) ||
+    /(?:一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|h[1-6]|heading|小标题|子标题).{0,24}(?:加|添加|新增|插入|补|弄).{0,32}(?:每个?|所有)?(?:段|段落)/i.test(
+      compactPrompt,
+    ) ||
     /(?:小标题|子标题|章节标题|分段标题|段落标题|sectionheading|subheading).{0,48}(?:添加|新增|加入|加上|补充|生成|插入|加|补)/i.test(
       compactPrompt,
     ) ||
     /\b(?:add|insert|create|generate)\b[\s\S]{0,160}\b(?:subheadings?|section headings?|paragraph headings?)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:add|insert|create|generate|make)\b[\s\S]{0,120}\b(?:h[1-6]|heading|subheadings?|section headings?)\b[\s\S]{0,120}\b(?:every|each|all)\b[\s\S]{0,40}\b(?:paragraph|paragraphs)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:every|each|all)\b[\s\S]{0,40}\b(?:paragraph|paragraphs)\b[\s\S]{0,120}\b(?:add|insert|create|generate|make)\b[\s\S]{0,120}\b(?:h[1-6]|heading|subheadings?|section headings?)\b/.test(
       lowerPrompt,
     ) ||
     /\b(?:subheadings?|section headings?|paragraph headings?)\b[\s\S]{0,160}\b(?:add|insert|create|generate)\b/.test(
