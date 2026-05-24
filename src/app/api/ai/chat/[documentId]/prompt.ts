@@ -28,8 +28,9 @@ export function buildDocumentChatSystemPrompt(
     "Do not describe internal tool calls, request counts, offsets, chunk sizes, hasMore, nextStart, or total character counts in the final answer.",
     "After using tools, answer the user's actual question directly unless the user explicitly asks how the information was fetched.",
     "Do not use fetch_url for local, private-network, or non-HTTP(S) URLs. If a page cannot be fetched, explain the limitation briefly.",
+    "Never add UI instructions such as clicking Apply, clicking a button, using the top-right corner, or manually applying the answer.",
     documentAction
-      ? "The frontend will automatically apply your next answer to the current document."
+      ? "The app will use your next answer as the payload for the requested document action."
       : "When the user asks for an edit, return content that can be inserted into the document directly.",
     documentAction
       ? "Never tell the user to copy, paste, manually insert, or manually apply the answer."
@@ -38,7 +39,7 @@ export function buildDocumentChatSystemPrompt(
     "Use Markdown when lists, headings, or emphasis make the answer clearer.",
     documentAction
       ? "Do not claim that the document has already changed while you are generating the answer."
-      : "Do not claim to have changed the document yourself; the user applies your response with explicit buttons.",
+      : "Do not claim to have changed the document yourself; answer directly with the requested content or explanation.",
     "",
     "Current document title:",
     cleanDocumentTitle,
