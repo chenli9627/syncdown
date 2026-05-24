@@ -187,6 +187,45 @@ test("exports level five and six headings to markdown", () => {
   }
 });
 
+test("exports links and strikethrough to markdown", () => {
+  const originalDOMParser = globalThis.DOMParser;
+  const originalHTMLElement = globalThis.HTMLElement;
+  const originalNode = globalThis.Node;
+
+  class InlineTestDOMParser {
+    parseFromString(html: string) {
+      assert.equal(html, '<p><a href="https://example.com">北京文旅</a> <s>旧计划</s></p>');
+
+      return {
+        body: new TestElement("body", {}, [
+          new TestElement("p", {}, [
+            new TestElement("a", { href: "https://example.com" }, [
+              new TestTextNode("北京文旅"),
+            ]),
+            new TestTextNode(" "),
+            new TestElement("s", {}, [new TestTextNode("旧计划")]),
+          ]),
+        ]),
+      };
+    }
+  }
+
+  globalThis.DOMParser = InlineTestDOMParser as typeof DOMParser;
+  globalThis.HTMLElement = TestElement as unknown as typeof HTMLElement;
+  globalThis.Node = TestNode as unknown as typeof Node;
+
+  try {
+    assert.equal(
+      editorHtmlToMarkdown('<p><a href="https://example.com">北京文旅</a> <s>旧计划</s></p>'),
+      "[北京文旅](https://example.com) ~~旧计划~~",
+    );
+  } finally {
+    globalThis.DOMParser = originalDOMParser;
+    globalThis.HTMLElement = originalHTMLElement;
+    globalThis.Node = originalNode;
+  }
+});
+
 test("exports absolute api media URLs into markdown zip assets", async () => {
   const originalFetch = globalThis.fetch;
   const originalDOMParser = globalThis.DOMParser;

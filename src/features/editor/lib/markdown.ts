@@ -16,14 +16,6 @@ const UNSUPPORTED_MARKDOWN_PATTERNS: Array<{
   pattern: RegExp;
 }> = [
   {
-    error: "Markdown links are not supported yet",
-    pattern: /(^|[^\!])\[[^\]]+\]\([^)]+\)/m,
-  },
-  {
-    error: "Strikethrough markdown is not supported yet",
-    pattern: /~~[^~]+~~/,
-  },
-  {
     error: "Nested markdown lists are not supported yet",
     pattern: /^\s{2,}(?:- |\d+\.\s)/m,
   },
@@ -67,6 +59,7 @@ function inlineMarkdownToHtml(text: string) {
     return link ? `${prefix}${link}${trailing}` : match;
   });
 
+  result = result.replace(/~~(.+?)~~/g, "<s>$1</s>");
   result = result.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   result = result.replace(/\*(.+?)\*/g, "<em>$1</em>");
   result = result.replace(/_(.+?)_/g, "<em>$1</em>");
@@ -119,6 +112,14 @@ function htmlInlineToMarkdown(node: Node): string {
     case "EM":
     case "I":
       return `*${content}*`;
+    case "S":
+    case "DEL":
+    case "STRIKE":
+      return `~~${content}~~`;
+    case "A": {
+      const href = node.getAttribute("href") ?? "";
+      return href ? `[${content}](${href})` : content;
+    }
     case "CODE":
       return `\`${node.textContent ?? ""}\``;
     case "BR":

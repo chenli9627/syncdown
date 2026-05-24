@@ -66,6 +66,13 @@ test("toAiInsertHtml converts markdown links inside tables", () => {
   );
 });
 
+test("toAiInsertHtml converts markdown links and strikethrough", () => {
+  const html = toAiInsertHtml("[北京文旅](https://example.com)\n\n~~旧计划~~");
+
+  assert.match(html, /<a href="https:\/\/example\.com">北京文旅<\/a>/);
+  assert.match(html, /<(?:s|del)>旧计划<\/(?:s|del)>/);
+});
+
 test("insertAiResultBelow appends an empty paragraph after the inserted content", () => {
   const html = insertAiResultBelow("<p>Inserted</p>");
 

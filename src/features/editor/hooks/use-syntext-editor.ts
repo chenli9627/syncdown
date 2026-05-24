@@ -25,6 +25,7 @@ import { TableOfContents } from "@/features/editor/extensions/table-of-contents"
 import { syntextLowlight } from "@/features/editor/lib/code-highlighting";
 import { toEditorContent } from "@/features/editor/lib/content";
 import { insertImageFile } from "@/features/editor/lib/image";
+import { insertMarkdownPaste } from "@/features/editor/lib/markdown-paste";
 
 type SaveDocument = (
   documentId: string,
@@ -323,18 +324,30 @@ export function useSyntextEditor({
           item.type.startsWith("image/"),
         );
 
-        if (!file) {
+        const currentEditor = editorRef.current;
+
+        if (file) {
+          event.preventDefault();
+
+          if (!currentEditor) {
+            return true;
+          }
+
+          void insertImageFromFile(currentEditor, file);
+          return true;
+        }
+
+        const pastedText = event.clipboardData?.getData("text/plain") ?? "";
+
+        if (!currentEditor || !pastedText.trim()) {
+          return false;
+        }
+
+        if (!insertMarkdownPaste(currentEditor, pastedText)) {
           return false;
         }
 
         event.preventDefault();
-        const currentEditor = editorRef.current;
-
-        if (!currentEditor) {
-          return true;
-        }
-
-        void insertImageFromFile(currentEditor, file);
         return true;
       },
       handleDrop: (_view, event) => {

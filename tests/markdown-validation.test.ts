@@ -12,6 +12,10 @@ Plain paragraph
 
 - [ ] Todo item
 
+[link](https://example.com)
+
+~~old~~
+
 > Quote
 
 \`\`\`ts
@@ -20,15 +24,6 @@ const value = 1
 `);
 
   assert.equal(result.ok, true);
-});
-
-test("rejects markdown links", () => {
-  const result = validateSupportedMarkdown("[link](https://example.com)");
-
-  assert.deepEqual(result, {
-    error: "Markdown links are not supported yet",
-    ok: false,
-  });
 });
 
 test("rejects nested lists", () => {
