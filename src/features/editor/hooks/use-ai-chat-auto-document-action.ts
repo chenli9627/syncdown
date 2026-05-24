@@ -64,7 +64,7 @@ export function useAiChatAutoDocumentAction({
       return;
     }
 
-    const responseText = getAiChatMessageText(lastMessage);
+    const responseText = getAiChatMessageText(lastMessage, documentAction.action);
 
     pendingActionRef.current = null;
 

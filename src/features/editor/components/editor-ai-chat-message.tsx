@@ -59,7 +59,7 @@ export function ChatMessage({
   onSendEdit,
 }: ChatMessageProps) {
   const { t } = useLocale();
-  const text = getAiChatMessageText(message);
+  const text = getAiChatMessageText(message, message.metadata?.documentAction ?? null);
   const isAssistant = message.role === "assistant";
   const toolSummary = isAssistant ? getAiDocumentEditToolSummary(text) : null;
   const displayText = toolSummary ?? text;

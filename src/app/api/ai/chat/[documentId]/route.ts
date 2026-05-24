@@ -19,6 +19,7 @@ import {
   getAiChatThreadsForUser,
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations";
+import { sanitizeAiChatMessage } from "@/features/editor/lib/ai-chat-output-guard";
 import {
   createAiChatModel,
   getAiChatModelConfig,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/server/ai-models";
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
 import { aiWebFetchTools } from "@/lib/server/ai-web-fetch";
+import { guardPseudoToolCallText } from "@/lib/server/ai-output-guard";
 import { buildDocumentChatSystemPrompt } from "./prompt";
 
 export const maxDuration = 60;
@@ -157,6 +159,7 @@ export async function POST(request: Request, context: RouteContext) {
         toolChoice: "none",
       };
     },
+    experimental_transform: guardPseudoToolCallText(documentAction),
     stopWhen: stepCountIs(8),
     system: systemPrompt,
     temperature: 0.3,
@@ -171,6 +174,7 @@ export async function POST(request: Request, context: RouteContext) {
       part.type === "start" || part.type === "finish"
         ? {
             createdAt: new Date().toISOString(),
+            documentAction,
             modelKey,
             modelName: modelConfig.name,
             selection: body.selection ?? null,
@@ -179,11 +183,12 @@ export async function POST(request: Request, context: RouteContext) {
         : undefined,
     onFinish: async ({ messages: finishedMessages }) => {
       const latestState = await readStoredState();
+      const sanitizedMessages = sanitizeFinishedMessages(finishedMessages, documentAction);
       const saveResult = saveAiChatThreadMessages(
         latestState,
         body.userId ?? "",
         documentId,
-        finishedMessages,
+        sanitizedMessages,
         { threadId: activeThreadId },
       );
 
@@ -194,6 +199,27 @@ export async function POST(request: Request, context: RouteContext) {
     originalMessages: messages,
     sendReasoning: false,
   });
+}
+
+function sanitizeFinishedMessages(
+  messages: AiChatMessage[],
+  documentAction: AiChatDocumentAction | null,
+) {
+  const lastAssistantIndex = findLastAssistantMessageIndex(messages);
+
+  return messages.map((message, index) =>
+    sanitizeAiChatMessage(message, index === lastAssistantIndex ? documentAction : null),
+  );
+}
+
+function findLastAssistantMessageIndex(messages: AiChatMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "assistant") {
+      return index;
+    }
+  }
+
+  return -1;
 }
 
 export async function DELETE(request: Request, context: RouteContext) {

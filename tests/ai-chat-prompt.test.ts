@@ -13,6 +13,8 @@ test("AI chat prompt hides web fetch implementation details from final answers",
   );
 
   assert.match(prompt, /Do not describe internal tool calls/);
+  assert.match(prompt, /Never output pseudo tool-call markup/);
+  assert.match(prompt, /DSML tags/);
   assert.match(prompt, /request counts/);
   assert.match(prompt, /hasMore/);
   assert.match(prompt, /nextStart/);
@@ -49,6 +51,8 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   );
 
   assert.match(prompt, /automatic document actions are real app-driven edits/);
+  assert.match(prompt, /Never return pseudo tool-call markup/);
+  assert.match(prompt, /current web data cannot be fetched reliably/);
   assert.match(prompt, /Do not apologize by saying you cannot directly modify/);
   assert.match(prompt, /treat those messages as obsolete/);
   assert.match(prompt, /where a previous automatic document edit went/);

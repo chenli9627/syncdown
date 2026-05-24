@@ -1,14 +1,23 @@
 import type { Editor } from "@tiptap/react";
-import type { AiChatMessage } from "@/features/app-state/types";
+import type {
+  AiChatDocumentAction,
+  AiChatMessage,
+} from "@/features/app-state/types";
 import { toAiInlineInsertHtml, toAiInsertHtml } from "@/features/editor/lib/ai";
+import { sanitizeAiAssistantText } from "@/features/editor/lib/ai-chat-output-guard";
 
 export { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-action-inference";
 
-export function getAiChatMessageText(message: AiChatMessage) {
-  return message.parts
+export function getAiChatMessageText(
+  message: AiChatMessage,
+  documentAction: AiChatDocumentAction | null = null,
+) {
+  const text = message.parts
     .map((part) => (part.type === "text" ? part.text : ""))
     .join("")
     .trim();
+
+  return message.role === "assistant" ? sanitizeAiAssistantText(text, documentAction) : text;
 }
 
 export function replaceSelectionWithAiResponse(

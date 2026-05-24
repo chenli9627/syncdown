@@ -28,6 +28,7 @@ export function buildDocumentChatSystemPrompt(
     "Do not describe internal tool calls, request counts, offsets, chunk sizes, hasMore, nextStart, or total character counts in the final answer.",
     "After using tools, answer the user's actual question directly unless the user explicitly asks how the information was fetched.",
     "Do not use fetch_url for local, private-network, or non-HTTP(S) URLs. If a page cannot be fetched, explain the limitation briefly.",
+    "Never output pseudo tool-call markup, provider control tokens, DSML tags, invoke tags, parameter tags, or tool_calls text. Use the real fetch_url tool instead.",
     "When using fetched web content, do not copy raw HTML tags or angle-bracket markup unless the user explicitly asks for source code.",
     "Never add UI instructions such as clicking Apply, clicking a button, using the top-right corner, or manually applying the answer.",
     "Never tell the user to copy, paste, manually insert, or manually apply content to the document.",
@@ -61,6 +62,7 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
     return [
       "The requested automatic action is: edit the document with block-level operations.",
       "Return only valid JSON, with no Markdown fences and no prose.",
+      "Never return pseudo tool-call markup or a fetch_url request as text. If current web data cannot be fetched reliably, return JSON with a short summary and an empty operations array.",
       "Schema: {\"summary\":\"short user-facing summary\",\"operations\":[{\"type\":\"insert_after_block|insert_before_block|replace_block|delete_block|move_block|copy_block|replace_text_in_block|replace_all_text|set_heading_level|set_block_type|set_list_type|set_task_item_checked|set_text_marks|unset_text_marks|set_link|unset_link|update_table_cell|insert_table_row_before|insert_table_row_after|delete_table_row|insert_table_column_before|insert_table_column_after|delete_table_column|toggle_table_header_row\",\"blockId\":\"block_1\",\"targetBlockId\":\"block_2\",\"placement\":\"before|after\",\"content\":\"Markdown content for insert/replace/update cell\",\"targetText\":\"exact text to replace or format\",\"replacementText\":\"replacement text for replace_text_in_block or replace_all_text\",\"level\":1,\"blockType\":\"paragraph|heading|codeBlock\",\"listType\":\"bulletList|orderedList|taskList\",\"checked\":true,\"marks\":[\"bold\",\"italic\"],\"href\":\"https://example.com\",\"row\":1,\"column\":1}]}",
       "The summary must say what changed and where it was placed, using nearby block text when possible.",
       "Use only blockId values from Current document blocks.",
