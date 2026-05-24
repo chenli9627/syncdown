@@ -301,7 +301,7 @@ export function normalizeHref(value: string) {
     return "";
   }
 
-  if (/^(https?:|mailto:|tel:)/i.test(trimmed)) {
+  if (/^(https?:|mailto:|tel:|#|\/)/i.test(trimmed)) {
     return trimmed;
   }
 
