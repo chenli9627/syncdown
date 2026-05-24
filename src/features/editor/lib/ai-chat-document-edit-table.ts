@@ -44,7 +44,7 @@ export function toTableStructureOperation(
 
   return {
     column: operation.column,
-    content: "",
+    content: operation.content?.trim() ?? "",
     index,
     nodeJson: block.node.toJSON(),
     position: range.from,

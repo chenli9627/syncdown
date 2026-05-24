@@ -75,6 +75,7 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "For document-wide exact replacements, use replace_all_text with targetText and replacementText.",
       "For table cell changes, use update_table_cell with one-based row and column plus content.",
       "For table structure changes, use insert_table_row_before, insert_table_row_after, delete_table_row, insert_table_column_before, insert_table_column_after, delete_table_column, or toggle_table_header_row.",
+      "When adding a table column with a requested header, put the new header text in the insert_table_column_before/after operation's content field instead of a separate update_table_cell operation.",
       "For location requests, choose the closest matching block and use insert_after_block or insert_before_block.",
       "For small changes inside an existing formatted block, prefer replace_text_in_block so the original heading, list, link, and inline formatting are preserved.",
       "For whole-block content changes, prefer replace_block or delete_block over replacing the whole document.",

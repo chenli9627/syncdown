@@ -6,7 +6,10 @@ import {
 } from "@/features/editor/lib/ai-chat-document-blocks";
 import { toExecutableOperations } from "@/features/editor/lib/ai-chat-document-edit-converter";
 import { applyExecutableOperation } from "@/features/editor/lib/ai-chat-document-edit-operations";
-import type { AiDocumentEditPayload } from "@/features/editor/lib/ai-chat-document-edit-types";
+import type {
+  AiDocumentEditOperation,
+  AiDocumentEditPayload,
+} from "@/features/editor/lib/ai-chat-document-edit-types";
 
 export function getAiDocumentBlocks(editor: Editor | null): AiChatDocumentBlock[] {
   return getLocalAiDocumentBlocks(editor).map(toAiDocumentBlock);
@@ -23,8 +26,9 @@ export function applyAiDocumentEditToolResponse(editor: Editor | null, responseT
     return 0;
   }
 
+  const payloadOperations = normalizeDependentTableInsertOperations(payload.operations);
   const blocks = getLocalAiDocumentBlocks(editor);
-  const operations = payload.operations
+  const operations = payloadOperations
     .flatMap((operation, index) => toExecutableOperations(operation, blocks, index))
     .sort((a, b) => b.position - a.position || b.index - a.index);
 
@@ -55,12 +59,19 @@ export function getAiDocumentEditToolSummary(responseText: string) {
   }
 
   const summary = payload.summary?.trim();
+  const operations = payload.operations ?? [];
 
-  if (!payload.operations.length) {
+  if (!operations.length) {
     return summary || null;
   }
 
   return summary || "Document edit operations generated.";
+}
+
+export function getAiDocumentEditToolOperationCount(responseText: string) {
+  const payload = parseAiDocumentEditPayload(responseText);
+
+  return payload ? normalizeDependentTableInsertOperations(payload.operations).length : 0;
 }
 
 function parseAiDocumentEditPayload(responseText: string): AiDocumentEditPayload | null {
@@ -90,4 +101,56 @@ function extractJsonObject(responseText: string) {
 
 function getEditorDocumentSnapshot(editor: Editor) {
   return JSON.stringify(editor.state.doc.toJSON());
+}
+
+function normalizeDependentTableInsertOperations(operations: AiDocumentEditOperation[] = []) {
+  const consumedUpdateIndexes = new Set<number>();
+
+  return operations.flatMap((operation, index) => {
+    if (consumedUpdateIndexes.has(index)) {
+      return [];
+    }
+
+    const dependentUpdateIndex = findDependentTableCellUpdateIndex(operations, operation, index);
+
+    if (dependentUpdateIndex < 0) {
+      return [operation];
+    }
+
+    consumedUpdateIndexes.add(dependentUpdateIndex);
+
+    return [
+      {
+        ...operation,
+        content: operations[dependentUpdateIndex]?.content,
+      },
+    ];
+  });
+}
+
+function findDependentTableCellUpdateIndex(
+  operations: AiDocumentEditOperation[],
+  operation: AiDocumentEditOperation,
+  operationIndex: number,
+) {
+  const insertedColumn =
+    operation.type === "insert_table_column_after"
+      ? (operation.column ?? 1) + 1
+      : operation.type === "insert_table_column_before"
+        ? operation.column ?? 1
+        : null;
+
+  if (!insertedColumn) {
+    return -1;
+  }
+
+  return operations.findIndex(
+    (candidate, candidateIndex) =>
+      candidateIndex > operationIndex &&
+      candidate.type === "update_table_cell" &&
+      candidate.blockId === operation.blockId &&
+      candidate.row === 1 &&
+      candidate.column === insertedColumn &&
+      Boolean(candidate.content?.trim()),
+  );
 }

@@ -15,6 +15,7 @@ import {
 } from "@/features/editor/lib/ai-chat-actions";
 import {
   applyAiDocumentEditToolResponse,
+  getAiDocumentEditToolOperationCount,
   getAiDocumentEditToolSummary,
 } from "@/features/editor/lib/ai-chat-document-tools";
 
@@ -73,8 +74,9 @@ export function useAiChatAutoDocumentAction({
 
     if (documentAction.action === "edit_blocks") {
       const appliedCount = applyAiDocumentEditToolResponse(editor, responseText);
+      const requestedCount = getAiDocumentEditToolOperationCount(responseText);
 
-      if (appliedCount > 0) {
+      if (appliedCount > 0 && appliedCount >= requestedCount) {
         onApplied?.(
           documentAction.action,
           lastMessage.id,

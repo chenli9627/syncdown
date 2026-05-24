@@ -98,11 +98,15 @@ function mutateTableColumnJson(tableJson: JsonNode, operation: ExecutableOperati
       return;
     }
 
-    cells.splice(
-      operation.type === "insert_table_column_before" ? columnIndex : columnIndex + 1,
-      0,
-      clearNodeText(referenceCell),
-    );
+    const insertedCell = clearNodeText(referenceCell);
+    const insertionIndex =
+      operation.type === "insert_table_column_before" ? columnIndex : columnIndex + 1;
+
+    if (row === rows[0]) {
+      setFirstParagraphText(insertedCell, operation.content.trim());
+    }
+
+    cells.splice(insertionIndex, 0, insertedCell);
   });
 
   return tableJson;
@@ -123,15 +127,44 @@ function toggleHeaderRow(row: JsonNode | undefined) {
 function clearNodeText(node: JsonNode): JsonNode {
   const next = cloneJsonNode(node);
 
-  if (next.text != null) {
-    next.text = "";
+  if (next.content) {
+    const nextContent = next.content
+      .map((child) => clearNodeTextOrRemove(child))
+      .filter((child): child is JsonNode => child !== null);
+
+    if (nextContent.length) {
+      next.content = nextContent;
+    } else {
+      delete next.content;
+    }
   }
 
-  if (next.content) {
-    next.content = next.content.map((child) => clearNodeText(child));
+  if (next.text != null) {
+    delete next.text;
   }
 
   return next;
+}
+
+function clearNodeTextOrRemove(node: JsonNode): JsonNode | null {
+  if (node.type === "text") {
+    return null;
+  }
+
+  return clearNodeText(node);
+}
+
+function setFirstParagraphText(node: JsonNode, text: string): boolean {
+  if (!text) {
+    return false;
+  }
+
+  if (node.type === "paragraph") {
+    node.content = [{ text, type: "text" }];
+    return true;
+  }
+
+  return node.content?.some((child) => setFirstParagraphText(child, text)) ?? false;
 }
 
 function cloneJsonNode(value: unknown): JsonNode {
