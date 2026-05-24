@@ -23,3 +23,15 @@ test("reads AI document edit tool summaries from JSON", () => {
 test("ignores non-tool AI responses", () => {
   assert.equal(getAiDocumentEditToolSummary("普通回答"), null);
 });
+
+test("shows unsupported document edit summaries from empty operations", () => {
+  assert.equal(
+    getAiDocumentEditToolSummary(
+      JSON.stringify({
+        operations: [],
+        summary: "I cannot do that edit yet.",
+      }),
+    ),
+    "I cannot do that edit yet.",
+  );
+});

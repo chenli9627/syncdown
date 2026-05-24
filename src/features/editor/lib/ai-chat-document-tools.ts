@@ -50,11 +50,17 @@ export function applyAiDocumentEditToolResponse(editor: Editor | null, responseT
 export function getAiDocumentEditToolSummary(responseText: string) {
   const payload = parseAiDocumentEditPayload(responseText);
 
-  if (!payload?.operations?.length) {
+  if (!payload) {
     return null;
   }
 
-  return payload.summary?.trim() || "Document edit operations generated.";
+  const summary = payload.summary?.trim();
+
+  if (!payload.operations.length) {
+    return summary || null;
+  }
+
+  return summary || "Document edit operations generated.";
 }
 
 function parseAiDocumentEditPayload(responseText: string): AiDocumentEditPayload | null {
