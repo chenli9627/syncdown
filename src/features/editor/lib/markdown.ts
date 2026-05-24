@@ -16,10 +16,6 @@ const UNSUPPORTED_MARKDOWN_PATTERNS: Array<{
   pattern: RegExp;
 }> = [
   {
-    error: "Nested markdown lists are not supported yet",
-    pattern: /^\s{2,}(?:- |\d+\.\s)/m,
-  },
-  {
     error: "Raw HTML blocks are not supported in markdown import",
     pattern: /<(?!img\b|https?:\/\/|mailto:)(?:\/)?[a-z][^>]*>/i,
   },
@@ -457,79 +453,10 @@ export function markdownToEditorHtml(markdown: string) {
       continue;
     }
 
-    if (/^- /.test(trimmed)) {
-      const taskItems: string[] = [];
-      let taskIndex = index;
-
-      while (taskIndex < lines.length) {
-        const taskLine = (lines[taskIndex] ?? "").trim();
-
-        if (!taskLine) {
-          taskIndex += 1;
-          continue;
-        }
-
-        if (!/^- \[(?: |x|X)\]\s+/.test(taskLine)) {
-          break;
-        }
-        const checked = /^- \[(?:x|X)\]/.test(taskLine);
-        const content = taskLine.replace(/^- \[(?: |x|X)\]\s+/, "");
-        taskItems.push(
-          `<li data-checked="${checked ? "true" : "false"}" data-type="taskItem"><label><input ${
-            checked ? "checked" : ""
-          } type="checkbox"><span></span></label><div><p>${inlineMarkdownToHtml(content)}</p></div></li>`,
-        );
-        taskIndex += 1;
-      }
-
-      if (taskItems.length > 0) {
-        blocks.push(`<ul data-type="taskList">${taskItems.join("")}</ul>`);
-        index = taskIndex;
-        continue;
-      }
-
-      const items: string[] = [];
-
-      while (index < lines.length) {
-        const listLine = (lines[index] ?? "").trim();
-
-        if (!listLine) {
-          index += 1;
-          continue;
-        }
-
-        if (!/^- /.test(listLine)) {
-          break;
-        }
-
-        items.push(`<li>${inlineMarkdownToHtml(listLine.slice(2))}</li>`);
-        index += 1;
-      }
-
-      blocks.push(`<ul>${items.join("")}</ul>`);
-      continue;
-    }
-
-    if (/^\d+\.\s+/.test(trimmed)) {
-      const items: string[] = [];
-
-      while (index < lines.length) {
-        const listLine = (lines[index] ?? "").trim();
-
-        if (!listLine) {
-          index += 1;
-          continue;
-        }
-
-        if (!/^\d+\.\s+/.test(listLine)) {
-          break;
-        }
-
-        items.push(`<li>${inlineMarkdownToHtml(listLine.replace(/^\d+\.\s+/, ""))}</li>`);
-        index += 1;
-      }
-
-      blocks.push(`<ol>${items.join("")}</ol>`);
+    if (isMarkdownListLine(line)) {
+      const parsedList = parseMarkdownList(lines, index);
+      blocks.push(parsedList.html);
+      index = parsedList.nextIndex;
       continue;
     }
 
@@ -773,6 +700,166 @@ function splitMarkdownTableRow(line: string) {
     .replace(/\|$/, "")
     .split("|")
     .map((cell) => cell.trim());
+}
+
+type MarkdownListType = "bullet" | "ordered" | "task";
+
+type MarkdownListLine = {
+  content: string;
+  indent: number;
+  listType: MarkdownListType;
+  rawLine: string;
+  checked?: boolean;
+};
+
+function isMarkdownListLine(line: string) {
+  return parseMarkdownListLine(line) !== null;
+}
+
+function parseMarkdownList(lines: string[], startIndex: number, parentIndent = -1) {
+  let index = startIndex;
+  let listType: MarkdownListType | null = null;
+  const items: string[] = [];
+
+  while (index < lines.length) {
+    const currentLine = lines[index] ?? "";
+    const trimmed = currentLine.trim();
+
+    if (!trimmed) {
+      index += 1;
+      continue;
+    }
+
+    const listLine = parseMarkdownListLine(currentLine);
+
+    if (!listLine) {
+      break;
+    }
+
+    if (listLine.indent <= parentIndent) {
+      break;
+    }
+
+    if (listType === null) {
+      listType = listLine.listType;
+    } else if (listLine.indent === parentIndent + 1 && listLine.listType !== listType) {
+      break;
+    }
+
+    if (listLine.indent > parentIndent + 1 && items.length > 0) {
+      const nested = parseMarkdownList(lines, index, listLine.indent - 1);
+      const lastItem = items.pop();
+
+      if (lastItem) {
+        items.push(lastItem.replace(/<\/li>$/, `${nested.html}</li>`));
+      }
+
+      index = nested.nextIndex;
+      continue;
+    }
+
+    const itemHtml = renderMarkdownListItem(listLine);
+    items.push(itemHtml);
+    index += 1;
+
+    while (index < lines.length) {
+      const nextLine = lines[index] ?? "";
+      const nextTrimmed = nextLine.trim();
+
+      if (!nextTrimmed) {
+        index += 1;
+        continue;
+      }
+
+      const nestedListLine = parseMarkdownListLine(nextLine);
+
+      if (!nestedListLine || nestedListLine.indent <= listLine.indent) {
+        break;
+      }
+
+      const nested = parseMarkdownList(lines, index, listLine.indent);
+      const lastItem = items.pop();
+
+      if (lastItem) {
+        items.push(lastItem.replace(/<\/li>$/, `${nested.html}</li>`));
+      }
+
+      index = nested.nextIndex;
+    }
+  }
+
+  const html = wrapMarkdownListHtml(listType ?? "bullet", items);
+  return {
+    html,
+    nextIndex: index,
+  };
+}
+
+function parseMarkdownListLine(line: string): MarkdownListLine | null {
+  const match = line.match(/^(\s*)(- \[(?: |x|X)\]\s+|- |\d+\.\s+)(.*)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const indent = normalizeMarkdownListIndent(match[1] ?? "");
+  const marker = match[2] ?? "";
+  const content = match[3] ?? "";
+
+  if (/^- \[(?: |x|X)\]\s+/.test(marker)) {
+    return {
+      checked: /^- \[(?:x|X)\]\s+/.test(marker),
+      content,
+      indent,
+      listType: "task",
+      rawLine: line,
+    };
+  }
+
+  if (/^\d+\.\s+/.test(marker)) {
+    return {
+      content,
+      indent,
+      listType: "ordered",
+      rawLine: line,
+    };
+  }
+
+  return {
+    content,
+    indent,
+    listType: "bullet",
+    rawLine: line,
+  };
+}
+
+function normalizeMarkdownListIndent(indent: string) {
+  const spaces = indent.replace(/\t/g, "  ").length;
+  return Math.floor(spaces / 2);
+}
+
+function renderMarkdownListItem(item: MarkdownListLine) {
+  const content = inlineMarkdownToHtml(item.content.trim());
+
+  if (item.listType === "task") {
+    return `<li data-checked="${item.checked ? "true" : "false"}" data-type="taskItem"><label><input ${
+      item.checked ? "checked" : ""
+    } type="checkbox"><span></span></label><div><p>${content}</p></div></li>`;
+  }
+
+  return `<li>${content}</li>`;
+}
+
+function wrapMarkdownListHtml(listType: MarkdownListType, items: string[]) {
+  if (listType === "ordered") {
+    return `<ol>${items.join("")}</ol>`;
+  }
+
+  if (listType === "task") {
+    return `<ul data-type="taskList">${items.join("")}</ul>`;
+  }
+
+  return `<ul>${items.join("")}</ul>`;
 }
 
 function nextNonEmptyLineIndex(lines: string[], index: number) {

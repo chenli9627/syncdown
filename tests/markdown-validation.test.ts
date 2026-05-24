@@ -26,13 +26,12 @@ const value = 1
   assert.equal(result.ok, true);
 });
 
-test("rejects nested lists", () => {
+test("accepts nested lists", () => {
   const result = validateSupportedMarkdown(`- parent
   - child`);
 
   assert.deepEqual(result, {
-    error: "Nested markdown lists are not supported yet",
-    ok: false,
+    ok: true,
   });
 });
 

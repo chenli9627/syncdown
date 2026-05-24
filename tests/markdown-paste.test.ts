@@ -189,7 +189,10 @@ consolg.log(dkf)
   const html = markdownToEditorHtml(markdown);
   assert.match(html, /<h1>h1<\/h1>/);
   assert.match(html, /<h6>h6<\/h6>/);
-  assert.match(html, /<ul><li>hello<\/li><li>dkf<\/li><li>dsklf<\/li><li>dskf<\/li><\/ul>/);
+  assert.match(
+    html,
+    /<ul><li>hello<\/li><li>dkf<ul><li>dsklf<ul><li>dskf<\/li><\/ul><\/li><\/ul><\/li><\/ul>/,
+  );
   assert.match(html, /<ol><li>hello<\/li><li>dkfs<\/li><\/ol>/);
   assert.match(html, /<ul data-type="taskList">/);
   assert.match(html, /<table>/);
