@@ -103,6 +103,7 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "For location requests, choose the closest matching block and use insert_after_block or insert_before_block.",
       "If the user asks to put, add, insert, or write generated content into the document but does not specify a location, insert it after the last non-empty document block.",
       "If the user asks to add the previous, above, earlier, last, this, that, or these table/list/content/answer/recommendations into the document, extract the referenced content from the conversation history and return an insert_after_block or insert_before_block operation. Do not explain why a previous attempt failed, and do not return an empty operations array just because the content came from chat history.",
+      "If the user says to organize, format, convert, or rewrite as a list/table/section and put it into the document, and no source text is explicitly selected or named, use the most recent substantive assistant answer as the source content, transform it as requested, and insert it into the document.",
       "When inserting content copied from a previous assistant answer, preserve its Markdown table, heading, list, and paragraph structure in the operation content field.",
       "For small changes inside an existing formatted block, prefer replace_text_in_block so the original heading, list, link, and inline formatting are preserved.",
       "For whole-block content changes, prefer replace_block or delete_block over replacing the whole document.",

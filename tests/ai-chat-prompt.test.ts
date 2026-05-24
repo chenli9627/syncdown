@@ -105,6 +105,7 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   assert.match(prompt, /does not specify a location/);
   assert.match(prompt, /last non-empty document block/);
   assert.match(prompt, /extract the referenced content from the conversation history/);
+  assert.match(prompt, /use the most recent substantive assistant answer as the source content/);
   assert.match(prompt, /preserve its Markdown table, heading, list, and paragraph structure/);
   assert.match(prompt, /unsupported, too complex, ambiguous/);
   assert.match(prompt, /I cannot do that edit yet/);

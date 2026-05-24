@@ -77,6 +77,8 @@ test("infers block-edit action from previous assistant content insertion request
   assert.equal(inferAiChatDocumentAction("把刚才的表格添加到文档中"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("把上面的内容加入文档"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("将这些景点说明写入文档"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("整理为列表，放到文档中"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("整理成表格放到文档中"), "edit_blocks");
   assert.equal(
     inferAiChatDocumentAction("Add the previous recommendations table to the document"),
     "edit_blocks",
