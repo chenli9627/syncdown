@@ -14,6 +14,7 @@ import {
 } from "@/features/editor/lib/ai-chat-actions";
 import {
   applyAiDocumentEditToolResponseWithVerification,
+  getAiDocumentEditToolOperationCount,
   getAiDocumentEditToolSummary,
 } from "@/features/editor/lib/ai-chat-document-tools";
 
@@ -84,15 +85,24 @@ export function useAiChatAutoDocumentAction({
       return;
     }
 
+    const summary =
+      documentAction.action === "edit_blocks"
+        ? (getAiDocumentEditToolSummary(responseText) ?? undefined)
+        : undefined;
+
+    if (!shouldRequestDocumentActionConfirmation(documentAction.action, responseText)) {
+      if (documentAction.action === "edit_blocks") {
+        onApplyFailed?.(lastMessage.id, summary, "application_failed");
+      }
+      return;
+    }
+
     setPendingConfirmation({
       action: documentAction.action,
       message: lastMessage,
       messageId: lastMessage.id,
       responseText,
-      summary:
-        documentAction.action === "edit_blocks"
-          ? (getAiDocumentEditToolSummary(responseText) ?? undefined)
-          : undefined,
+      summary,
     });
   }, [busy, editor, messages, onApplied, onApplyFailed]);
 
@@ -209,4 +219,19 @@ function applyConfirmedDocumentAction(
 
 function getEditorDocumentSnapshot(editor: Editor) {
   return JSON.stringify(editor.state.doc.toJSON());
+}
+
+export function shouldRequestDocumentActionConfirmation(
+  action: AiChatDocumentAction,
+  responseText: string,
+) {
+  if (!responseText.trim()) {
+    return false;
+  }
+
+  if (action === "edit_blocks") {
+    return getAiDocumentEditToolOperationCount(responseText) > 0;
+  }
+
+  return true;
 }
