@@ -44,9 +44,9 @@ test("infers replace-selection action from broad edit prompts when text is selec
   );
 });
 
-test("infers replace-document action from whole document edit requests", () => {
-  assert.equal(inferAiChatDocumentAction("把当前文档整理成会议纪要"), "replace_document");
-  assert.equal(inferAiChatDocumentAction("Rewrite this document in a more formal tone"), "replace_document");
+test("routes whole-document edit requests through guarded block edits", () => {
+  assert.equal(inferAiChatDocumentAction("把当前文档整理成会议纪要"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("Rewrite this document in a more formal tone"), "edit_blocks");
 });
 
 test("infers block-edit action from document-scoped local deletions", () => {
@@ -138,6 +138,6 @@ test("does not infer document actions from negative edit instructions", () => {
   assert.equal(inferAiChatDocumentAction("Only answer what sections exist. Do not edit the document."), null);
 });
 
-test("keeps whole-document edits as replace-document actions", () => {
-  assert.equal(inferAiChatDocumentAction("Update the current document in a formal tone"), "replace_document");
+test("does not allow whole-document replacement actions", () => {
+  assert.equal(inferAiChatDocumentAction("Update the current document in a formal tone"), "edit_blocks");
 });

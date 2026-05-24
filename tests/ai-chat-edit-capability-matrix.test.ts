@@ -43,11 +43,11 @@ test("AI chat keeps broad selected-text edits scoped to the selection", () => {
   );
 });
 
-test("AI chat keeps explicit whole-document rewrites as document replacement", () => {
-  assert.equal(inferAiChatDocumentAction("把当前文档整理成会议纪要"), "replace_document");
+test("AI chat routes explicit whole-document rewrites through guarded block edits", () => {
+  assert.equal(inferAiChatDocumentAction("把当前文档整理成会议纪要"), "edit_blocks");
   assert.equal(
     inferAiChatDocumentAction("Rewrite this document in a more formal tone"),
-    "replace_document",
+    "edit_blocks",
   );
 });
 

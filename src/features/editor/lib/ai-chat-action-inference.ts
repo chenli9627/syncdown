@@ -52,7 +52,7 @@ export function inferAiChatDocumentAction(
   }
 
   if (isWholeDocumentReplacementPrompt(compactPrompt, lowerPrompt)) {
-    return "replace_document";
+    return "edit_blocks";
   }
 
   return null;

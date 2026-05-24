@@ -10,7 +10,6 @@ import {
   appendAiResponseAsDocumentEndBlocks,
   getAiChatMessageText,
   insertAiResponseAtCursor,
-  replaceDocumentWithAiResponse,
   replaceSelectionWithAiResponse,
 } from "@/features/editor/lib/ai-chat-actions";
 import {
@@ -103,16 +102,6 @@ export function useAiChatAutoDocumentAction({
 
     if (documentAction.action === "insert_cursor") {
       const didApply = insertAiResponseAtCursor(editor, responseText);
-      if (didApply && getEditorDocumentSnapshot(editor) !== beforeSnapshot) {
-        onApplied?.(documentAction.action, lastMessage.id);
-      } else {
-        onApplyFailed?.(lastMessage.id);
-      }
-      return;
-    }
-
-    if (documentAction.action === "replace_document") {
-      const didApply = replaceDocumentWithAiResponse(editor, responseText);
       if (didApply && getEditorDocumentSnapshot(editor) !== beforeSnapshot) {
         onApplied?.(documentAction.action, lastMessage.id);
       } else {

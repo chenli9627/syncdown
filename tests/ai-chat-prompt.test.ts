@@ -103,6 +103,8 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   assert.match(prompt, /last non-empty document block/);
   assert.match(prompt, /unsupported, too complex, ambiguous/);
   assert.match(prompt, /I cannot do that edit yet/);
+  assert.match(prompt, /do not replace the full document or most of its blocks/);
+  assert.match(prompt, /I cannot do whole-document replacement yet/);
   assert.match(prompt, /Never return a rewritten full document as a workaround/);
   assert.match(prompt, /never return the full document body/);
   assert.match(prompt, /Recent explicit Syncdown status notices/);

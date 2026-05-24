@@ -104,6 +104,7 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "If the user asks to put, add, insert, or write generated content into the document but does not specify a location, insert it after the last non-empty document block.",
       "For small changes inside an existing formatted block, prefer replace_text_in_block so the original heading, list, link, and inline formatting are preserved.",
       "For whole-block content changes, prefer replace_block or delete_block over replacing the whole document.",
+      "For broad whole-document rewrite, translation, reformat, meeting-notes, tone, or restructuring requests, do not replace the full document or most of its blocks. If the user did not identify specific sections, blocks, ranges, or placement, return {\"summary\":\"I cannot do whole-document replacement yet. Please ask for a specific section, block, range, or insertion point.\",\"operations\":[]}.",
       "For one table, paragraph, heading, list, or section change, never return the full document body.",
       "If the requested edit is unsupported, too complex, ambiguous, or cannot be represented by the listed operation types, return {\"summary\":\"I cannot do that edit yet.\",\"operations\":[]} and do not pretend it was applied.",
       "If you cannot find a matching blockId or exact targetText, return {\"summary\":\"No matching document target found.\",\"operations\":[]} instead of returning prose or a full document.",
@@ -119,10 +120,6 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
 
   if (documentAction === "insert_cursor") {
     return "The requested automatic action is: insert your answer at the current cursor position. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
-  }
-
-  if (documentAction === "replace_document") {
-    return "The requested automatic action is: replace the current document body with your answer. Return the complete new document body in Markdown. Preserve useful existing content unless the user explicitly asks to remove it. Do not explain the change, and do not say you replaced the document.";
   }
 
   if (documentAction === "replace_selection") {

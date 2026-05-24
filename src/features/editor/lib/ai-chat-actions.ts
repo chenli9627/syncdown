@@ -119,18 +119,6 @@ export function appendAiResponseAsDocumentEndBlocks(editor: Editor | null, text:
   );
 }
 
-export function replaceDocumentWithAiResponse(editor: Editor | null, text: string) {
-  if (!editor) {
-    return false;
-  }
-
-  return runEditorDocumentMutation(editor, () => {
-    const didSetContent = editor.commands.setContent(toAiInsertHtml(text));
-    editor.commands.focus("end");
-    return didSetContent;
-  });
-}
-
 function getAiInsertContentForRange(
   editor: Editor,
   from: number,

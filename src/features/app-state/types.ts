@@ -8,7 +8,6 @@ export type AiChatDocumentAction =
   | "edit_blocks"
   | "insert_cursor"
   | "insert_end"
-  | "replace_document"
   | "replace_selection";
 
 export type AiChatSelection = {
