@@ -7,6 +7,7 @@ import {
   type PointerEvent,
   type RefObject,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -72,6 +73,7 @@ type EditingQuestion = {
 
 const initialVisibleMessageCount = 40;
 const visibleMessageStep = 40;
+const AI_CHAT_APPLIED_NOTICE_STORAGE_KEY = "syncdown.ai-chat.applied-notices.v1";
 
 export function EditorAiChatPanel({
   currentUser,
@@ -85,7 +87,9 @@ export function EditorAiChatPanel({
 }: AiChatPanelProps) {
   const { t } = useLocale();
   const [input, setInput] = useState("");
-  const [appliedNotices, setAppliedNotices] = useState<Record<string, string>>({});
+  const [appliedNotices, setAppliedNotices] = useState<Record<string, string>>(() =>
+    readStoredAppliedNotices(),
+  );
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredAiChatModelKey());
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
   const [pendingClarification, setPendingClarification] =
@@ -115,6 +119,10 @@ export function EditorAiChatPanel({
   const hiddenMessageCount = Math.max(0, messages.length - visibleMessageCount);
   const visibleMessages =
     hiddenMessageCount > 0 ? messages.slice(hiddenMessageCount) : messages;
+
+  useEffect(() => {
+    writeStoredAppliedNotices(appliedNotices);
+  }, [appliedNotices]);
 
   const handleDocumentActionApplied = useCallback(
     (action: AiChatDocumentAction, messageId: string, summary?: string) => {
@@ -586,4 +594,41 @@ function getApplyFailedNotice(
   }
 
   return `${t("aiNotChangedPrefix")}${trimmedSummary}`;
+}
+
+function readStoredAppliedNotices() {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const raw = window.localStorage.getItem(AI_CHAT_APPLIED_NOTICE_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        ([messageId, notice]) => typeof messageId === "string" && typeof notice === "string",
+      ),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredAppliedNotices(appliedNotices: Record<string, string>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      AI_CHAT_APPLIED_NOTICE_STORAGE_KEY,
+      JSON.stringify(appliedNotices),
+    );
+  } catch {
+    // ignore storage failures
+  }
 }
