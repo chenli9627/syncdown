@@ -49,6 +49,22 @@ test("routes whole-document edit requests through guarded block edits", () => {
   assert.equal(inferAiChatDocumentAction("Rewrite this document in a more formal tone"), "edit_blocks");
 });
 
+test("infers block-edit action from follow-up repair prompts after document edits", () => {
+  assert.equal(inferAiChatDocumentAction("修复一下"), null);
+  assert.equal(
+    inferAiChatDocumentAction("修复一下", { hasRecentDocumentAction: true }),
+    "edit_blocks",
+  );
+  assert.equal(
+    inferAiChatDocumentAction("按你说的方案修改", { hasRecentDocumentAction: true }),
+    "edit_blocks",
+  );
+  assert.equal(
+    inferAiChatDocumentAction("It did not work. Fix it.", { hasRecentDocumentAction: true }),
+    "edit_blocks",
+  );
+});
+
 test("infers block-edit action from document-scoped local deletions", () => {
   assert.equal(inferAiChatDocumentAction("删除这篇文档里重复的内容"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("删除北京简介里的引用标注"), "edit_blocks");

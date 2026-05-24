@@ -2,6 +2,7 @@ import type { AiChatDocumentAction } from "@/features/app-state/types";
 
 type InferAiChatDocumentActionOptions = {
   hasSelection?: boolean;
+  hasRecentDocumentAction?: boolean;
 };
 
 export function inferAiChatDocumentAction(
@@ -21,6 +22,13 @@ export function inferAiChatDocumentAction(
 
   if (isInsertCursorPrompt(compactPrompt, lowerPrompt)) {
     return "insert_cursor";
+  }
+
+  if (
+    options.hasRecentDocumentAction &&
+    isDocumentEditFollowUpPrompt(compactPrompt, lowerPrompt)
+  ) {
+    return "edit_blocks";
   }
 
   if (
@@ -118,6 +126,26 @@ function isReplaceSelectionPrompt(compactPrompt: string, lowerPrompt: string) {
       lowerPrompt,
     ) ||
     /\b(?:selection|selected text|selected content|highlighted text)\b[\s\S]{0,120}\b(?:replace|rewrite|revise|edit|improve|translate|summarize|expand|shorten)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isDocumentEditFollowUpPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /^(?:不对|错了|有问题|没成功|没生效|没有修改|没改|不成功|失败了|还是不行).{0,80}(?:修复|修正|改|修改|调整|重做|重新|再试|执行|应用|生效)/.test(
+      compactPrompt,
+    ) ||
+    /(?:修复|修正|改|修改|调整|重做|重新|再试|执行|应用|生效).{0,80}(?:一下|它|这个|这次|刚才|上次|前面|错误|问题|方案|修改|操作|文档|内容)/.test(
+      compactPrompt,
+    ) ||
+    /(?:按|照着|根据).{0,40}(?:这个|这条|上面|刚才|你说的|方案|建议).{0,40}(?:改|修改|修复|执行|应用|处理)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:fix|correct|repair|redo|retry|try again|apply|run|execute|make)\b[\s\S]{0,160}\b(?:it|that|this|the change|the edit|the fix|your suggestion|document|content)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:that|this|it|the change|the edit|the fix|your suggestion)\b[\s\S]{0,160}\b(?:fix|correct|repair|redo|retry|try again|apply|run|execute|make)\b/.test(
       lowerPrompt,
     )
   );

@@ -155,6 +155,7 @@ export function EditorAiChatPanel({
 
     const documentAction = inferAiChatDocumentAction(trimmed, {
       hasSelection: hasEditorSelection(editor),
+      hasRecentDocumentAction: hasRecentAiDocumentAction(messages),
     });
     const threadId = createThreadForSend();
 
@@ -198,12 +199,13 @@ export function EditorAiChatPanel({
       return;
     }
 
-    const documentAction = inferAiChatDocumentAction(trimmed, {
-      hasSelection: hasEditorSelection(editor),
-    });
     const threadId = createThreadForSend();
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
+    const documentAction = inferAiChatDocumentAction(trimmed, {
+      hasSelection: hasEditorSelection(editor),
+      hasRecentDocumentAction: hasRecentAiDocumentAction(nextMessages),
+    });
 
     setPendingAction(documentAction, nextMessages.length);
     flushSync(() => {
@@ -349,6 +351,18 @@ export function EditorAiChatPanel({
 
 function hasEditorSelection(editor: Editor | null) {
   return Boolean(editor && !editor.state.selection.empty);
+}
+
+function hasRecentAiDocumentAction(messages: AiChatMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+
+    if (message?.role === "assistant") {
+      return Boolean(message.metadata?.documentAction);
+    }
+  }
+
+  return false;
 }
 
 function focusPromptInput(inputRef: RefObject<HTMLTextAreaElement | null>) {

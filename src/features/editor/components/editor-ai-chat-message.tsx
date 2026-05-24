@@ -58,8 +58,7 @@ export function ChatMessage({
   const isAutomaticDocumentAction = isAssistant && Boolean(message.metadata?.documentAction);
   const toolSummary = isAssistant ? getAiDocumentEditToolSummary(text) : null;
   const isNotChangedNotice = isDocumentNotChangedNotice(appliedNotice);
-  const didApplyDocumentAction = isAutomaticDocumentAction && isDocumentChangedNotice(appliedNotice);
-  const canRetry = !didApplyDocumentAction;
+  const canRetry = !isAutomaticDocumentAction;
   const displayText = getDisplayText({
     appliedNotice,
     fallbackNotice: t("aiApplyingDocumentAction"),
@@ -220,10 +219,6 @@ function ActionLabel({ children }: { children: string }) {
 
 function isDocumentNotChangedNotice(notice: string | undefined) {
   return Boolean(notice && /^(未修改文档|Document was not changed)/i.test(notice.trim()));
-}
-
-function isDocumentChangedNotice(notice: string | undefined) {
-  return Boolean(notice && /^(已修改文档|Document updated)/i.test(notice.trim()));
 }
 
 function getDisplayText({
