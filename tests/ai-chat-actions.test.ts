@@ -13,41 +13,42 @@ test("infers insert-end action from Chinese document placement requests", () => 
     inferAiChatDocumentAction(
       "给我一个 deepseek-v4-flash 和 deepseek-v4-pro 区别的表格，放到文档末尾",
     ),
-    "insert_end",
+    "edit_blocks",
   );
-  assert.equal(inferAiChatDocumentAction("将总结放入文档末尾并添加标题"), "insert_end");
-  assert.equal(inferAiChatDocumentAction("把总结追加到最后"), "insert_end");
+  assert.equal(inferAiChatDocumentAction("将总结放入文档末尾并添加标题"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把总结追加到最后"), "edit_blocks");
 });
 
 test("infers insert-end action from English document placement requests", () => {
   assert.equal(
     inferAiChatDocumentAction("Make a comparison table and append it to the end of the document"),
-    "insert_end",
+    "edit_blocks",
   );
-  assert.equal(inferAiChatDocumentAction("Please add this at the document bottom"), "insert_end");
+  assert.equal(inferAiChatDocumentAction("Please add this at the document bottom"), "edit_blocks");
 });
 
 test("infers insert-cursor action from cursor placement requests", () => {
-  assert.equal(inferAiChatDocumentAction("生成一句摘要，插入到光标处"), "insert_cursor");
-  assert.equal(inferAiChatDocumentAction("把下面这句话加到当前位置"), "insert_cursor");
-  assert.equal(inferAiChatDocumentAction("Insert a short summary at the cursor"), "insert_cursor");
+  assert.equal(inferAiChatDocumentAction("生成一句摘要，插入到光标处"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把下面这句话加到当前位置"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("Insert a short summary at the cursor"), "edit_blocks");
 });
 
 test("infers replace-selection action from selected text edit requests", () => {
-  assert.equal(inferAiChatDocumentAction("把选中的内容改写得更正式"), "replace_selection");
-  assert.equal(inferAiChatDocumentAction("润色当前选区"), "replace_selection");
-  assert.equal(inferAiChatDocumentAction("Translate the selected text to English"), "replace_selection");
+  assert.equal(
+    inferAiChatDocumentAction("把选中的内容改写得更正式", { hasSelection: true }),
+    "edit_blocks",
+  );
+  assert.equal(inferAiChatDocumentAction("润色当前选区", { hasSelection: true }), "edit_blocks");
+  assert.equal(
+    inferAiChatDocumentAction("Translate the selected text to English", { hasSelection: true }),
+    "edit_blocks",
+  );
+  assert.equal(inferAiChatDocumentAction("把选中的内容改写得更正式"), null);
 });
 
 test("infers replace-selection action from broad edit prompts when text is selected", () => {
-  assert.equal(
-    inferAiChatDocumentAction("改得更正式一点", { hasSelection: true }),
-    "replace_selection",
-  );
-  assert.equal(
-    inferAiChatDocumentAction("Translate this to English", { hasSelection: true }),
-    "replace_selection",
-  );
+  assert.equal(inferAiChatDocumentAction("改得更正式一点", { hasSelection: true }), null);
+  assert.equal(inferAiChatDocumentAction("Translate this to English", { hasSelection: true }), null);
 });
 
 test("routes whole-document edit requests through guarded block edits", () => {

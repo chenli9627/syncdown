@@ -28,10 +28,7 @@ test("requests confirmation for edit-block responses with operations", () => {
   );
 });
 
-test("requests confirmation for non-block document actions with content", () => {
-  assert.equal(
-    shouldRequestDocumentActionConfirmation("insert_end", "追加一行测试内容"),
-    true,
-  );
-  assert.equal(shouldRequestDocumentActionConfirmation("insert_end", "   "), false);
+test("does not request confirmation for legacy non-block document actions", () => {
+  assert.equal(shouldRequestDocumentActionConfirmation("insert_end", "追加一行测试内容"), false);
+  assert.equal(shouldRequestDocumentActionConfirmation("replace_selection", "替换内容"), false);
 });

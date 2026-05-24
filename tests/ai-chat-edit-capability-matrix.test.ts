@@ -34,13 +34,15 @@ test("AI chat routes supported current-document edits to block operations", () =
 
 test("AI chat keeps broad selected-text edits scoped to the selection", () => {
   assert.equal(
-    inferAiChatDocumentAction("改得更正式一点", { hasSelection: true }),
-    "replace_selection",
+    inferAiChatDocumentAction("把选中的内容改写得更正式", { hasSelection: true }),
+    "edit_blocks",
   );
   assert.equal(
-    inferAiChatDocumentAction("Translate this to English", { hasSelection: true }),
-    "replace_selection",
+    inferAiChatDocumentAction("用英文翻译替换选中文本", { hasSelection: true }),
+    "edit_blocks",
   );
+  assert.equal(inferAiChatDocumentAction("改得更正式一点", { hasSelection: true }), null);
+  assert.equal(inferAiChatDocumentAction("Translate this to English", { hasSelection: true }), null);
 });
 
 test("AI chat routes explicit whole-document rewrites through guarded block edits", () => {

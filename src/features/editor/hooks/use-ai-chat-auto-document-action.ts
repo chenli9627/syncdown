@@ -6,12 +6,7 @@ import type {
   AiChatDocumentAction,
   AiChatMessage,
 } from "@/features/app-state/types";
-import {
-  appendAiResponseAsDocumentEndBlocks,
-  getAiChatMessageText,
-  insertAiResponseAtCursor,
-  replaceSelectionWithAiResponse,
-} from "@/features/editor/lib/ai-chat-actions";
+import { getAiChatMessageText } from "@/features/editor/lib/ai-chat-actions";
 import {
   applyAiDocumentEditToolResponseWithVerification,
   getAiDocumentEditToolOperationCount,
@@ -158,62 +153,31 @@ function applyConfirmedDocumentAction(
 ) {
   const beforeSnapshot = getEditorDocumentSnapshot(editor);
 
-  if (confirmation.action === "edit_blocks") {
-    const applyResult = applyAiDocumentEditToolResponseWithVerification(
-      editor,
-      confirmation.responseText,
+  if (confirmation.action !== "edit_blocks") {
+    onApplyFailed?.(confirmation.messageId, confirmation.summary, "application_failed");
+    return;
+  }
+
+  const applyResult = applyAiDocumentEditToolResponseWithVerification(
+    editor,
+    confirmation.responseText,
+  );
+  const didApplyAndVerify =
+    applyResult.appliedCount > 0 &&
+    applyResult.appliedCount >= applyResult.requestedCount &&
+    applyResult.verified &&
+    getEditorDocumentSnapshot(editor) !== beforeSnapshot;
+
+  if (didApplyAndVerify) {
+    onApplied?.(confirmation.action, confirmation.messageId, confirmation.summary);
+  } else {
+    onApplyFailed?.(
+      confirmation.messageId,
+      confirmation.summary,
+      applyResult.appliedCount > 0 && !applyResult.verified
+        ? "verification_failed"
+        : "application_failed",
     );
-    const didApplyAndVerify =
-      applyResult.appliedCount > 0 &&
-      applyResult.appliedCount >= applyResult.requestedCount &&
-      applyResult.verified &&
-      getEditorDocumentSnapshot(editor) !== beforeSnapshot;
-
-    if (didApplyAndVerify) {
-      onApplied?.(confirmation.action, confirmation.messageId, confirmation.summary);
-    } else {
-      onApplyFailed?.(
-        confirmation.messageId,
-        confirmation.summary,
-        applyResult.appliedCount > 0 && !applyResult.verified
-          ? "verification_failed"
-          : "application_failed",
-      );
-    }
-    return;
-  }
-
-  if (confirmation.action === "insert_end") {
-    const didApply = appendAiResponseAsDocumentEndBlocks(editor, confirmation.responseText);
-    if (didApply && getEditorDocumentSnapshot(editor) !== beforeSnapshot) {
-      onApplied?.(confirmation.action, confirmation.messageId);
-    } else {
-      onApplyFailed?.(confirmation.messageId);
-    }
-    return;
-  }
-
-  if (confirmation.action === "insert_cursor") {
-    const didApply = insertAiResponseAtCursor(editor, confirmation.responseText);
-    if (didApply && getEditorDocumentSnapshot(editor) !== beforeSnapshot) {
-      onApplied?.(confirmation.action, confirmation.messageId);
-    } else {
-      onApplyFailed?.(confirmation.messageId);
-    }
-    return;
-  }
-
-  if (confirmation.action === "replace_selection") {
-    const didApply = replaceSelectionWithAiResponse(
-      editor,
-      confirmation.message,
-      confirmation.responseText,
-    );
-    if (didApply && getEditorDocumentSnapshot(editor) !== beforeSnapshot) {
-      onApplied?.(confirmation.action, confirmation.messageId);
-    } else {
-      onApplyFailed?.(confirmation.messageId);
-    }
   }
 }
 
@@ -225,13 +189,5 @@ export function shouldRequestDocumentActionConfirmation(
   action: AiChatDocumentAction,
   responseText: string,
 ) {
-  if (!responseText.trim()) {
-    return false;
-  }
-
-  if (action === "edit_blocks") {
-    return getAiDocumentEditToolOperationCount(responseText) > 0;
-  }
-
-  return true;
+  return action === "edit_blocks" && getAiDocumentEditToolOperationCount(responseText) > 0;
 }

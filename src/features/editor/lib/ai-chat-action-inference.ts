@@ -22,12 +22,16 @@ export function inferAiChatDocumentAction(
     return null;
   }
 
+  if (!options.hasSelection && isReplaceSelectionPrompt(compactPrompt, lowerPrompt)) {
+    return null;
+  }
+
   if (isInsertEndPrompt(compactPrompt, lowerPrompt)) {
-    return "insert_end";
+    return "edit_blocks";
   }
 
   if (isInsertCursorPrompt(compactPrompt, lowerPrompt)) {
-    return "insert_cursor";
+    return "edit_blocks";
   }
 
   if (
@@ -62,12 +66,10 @@ export function inferAiChatDocumentAction(
   }
 
   if (
-    isReplaceSelectionPrompt(compactPrompt, lowerPrompt) ||
-    (options.hasSelection &&
-      (isDocumentEditPrompt(compactPrompt, lowerPrompt) ||
-        isStandaloneEditPrompt(compactPrompt, lowerPrompt)))
+    options.hasSelection &&
+    isReplaceSelectionPrompt(compactPrompt, lowerPrompt)
   ) {
-    return "replace_selection";
+    return "edit_blocks";
   }
 
   if (
@@ -377,17 +379,6 @@ function isWholeDocumentReplacementPrompt(compactPrompt: string, lowerPrompt: st
       lowerPrompt,
     ) ||
     /\b(?:document|doc|page|article)\b[\s\S]{0,120}\b(?:rewrite|revise|improve|translate|format|reformat|clean|convert|turn|update)\b/.test(
-      lowerPrompt,
-    )
-  );
-}
-
-function isStandaloneEditPrompt(compactPrompt: string, lowerPrompt: string) {
-  return (
-    /(?:修改|改写|改得|改成|变成|重写|润色|优化|翻译|整理|重排|格式化|清理|修复|纠错|删除|移除|精简|缩写|扩写|转换|统一|替换)/.test(
-      compactPrompt,
-    ) ||
-    /\b(?:edit|change|rewrite|revise|improve|translate|format|reformat|clean|fix|delete|remove|shorten|expand|convert|turn|update|replace)\b/.test(
       lowerPrompt,
     )
   );
