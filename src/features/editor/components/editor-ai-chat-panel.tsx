@@ -299,7 +299,6 @@ export function EditorAiChatPanel({
                     editingText={
                       editingQuestion?.id === message.id ? editingQuestion.text : undefined
                     }
-                    editor={editor}
                     isEditing={editingQuestion?.id === message.id}
                     key={message.id}
                     message={message}

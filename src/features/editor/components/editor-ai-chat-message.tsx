@@ -1,16 +1,12 @@
 "use client";
 
-import type { Editor } from "@tiptap/react";
 import {
   Check,
   Copy,
-  ListEnd,
   Pencil,
   RefreshCw,
-  Replace,
   Send,
   Square,
-  TextCursorInput,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -23,12 +19,7 @@ import {
 } from "@/components/ai-elements/message";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { AiChatMessage } from "@/features/app-state/types";
-import {
-  getAiChatMessageText,
-  insertAiResponseAtCursor,
-  insertAiResponseAtEnd,
-  replaceSelectionWithAiResponse,
-} from "@/features/editor/lib/ai-chat-actions";
+import { getAiChatMessageText } from "@/features/editor/lib/ai-chat-actions";
 import { getAiDocumentEditToolSummary } from "@/features/editor/lib/ai-chat-document-tools";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +27,6 @@ type ChatMessageProps = {
   appliedNotice?: string;
   busy?: boolean;
   editingText?: string;
-  editor: Editor | null;
   isEditing?: boolean;
   message: AiChatMessage;
   onCancelEdit?: () => void;
@@ -52,7 +42,6 @@ export function ChatMessage({
   appliedNotice,
   busy = false,
   editingText = "",
-  editor,
   isEditing = false,
   message,
   onCancelEdit,
@@ -69,6 +58,8 @@ export function ChatMessage({
   const isAutomaticDocumentAction = isAssistant && Boolean(message.metadata?.documentAction);
   const toolSummary = isAssistant ? getAiDocumentEditToolSummary(text) : null;
   const isNotChangedNotice = isDocumentNotChangedNotice(appliedNotice);
+  const didApplyDocumentAction = isAutomaticDocumentAction && isDocumentChangedNotice(appliedNotice);
+  const canRetry = !didApplyDocumentAction;
   const displayText = getDisplayText({
     appliedNotice,
     fallbackNotice: t("aiApplyingDocumentAction"),
@@ -147,35 +138,12 @@ export function ChatMessage({
               )}
               <ActionLabel>{copied ? t("aiCopied") : t("copy")}</ActionLabel>
             </MessageAction>
-            {!isAutomaticDocumentAction && !toolSummary ? (
-              <>
-                <MessageAction
-                  onClick={() => replaceSelectionWithAiResponse(editor, message, text)}
-                  tooltip={t("aiReplaceSelection")}
-                >
-                  <Replace aria-hidden="true" size={13} />
-                  <ActionLabel>{t("apply")}</ActionLabel>
-                </MessageAction>
-                <MessageAction
-                  onClick={() => insertAiResponseAtCursor(editor, text)}
-                  tooltip={t("aiInsertAtCursor")}
-                >
-                  <TextCursorInput aria-hidden="true" size={13} />
-                  <ActionLabel>{t("aiInsertAtCursor")}</ActionLabel>
-                </MessageAction>
-                <MessageAction
-                  onClick={() => insertAiResponseAtEnd(editor, text)}
-                  tooltip={t("aiInsertAtEnd")}
-                >
-                  <ListEnd aria-hidden="true" size={13} />
-                  <ActionLabel>{t("aiInsertAtEnd")}</ActionLabel>
-                </MessageAction>
-              </>
+            {canRetry ? (
+              <MessageAction onClick={onRegenerate} tooltip={t("aiRetry")}>
+                <RefreshCw aria-hidden="true" size={13} />
+                <ActionLabel>{t("aiRetry")}</ActionLabel>
+              </MessageAction>
             ) : null}
-            <MessageAction onClick={onRegenerate} tooltip={t("aiRetry")}>
-              <RefreshCw aria-hidden="true" size={13} />
-              <ActionLabel>{t("aiRetry")}</ActionLabel>
-            </MessageAction>
           </MessageActions>
         )
       ) : null}
@@ -252,6 +220,10 @@ function ActionLabel({ children }: { children: string }) {
 
 function isDocumentNotChangedNotice(notice: string | undefined) {
   return Boolean(notice && /^(未修改文档|Document was not changed)/i.test(notice.trim()));
+}
+
+function isDocumentChangedNotice(notice: string | undefined) {
+  return Boolean(notice && /^(已修改文档|Document updated)/i.test(notice.trim()));
 }
 
 function getDisplayText({

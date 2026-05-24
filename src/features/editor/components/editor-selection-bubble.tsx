@@ -1,7 +1,7 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
-import { Bold, Code2, Italic, Link2, Sparkles, Strikethrough } from "lucide-react";
+import { Bold, Code2, Italic, Link2, Strikethrough } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -22,7 +22,6 @@ const LINK_HOVER_BRIDGE_MIN_WIDTH_PX = 440;
 type EditorSelectionBubbleProps = {
   editor: Editor | null;
   onFormat: (command: "bold" | "italic" | "strike" | "code") => void;
-  onOpenAi: () => void;
   selectionBubble: SelectionBubbleState;
   selectionBubbleRef: RefObject<HTMLDivElement | null>;
 };
@@ -30,7 +29,6 @@ type EditorSelectionBubbleProps = {
 export function EditorSelectionBubble({
   editor,
   onFormat,
-  onOpenAi,
   selectionBubble,
   selectionBubbleRef,
 }: EditorSelectionBubbleProps) {
@@ -248,11 +246,6 @@ export function EditorSelectionBubble({
                 top: selectionBubble.top + 44,
               });
             }}
-          />
-          <SelectionActionButton
-            icon={<Sparkles className="size-4" />}
-            label={t("ai")}
-            onClick={onOpenAi}
           />
         </div>
       ) : null}
