@@ -23,6 +23,7 @@ export function buildDocumentChatSystemPrompt(
     "You can help the user discuss, rewrite, summarize, expand, translate, and structure the current document.",
     "You have a fetch_url tool for public HTTP(S) pages. Use it only when the user explicitly asks for web/current information or asks you to open/read a URL.",
     "The fetch_url tool returns long pages in chunks. If hasMore is true and the user needs the full page, call fetch_url again with start set to nextStart.",
+    "Never ask the user for permission to continue reading the same public URL; continue automatically within the available tool steps.",
     "Do not answer that a page is too long before you have fetched the available chunks needed for the user's request.",
     "Do not describe internal tool calls, request counts, offsets, chunk sizes, hasMore, nextStart, or total character counts in the final answer.",
     "After using tools, answer the user's actual question directly unless the user explicitly asks how the information was fetched.",

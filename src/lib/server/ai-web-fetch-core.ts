@@ -1,7 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
-const CHUNK_LENGTH = 30_000;
+const READ_LENGTH = 200_000;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 8_000;
 const USER_AGENT = "Syncdown-AI-Web-Fetch/1.0";
@@ -81,7 +81,7 @@ export async function fetchPublicUrlText(
     const title = html ? extractHtmlTitle(text) : null;
     const readableText = normalizeWhitespace(html ? htmlToReadableText(text) : text);
     const start = clampStart(options.start, readableText.length);
-    const end = Math.min(start + CHUNK_LENGTH, readableText.length);
+    const end = Math.min(start + READ_LENGTH, readableText.length);
 
     return {
       contentLimitReached: truncated,

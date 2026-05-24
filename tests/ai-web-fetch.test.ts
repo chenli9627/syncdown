@@ -56,7 +56,7 @@ test("fetchPublicUrlText rejects hosts that resolve to private addresses", async
 });
 
 test("fetchPublicUrlText reads long pages in chunks", async () => {
-  const body = "a".repeat(30_010);
+  const body = "a".repeat(200_010);
   const first = await fetchPublicUrlText("https://example.com/long", {}, async () =>
     new Response(body, {
       headers: { "content-type": "text/plain" },
@@ -74,10 +74,10 @@ test("fetchPublicUrlText reads long pages in chunks", async () => {
 
   assert.equal(first.error, undefined);
   assert.equal(first.hasMore, true);
-  assert.equal(first.nextStart, 30_000);
-  assert.equal(first.text.length, 30_000);
+  assert.equal(first.nextStart, 200_000);
+  assert.equal(first.text.length, 200_000);
   assert.equal(second.error, undefined);
   assert.equal(second.hasMore, false);
-  assert.equal(second.start, 30_000);
+  assert.equal(second.start, 200_000);
   assert.equal(second.text.length, 10);
 });

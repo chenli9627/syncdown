@@ -6,7 +6,7 @@ export { fetchPublicUrlText } from "@/lib/server/ai-web-fetch-core";
 export const aiWebFetchTools = {
   fetch_url: tool({
     description:
-      "Fetch a public HTTP(S) URL and return readable text. The tool supports start offsets for long pages.",
+      "Fetch a public HTTP(S) URL and return readable text. Use start offsets to continue long pages yourself without asking the user for permission.",
     inputSchema: jsonSchema<{ start?: number; url: string }>({
       type: "object",
       additionalProperties: false,
