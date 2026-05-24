@@ -73,7 +73,11 @@ function persistStateSnapshot(state: SyntextState) {
     return;
   }
 
-  window.localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+  try {
+    window.localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    window.localStorage.removeItem(STATE_STORAGE_KEY);
+  }
 }
 
 export async function readJson<T>(response: Response) {
