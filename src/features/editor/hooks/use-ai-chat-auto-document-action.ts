@@ -13,7 +13,10 @@ import {
   replaceDocumentWithAiResponse,
   replaceSelectionWithAiResponse,
 } from "@/features/editor/lib/ai-chat-actions";
-import { applyAiDocumentEditToolResponse } from "@/features/editor/lib/ai-chat-document-tools";
+import {
+  applyAiDocumentEditToolResponse,
+  getAiDocumentEditToolSummary,
+} from "@/features/editor/lib/ai-chat-document-tools";
 
 type PendingDocumentAction = {
   action: AiChatDocumentAction;
@@ -25,7 +28,7 @@ type UseAiChatAutoDocumentActionArgs = {
   editor: Editor | null;
   error: Error | undefined;
   messages: AiChatMessage[];
-  onApplied?: (action: AiChatDocumentAction, messageId: string) => void;
+  onApplied?: (action: AiChatDocumentAction, messageId: string, summary?: string) => void;
 };
 
 export function useAiChatAutoDocumentAction({
@@ -70,7 +73,11 @@ export function useAiChatAutoDocumentAction({
       const appliedCount = applyAiDocumentEditToolResponse(editor, responseText);
 
       if (appliedCount > 0) {
-        onApplied?.(documentAction.action, lastMessage.id);
+        onApplied?.(
+          documentAction.action,
+          lastMessage.id,
+          getAiDocumentEditToolSummary(responseText) ?? undefined,
+        );
       }
       return;
     }

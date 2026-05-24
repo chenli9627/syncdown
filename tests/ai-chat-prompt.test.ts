@@ -32,7 +32,25 @@ test("AI chat prompt does not tell the model to invent UI apply instructions", (
   );
 
   assert.match(prompt, /Never add UI instructions/);
+  assert.match(prompt, /Never tell the user to copy, paste, manually insert/);
   assert.match(prompt, /answer directly with the requested content or explanation/);
   assert.doesNotMatch(prompt, /explicit buttons/);
   assert.doesNotMatch(prompt, /user applies your response/);
+});
+
+test("AI chat prompt treats automatic document edits as real app edits", () => {
+  const prompt = buildDocumentChatSystemPrompt(
+    "Daily trends",
+    "今日热搜 TOP10",
+    [{ id: "block_1", text: "今日热搜 TOP10", type: "heading", level: 2 }],
+    null,
+    "deepseek-v4-flash",
+    "edit_blocks",
+  );
+
+  assert.match(prompt, /automatic document actions are real app-driven edits/);
+  assert.match(prompt, /Do not apologize by saying you cannot directly modify/);
+  assert.match(prompt, /treat those messages as obsolete/);
+  assert.match(prompt, /where a previous automatic document edit went/);
+  assert.match(prompt, /summary must say what changed and where it was placed/);
 });

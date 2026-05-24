@@ -30,8 +30,12 @@ export function buildDocumentChatSystemPrompt(
     "Do not use fetch_url for local, private-network, or non-HTTP(S) URLs. If a page cannot be fetched, explain the limitation briefly.",
     "When using fetched web content, do not copy raw HTML tags or angle-bracket markup unless the user explicitly asks for source code.",
     "Never add UI instructions such as clicking Apply, clicking a button, using the top-right corner, or manually applying the answer.",
+    "Never tell the user to copy, paste, manually insert, or manually apply content to the document.",
+    "In Syncdown, automatic document actions are real app-driven edits. Do not apologize by saying you cannot directly modify the document when the user's request is a document edit.",
+    "If earlier assistant messages say you cannot directly modify the document or ask the user to copy content manually, treat those messages as obsolete and do not repeat that behavior.",
+    "If the user asks where a previous automatic document edit went, answer from the previous operation summary and the current document context. Do not deny that the app applied it.",
     documentAction
-      ? "The app will use your next answer as the payload for the requested document action."
+      ? "The app will automatically apply your next answer as the payload for the requested document action."
       : "When the user asks for an edit, return content that can be inserted into the document directly.",
     documentAction
       ? "Never tell the user to copy, paste, manually insert, or manually apply the answer."
@@ -40,7 +44,7 @@ export function buildDocumentChatSystemPrompt(
     "Use Markdown when lists, headings, or emphasis make the answer clearer.",
     documentAction
       ? "Do not claim that the document has already changed while you are generating the answer."
-      : "Do not claim to have changed the document yourself; answer directly with the requested content or explanation.",
+      : "Do not invent a new document change for this turn, but treat previous Syncdown-applied document actions as real changes; answer directly with the requested content or explanation.",
     "",
     "Current document title:",
     cleanDocumentTitle,
@@ -58,6 +62,7 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "The requested automatic action is: edit the document with block-level operations.",
       "Return only valid JSON, with no Markdown fences and no prose.",
       "Schema: {\"summary\":\"short user-facing summary\",\"operations\":[{\"type\":\"insert_after_block|insert_before_block|replace_block|delete_block|replace_text_in_block\",\"blockId\":\"block_1\",\"content\":\"Markdown content for insert/replace block\",\"targetText\":\"exact text to replace for replace_text_in_block\",\"replacementText\":\"replacement text for replace_text_in_block\"}]}",
+      "The summary must say what changed and where it was placed, using nearby block text when possible.",
       "Use only blockId values from Current document blocks.",
       "For location requests, choose the closest matching block and use insert_after_block or insert_before_block.",
       "For small changes inside an existing formatted block, prefer replace_text_in_block so the original heading, list, link, and inline formatting are preserved.",

@@ -103,10 +103,10 @@ export function EditorAiChatPanel({
     hiddenMessageCount > 0 ? messages.slice(hiddenMessageCount) : messages;
 
   const handleDocumentActionApplied = useCallback(
-    (action: AiChatDocumentAction, messageId: string) => {
+    (action: AiChatDocumentAction, messageId: string, summary?: string) => {
       setAppliedNotices((current) => ({
         ...current,
-        [messageId]: getAppliedNotice(action, t),
+        [messageId]: getAppliedNotice(action, t, summary),
       }));
       focusPromptInput(inputRef);
     },
@@ -342,7 +342,17 @@ function focusPromptInput(inputRef: RefObject<HTMLTextAreaElement | null>) {
   });
 }
 
-function getAppliedNotice(action: AiChatDocumentAction, t: (key: MessageKey) => string) {
+function getAppliedNotice(
+  action: AiChatDocumentAction,
+  t: (key: MessageKey) => string,
+  summary?: string,
+) {
+  const trimmedSummary = summary?.trim();
+
+  if (trimmedSummary) {
+    return `${t("aiAppliedPrefix")}${trimmedSummary}`;
+  }
+
   if (action === "edit_blocks") {
     return t("aiAppliedBlockEdit");
   }
