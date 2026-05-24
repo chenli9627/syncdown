@@ -71,7 +71,7 @@ function isMarkdownTable(text: string) {
       continue;
     }
 
-    if (/^\|(?:\s*:?-{3,}:?\s*\|)+$/.test(separator)) {
+    if (/^\|(?:\s*:?-+:?\s*\|)+$/.test(separator)) {
       return true;
     }
   }

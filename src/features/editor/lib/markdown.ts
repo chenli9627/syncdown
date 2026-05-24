@@ -21,7 +21,7 @@ const UNSUPPORTED_MARKDOWN_PATTERNS: Array<{
   },
   {
     error: "Raw HTML blocks are not supported in markdown import",
-    pattern: /<(?!img\b)[a-z][^>]*>/i,
+    pattern: /<(?!img\b|https?:\/\/|mailto:)(?:\/)?[a-z][^>]*>/i,
   },
   {
     error: "Footnotes are not supported yet",
@@ -50,6 +50,10 @@ function inlineMarkdownToHtml(text: string) {
   let result = escapeHtml(text);
   const links: string[] = [];
 
+  result = result.replace(
+    /&lt;((?:https?:\/\/|mailto:)[^&\s<>]+)&gt;/gi,
+    (match, href: string) => stashLink(links, href, href) ?? match,
+  );
   result = result.replace(/(?<!!)\[([^\]]+)\]\(([^)\s]+)\)/g, (match, label: string, href: string) =>
     stashLink(links, label, href) ?? match,
   );
@@ -406,11 +410,22 @@ export function markdownToEditorHtml(markdown: string) {
     }
 
     if (isMarkdownTableStart(lines, index)) {
-      const headerCells = splitMarkdownTableRow(lines[index] ?? "");
+      const headerIndex = index;
+      const separatorIndex = nextNonEmptyLineIndex(lines, index + 1);
+      const headerCells = splitMarkdownTableRow(lines[headerIndex] ?? "");
       const bodyRows: string[][] = [];
-      index += 2;
+      index = separatorIndex + 1;
 
-      while (index < lines.length && isMarkdownTableRow(lines[index] ?? "")) {
+      while (index < lines.length) {
+        if (!(lines[index] ?? "").trim()) {
+          index += 1;
+          continue;
+        }
+
+        if (!isMarkdownTableRow(lines[index] ?? "")) {
+          break;
+        }
+
         bodyRows.push(splitMarkdownTableRow(lines[index] ?? ""));
         index += 1;
       }
@@ -423,8 +438,17 @@ export function markdownToEditorHtml(markdown: string) {
       const taskItems: string[] = [];
       let taskIndex = index;
 
-      while (taskIndex < lines.length && /^- \[(?: |x|X)\]\s+/.test((lines[taskIndex] ?? "").trim())) {
+      while (taskIndex < lines.length) {
         const taskLine = (lines[taskIndex] ?? "").trim();
+
+        if (!taskLine) {
+          taskIndex += 1;
+          continue;
+        }
+
+        if (!/^- \[(?: |x|X)\]\s+/.test(taskLine)) {
+          break;
+        }
         const checked = /^- \[(?:x|X)\]/.test(taskLine);
         const content = taskLine.replace(/^- \[(?: |x|X)\]\s+/, "");
         taskItems.push(
@@ -443,8 +467,19 @@ export function markdownToEditorHtml(markdown: string) {
 
       const items: string[] = [];
 
-      while (index < lines.length && /^- /.test((lines[index] ?? "").trim())) {
-        items.push(`<li>${inlineMarkdownToHtml((lines[index] ?? "").trim().slice(2))}</li>`);
+      while (index < lines.length) {
+        const listLine = (lines[index] ?? "").trim();
+
+        if (!listLine) {
+          index += 1;
+          continue;
+        }
+
+        if (!/^- /.test(listLine)) {
+          break;
+        }
+
+        items.push(`<li>${inlineMarkdownToHtml(listLine.slice(2))}</li>`);
         index += 1;
       }
 
@@ -455,10 +490,19 @@ export function markdownToEditorHtml(markdown: string) {
     if (/^\d+\.\s+/.test(trimmed)) {
       const items: string[] = [];
 
-      while (index < lines.length && /^\d+\.\s+/.test((lines[index] ?? "").trim())) {
-        items.push(
-          `<li>${inlineMarkdownToHtml((lines[index] ?? "").trim().replace(/^\d+\.\s+/, ""))}</li>`,
-        );
+      while (index < lines.length) {
+        const listLine = (lines[index] ?? "").trim();
+
+        if (!listLine) {
+          index += 1;
+          continue;
+        }
+
+        if (!/^\d+\.\s+/.test(listLine)) {
+          break;
+        }
+
+        items.push(`<li>${inlineMarkdownToHtml(listLine.replace(/^\d+\.\s+/, ""))}</li>`);
         index += 1;
       }
 
@@ -680,9 +724,12 @@ function tableBlockToMarkdown(node: Element) {
 }
 
 function isMarkdownTableStart(lines: string[], index: number) {
+  const separatorIndex = nextNonEmptyLineIndex(lines, index + 1);
+
   return (
     isMarkdownTableRow(lines[index] ?? "") &&
-    isMarkdownTableSeparator(lines[index + 1] ?? "")
+    separatorIndex < lines.length &&
+    isMarkdownTableSeparator(lines[separatorIndex] ?? "")
   );
 }
 
@@ -693,7 +740,7 @@ function isMarkdownTableRow(line: string) {
 
 function isMarkdownTableSeparator(line: string) {
   const trimmed = line.trim();
-  return /^\|?\s*:?-{3,}:?(?:\s*\|\s*:?-{3,}:?)+\s*\|?$/.test(trimmed);
+  return /^\|?\s*:?-+:?(?:\s*\|\s*:?-+:?)+\s*\|?$/.test(trimmed);
 }
 
 function splitMarkdownTableRow(line: string) {
@@ -703,6 +750,16 @@ function splitMarkdownTableRow(line: string) {
     .replace(/\|$/, "")
     .split("|")
     .map((cell) => cell.trim());
+}
+
+function nextNonEmptyLineIndex(lines: string[], index: number) {
+  let currentIndex = index;
+
+  while (currentIndex < lines.length && !(lines[currentIndex] ?? "").trim()) {
+    currentIndex += 1;
+  }
+
+  return currentIndex;
 }
 
 function markdownTableToHtml(headerCells: string[], bodyRows: string[][]) {
