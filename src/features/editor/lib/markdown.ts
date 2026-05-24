@@ -365,14 +365,16 @@ export function markdownToEditorHtml(markdown: string) {
       continue;
     }
 
-    if (/^```[\w+-]*$/.test(trimmed)) {
-      const openingLine = trimmed;
-      const languageMatch = openingLine.match(/^```([\w+-]+)?$/);
-      const language = languageMatch?.[1]?.trim() ?? "";
+    const fenceMatch = trimmed.match(/^(`{2,3})([\w+-]+)?$/);
+
+    if (fenceMatch) {
+      const openingFence = fenceMatch[1] ?? "```";
+      const language = fenceMatch[2]?.trim() ?? "";
+      const closingFence = openingFence;
       const codeLines: string[] = [];
       index += 1;
 
-      while (index < lines.length && (lines[index] ?? "").trim() !== "```") {
+      while (index < lines.length && (lines[index] ?? "").trim() !== closingFence) {
         codeLines.push(lines[index] ?? "");
         index += 1;
       }
@@ -385,6 +387,12 @@ export function markdownToEditorHtml(markdown: string) {
 
     if (/^(?:---+|\*\*\*+)$/.test(trimmed)) {
       blocks.push("<hr>");
+      index += 1;
+      continue;
+    }
+
+    if (/^\[TOC\]$/i.test(trimmed)) {
+      blocks.push('<div data-type="table-of-contents"></div>');
       index += 1;
       continue;
     }

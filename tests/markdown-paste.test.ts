@@ -198,6 +198,7 @@ consolg.log(dkf)
   assert.match(html, /<strong><em>斜加粗<\/em><\/strong>/);
   assert.match(html, /<s>删除线<\/s>/);
   assert.match(html, /<code>代码<\/code>/);
-  assert.match(html, /\[TOC\]/);
-  assert.match(html, /<code> console\.log/);
+  assert.match(html, /data-type="table-of-contents"/);
+  assert.match(html, /<pre><code>console\.log/);
+  assert.match(html, /<pre><code>consolg\.log/);
 });
