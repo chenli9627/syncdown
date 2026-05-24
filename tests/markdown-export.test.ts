@@ -237,10 +237,14 @@ test("exports footnote references and definitions to markdown", () => {
         body: new TestElement("body", {}, [
           new TestElement("p", {}, [
             new TestTextNode("北京"),
-            new TestElement("a", { href: "#footnote-1" }, [new TestTextNode("[^1]")]),
+            new TestElement("a", { href: "#footnote-1", "data-footnote-ref": "1" }, [
+              new TestTextNode("[1]"),
+            ]),
           ]),
-          new TestElement("p", {}, [
-            new TestElement("a", { href: "#footnote-1" }, [new TestTextNode("[^1]")]),
+          new TestElement("p", { "data-footnote-definition": "1" }, [
+            new TestElement("a", { href: "#footnote-1", "data-footnote-ref": "1" }, [
+              new TestTextNode("[1]"),
+            ]),
             new TestTextNode(": 脚注内容"),
           ]),
         ]),

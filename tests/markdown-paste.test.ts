@@ -58,7 +58,9 @@ test("detects markdown footnotes in plain-text paste", () => {
 
   assert.equal(shouldParseMarkdownPaste(markdown), true);
   const html = markdownToEditorHtml(markdown);
-  assert.match(html, /<a href="#footnote-1">\[\^1\]<\/a>/);
+  assert.match(html, /data-footnote-ref="1"/);
+  assert.match(html, />\[1\]<\/a>/);
+  assert.match(html, /data-footnote-definition="1"/);
   assert.match(html, /脚注内容/);
 });
 

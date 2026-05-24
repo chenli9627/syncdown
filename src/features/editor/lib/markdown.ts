@@ -43,8 +43,7 @@ function inlineMarkdownToHtml(text: string) {
   const links: string[] = [];
 
   result = result.replace(/\[\^([^\]]+)\]/g, (_match, id: string) => {
-    const label = `[^${id}]`;
-    return stashLink(links, label, `#footnote-${id}`) ?? label;
+    return stashFootnoteReference(links, id);
   });
   result = result.replace(
     /&lt;((?:https?:\/\/|mailto:)[^&\s<>]+)&gt;/gi,
@@ -81,6 +80,16 @@ function stashLink(links: string[], escapedLabel: string, escapedHref: string) {
   return `\uE000LINK${index}\uE000`;
 }
 
+function stashFootnoteReference(links: string[], id: string) {
+  const href = `#footnote-${id}`;
+  const label = formatFootnoteLabel(id);
+  const index = links.length;
+  links.push(
+    `<a href="${href}" data-footnote-ref="${escapeHtml(id)}" class="footnote-ref">${label}</a>`,
+  );
+  return `\uE000LINK${index}\uE000`;
+}
+
 function restoreLinks(input: string, links: string[]) {
   return input.replace(/\uE000LINK(\d+)\uE000/g, (_match, index: string) => links[Number(index)] ?? "");
 }
@@ -99,6 +108,10 @@ function normalizeMarkdownLinkHref(href: string) {
   }
 
   return null;
+}
+
+function formatFootnoteLabel(id: string) {
+  return /^[0-9]+$/.test(id) ? `[${id}]` : `[${id}]`;
 }
 
 function splitTrailingUrlPunctuation(href: string) {
@@ -133,8 +146,14 @@ function htmlInlineToMarkdown(node: Node): string {
       return `~~${content}~~`;
     case "A": {
       const href = node.getAttribute("href") ?? "";
-      if (/^#footnote-/.test(href) && /^\[\^[^\]]+\]$/.test(content)) {
-        return content;
+      const footnoteRef = node.getAttribute("data-footnote-ref");
+
+      if (footnoteRef) {
+        return `[^${footnoteRef}]`;
+      }
+
+      if (/^#footnote-/.test(href) && /^\[[^\]]+\]$/.test(content)) {
+        return `[^${href.replace(/^#footnote-/, "")}]`;
       }
       return href ? `[${content}](${href})` : content;
     }
@@ -155,6 +174,14 @@ function htmlBlockToMarkdown(node: Element, headings: MarkdownHeading[] = []): s
   }
 
   if (tag === "P") {
+    const footnoteDefinitionId = node.getAttribute("data-footnote-definition");
+
+    if (footnoteDefinitionId) {
+      const content = Array.from(node.childNodes).map(htmlInlineToMarkdown).join("");
+      const definitionBody = content.replace(/^\[\^[^\]]+]\s*:\s*/, "");
+      return [`[^${footnoteDefinitionId}]: ${definitionBody}`];
+    }
+
     return [Array.from(node.childNodes).map(htmlInlineToMarkdown).join("")];
   }
 
@@ -421,7 +448,7 @@ export function markdownToEditorHtml(markdown: string) {
       }
 
       blocks.push(
-        `<p>${inlineMarkdownToHtml(`[^${footnoteId}]`)}: ${inlineMarkdownToHtml(footnoteLines.join(" "))}</p>`,
+        `<p data-footnote-definition="${escapeHtml(footnoteId)}">${inlineMarkdownToHtml(`[^${footnoteId}]`)}: ${inlineMarkdownToHtml(footnoteLines.join(" "))}</p>`,
       );
       continue;
     }
