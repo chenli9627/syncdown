@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  MANUAL_TOC_ITEM_CLASS,
+  MANUAL_TOC_LINK_CLASS,
+  MANUAL_TOC_LIST_CLASS,
+} from "@/features/editor/lib/editor-link-styles";
+
 export type MarkdownAsset = {
   data: Uint8Array;
   mimeType: string;
@@ -931,6 +937,12 @@ function renderMarkdownListItem(
   item: MarkdownListLine,
   renderInlineMarkdown: (text: string) => string = inlineMarkdownToHtml,
 ) {
+  const manualTocLink = parseManualTocLink(item.content);
+
+  if (manualTocLink && item.listType !== "task") {
+    return `<li data-manual-toc-item="true" class="${MANUAL_TOC_ITEM_CLASS}"><a href="${escapeHtml(manualTocLink.href)}" class="${MANUAL_TOC_LINK_CLASS}">${escapeHtml(manualTocLink.label)}</a></li>`;
+  }
+
   const content = renderInlineMarkdown(item.content.trim());
 
   if (item.listType === "task") {
@@ -943,15 +955,36 @@ function renderMarkdownListItem(
 }
 
 function wrapMarkdownListHtml(listType: MarkdownListType, items: string[]) {
+  const isManualTocList = items.length > 0 && items.every((item) => item.includes('data-manual-toc-item="true"'));
+
   if (listType === "ordered") {
-    return `<ol>${items.join("")}</ol>`;
+    return `<ol${isManualTocList ? ` data-manual-toc="true" class="${MANUAL_TOC_LIST_CLASS}"` : ""}>${items.join("")}</ol>`;
   }
 
   if (listType === "task") {
     return `<ul data-type="taskList">${items.join("")}</ul>`;
   }
 
-  return `<ul>${items.join("")}</ul>`;
+  return `<ul${isManualTocList ? ` data-manual-toc="true" class="${MANUAL_TOC_LIST_CLASS}"` : ""}>${items.join("")}</ul>`;
+}
+
+function parseManualTocLink(content: string) {
+  const match = content.trim().match(/^\[([^\]]+)\]\((#[^)]+)\)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const href = normalizeMarkdownLinkHref(match[2] ?? "");
+
+  if (!href?.startsWith("#")) {
+    return null;
+  }
+
+  return {
+    href,
+    label: match[1] ?? "",
+  };
 }
 
 function nextNonEmptyLineIndex(lines: string[], index: number) {

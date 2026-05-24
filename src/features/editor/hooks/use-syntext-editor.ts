@@ -17,13 +17,14 @@ import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import StarterKit from "@tiptap/starter-kit";
 import type * as Y from "yjs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import { NodeSelection } from "@tiptap/pm/state";
 import type { User } from "@/features/app-state/types";
 import { TableOfContents } from "@/features/editor/extensions/table-of-contents";
 import { syntextLowlight } from "@/features/editor/lib/code-highlighting";
 import { toEditorContent } from "@/features/editor/lib/content";
+import { decorateManualTocLists, EDITOR_LINK_CLASS } from "@/features/editor/lib/editor-link-styles";
 import { insertImageFile } from "@/features/editor/lib/image";
 import { insertMarkdownPaste } from "@/features/editor/lib/markdown-paste";
 import { handleMarkdownAnchorClick } from "@/features/editor/lib/markdown-anchor-navigation";
@@ -66,6 +67,36 @@ export function useSyntextEditor({
   const seededInitialContentRef = useRef(false);
   const hasEditorChangesSinceSnapshotRef = useRef(false);
   const [editorReadyVersion, setEditorReadyVersion] = useState(0);
+
+  const scheduleManualTocDecoration = useCallback((root: HTMLElement) => {
+    const runDecoration = () => {
+      decorateManualTocLists(root);
+    };
+
+    window.requestAnimationFrame(runDecoration);
+
+    let attempts = 0;
+    const intervalId = window.setInterval(() => {
+      runDecoration();
+      attempts += 1;
+
+      if (attempts >= 4) {
+        window.clearInterval(intervalId);
+      }
+    }, 100);
+  }, []);
+
+  const tryScheduleManualTocDecoration = useCallback((currentEditor: Editor) => {
+    if (currentEditor.isDestroyed) {
+      return;
+    }
+
+    try {
+      scheduleManualTocDecoration(currentEditor.view.dom);
+    } catch {
+      return;
+    }
+  }, [scheduleManualTocDecoration]);
 
   function clearVersionFinalizeTimer() {
     if (!versionFinalizeTimeoutRef.current) {
@@ -198,6 +229,7 @@ export function useSyntextEditor({
         autolink: true,
         defaultProtocol: "https",
         HTMLAttributes: {
+          class: EDITOR_LINK_CLASS,
           rel: "noopener noreferrer nofollow",
           target: "_blank",
         },
@@ -392,6 +424,7 @@ export function useSyntextEditor({
     },
     onCreate: ({ editor: currentEditor }) => {
       editorRef.current = currentEditor;
+      tryScheduleManualTocDecoration(currentEditor);
       setEditorReadyVersion((current) => current + 1);
     },
     onDestroy: () => {
@@ -399,6 +432,8 @@ export function useSyntextEditor({
       setEditorReadyVersion((current) => current + 1);
     },
     onUpdate: ({ editor: currentEditor }) => {
+      tryScheduleManualTocDecoration(currentEditor);
+
       if (!canEditBody) {
         return;
       }
@@ -419,6 +454,14 @@ export function useSyntextEditor({
   useEffect(() => {
     seededInitialContentRef.current = false;
   }, [content, documentId]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    tryScheduleManualTocDecoration(editor);
+  }, [content, documentId, editor, editorReadyVersion, tryScheduleManualTocDecoration]);
 
   useEffect(() => {
     if (!editor || !collaborationDocument || !collaborationSynced) {
