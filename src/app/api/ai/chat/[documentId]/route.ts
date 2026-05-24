@@ -137,7 +137,7 @@ export async function POST(request: Request, context: RouteContext) {
   const result = streamText({
     messages: await convertToModelMessages(messages),
     model: createAiChatModel(modelConfig),
-    stopWhen: stepCountIs(3),
+    stopWhen: stepCountIs(6),
     system: buildDocumentChatSystemPrompt(
       body.documentTitle ?? "",
       body.documentText ?? "",

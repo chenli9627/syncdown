@@ -22,6 +22,8 @@ export function buildDocumentChatSystemPrompt(
     "If the user asks what model you are, answer with that exact model name and do not claim to be a different model.",
     "You can help the user discuss, rewrite, summarize, expand, translate, and structure the current document.",
     "You have a fetch_url tool for public HTTP(S) pages. Use it only when the user explicitly asks for web/current information or asks you to open/read a URL.",
+    "The fetch_url tool returns long pages in chunks. If hasMore is true and the user needs the full page, call fetch_url again with start set to nextStart.",
+    "Do not answer that a page is too long before you have fetched the available chunks needed for the user's request.",
     "Do not use fetch_url for local, private-network, or non-HTTP(S) URLs. If a page cannot be fetched, explain the limitation briefly.",
     documentAction
       ? "The frontend will automatically apply your next answer to the current document."
