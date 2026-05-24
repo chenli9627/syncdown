@@ -31,7 +31,10 @@ import type {
 } from "@/features/app-state/types";
 import { ChatMessage } from "@/features/editor/components/editor-ai-chat-message";
 import { EditorAiChatPanelHeader } from "@/features/editor/components/editor-ai-chat-panel-header";
-import { useAiChatAutoDocumentAction } from "@/features/editor/hooks/use-ai-chat-auto-document-action";
+import {
+  type AiDocumentApplyFailureReason,
+  useAiChatAutoDocumentAction,
+} from "@/features/editor/hooks/use-ai-chat-auto-document-action";
 import { useAiChatThreads } from "@/features/editor/hooks/use-ai-chat-threads";
 import { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-actions";
 import {
@@ -113,10 +116,10 @@ export function EditorAiChatPanel({
     [t],
   );
   const handleDocumentActionApplyFailed = useCallback(
-    (messageId: string, summary?: string) => {
+    (messageId: string, summary?: string, reason?: AiDocumentApplyFailureReason) => {
       setAppliedNotices((current) => ({
         ...current,
-        [messageId]: getApplyFailedNotice(t, summary),
+        [messageId]: getApplyFailedNotice(t, summary, reason),
       }));
       focusPromptInput(inputRef);
     },
@@ -420,7 +423,15 @@ function getAppliedNotice(
   return t("aiAppliedReplaceDocument");
 }
 
-function getApplyFailedNotice(t: (key: MessageKey) => string, summary?: string) {
+function getApplyFailedNotice(
+  t: (key: MessageKey) => string,
+  summary?: string,
+  reason?: AiDocumentApplyFailureReason,
+) {
+  if (reason === "verification_failed") {
+    return t("aiApplyVerificationFailed");
+  }
+
   const trimmedSummary = summary?.trim();
 
   if (!trimmedSummary) {

@@ -13,8 +13,7 @@ import {
   replaceSelectionWithAiResponse,
 } from "@/features/editor/lib/ai-chat-actions";
 import {
-  applyAiDocumentEditToolResponse,
-  getAiDocumentEditToolOperationCount,
+  applyAiDocumentEditToolResponseWithVerification,
   getAiDocumentEditToolSummary,
 } from "@/features/editor/lib/ai-chat-document-tools";
 
@@ -29,8 +28,10 @@ type UseAiChatAutoDocumentActionArgs = {
   error: Error | undefined;
   messages: AiChatMessage[];
   onApplied?: (action: AiChatDocumentAction, messageId: string, summary?: string) => void;
-  onApplyFailed?: (messageId: string, summary?: string) => void;
+  onApplyFailed?: (messageId: string, summary?: string, reason?: AiDocumentApplyFailureReason) => void;
 };
+
+export type AiDocumentApplyFailureReason = "application_failed" | "verification_failed";
 
 export function useAiChatAutoDocumentAction({
   busy,
@@ -74,18 +75,25 @@ export function useAiChatAutoDocumentAction({
     const beforeSnapshot = getEditorDocumentSnapshot(editor);
 
     if (documentAction.action === "edit_blocks") {
-      const appliedCount = applyAiDocumentEditToolResponse(editor, responseText);
-      const requestedCount = getAiDocumentEditToolOperationCount(responseText);
+      const applyResult = applyAiDocumentEditToolResponseWithVerification(editor, responseText);
       const summary = getAiDocumentEditToolSummary(responseText) ?? undefined;
 
-      if (
-        appliedCount > 0 &&
-        appliedCount >= requestedCount &&
-        getEditorDocumentSnapshot(editor) !== beforeSnapshot
-      ) {
+      const didApplyAndVerify =
+        applyResult.appliedCount > 0 &&
+        applyResult.appliedCount >= applyResult.requestedCount &&
+        applyResult.verified &&
+        getEditorDocumentSnapshot(editor) !== beforeSnapshot;
+
+      if (didApplyAndVerify) {
         onApplied?.(documentAction.action, lastMessage.id, summary);
       } else {
-        onApplyFailed?.(lastMessage.id, summary);
+        onApplyFailed?.(
+          lastMessage.id,
+          summary,
+          applyResult.appliedCount > 0 && !applyResult.verified
+            ? "verification_failed"
+            : "application_failed",
+        );
       }
       return;
     }

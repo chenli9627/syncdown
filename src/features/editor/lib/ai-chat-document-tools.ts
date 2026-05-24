@@ -10,20 +10,42 @@ import type {
   AiDocumentEditOperation,
   AiDocumentEditPayload,
 } from "@/features/editor/lib/ai-chat-document-edit-types";
+import { verifyAiDocumentEditOperations } from "@/features/editor/lib/ai-chat-document-edit-verification";
+
+export type AiDocumentEditApplyResult = {
+  appliedCount: number;
+  failedVerificationCount: number;
+  requestedCount: number;
+  verified: boolean;
+};
 
 export function getAiDocumentBlocks(editor: Editor | null): AiChatDocumentBlock[] {
   return getLocalAiDocumentBlocks(editor).map(toAiDocumentBlock);
 }
 
 export function applyAiDocumentEditToolResponse(editor: Editor | null, responseText: string) {
+  return applyAiDocumentEditToolResponseWithVerification(editor, responseText).appliedCount;
+}
+
+export function applyAiDocumentEditToolResponseWithVerification(
+  editor: Editor | null,
+  responseText: string,
+): AiDocumentEditApplyResult {
+  const emptyResult: AiDocumentEditApplyResult = {
+    appliedCount: 0,
+    failedVerificationCount: 0,
+    requestedCount: 0,
+    verified: false,
+  };
+
   if (!editor) {
-    return 0;
+    return emptyResult;
   }
 
   const payload = parseAiDocumentEditPayload(responseText);
 
   if (!payload?.operations?.length) {
-    return 0;
+    return emptyResult;
   }
 
   const payloadOperations = normalizeDependentTableInsertOperations(payload.operations);
@@ -48,7 +70,18 @@ export function applyAiDocumentEditToolResponse(editor: Editor | null, responseT
     }
   });
 
-  return appliedCount;
+  const verification = verifyAiDocumentEditOperations(
+    payloadOperations,
+    blocks,
+    getLocalAiDocumentBlocks(editor),
+  );
+
+  return {
+    appliedCount,
+    failedVerificationCount: verification.failedCount,
+    requestedCount: payloadOperations.length,
+    verified: verification.verified,
+  };
 }
 
 export function getAiDocumentEditToolSummary(responseText: string) {

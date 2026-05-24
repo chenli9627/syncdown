@@ -1,0 +1,293 @@
+import type {
+  AiDocumentEditOperation,
+  LocalAiDocumentBlock,
+} from "@/features/editor/lib/ai-chat-document-edit-types";
+import { findTargetTextRanges } from "@/features/editor/lib/ai-chat-document-edit-ranges";
+import { getExpectedContentText } from "@/features/editor/lib/ai-chat-document-edit-verification-content";
+import {
+  getInsertedColumnIndex,
+  getTableColumnCount,
+  getTableRowCount,
+  tableCellContainsText,
+  tableHeaderRowToggled,
+} from "@/features/editor/lib/ai-chat-document-edit-verification-table";
+
+export type AiDocumentEditVerificationResult = {
+  failedCount: number;
+  verified: boolean;
+};
+
+export function verifyAiDocumentEditOperations(
+  operations: AiDocumentEditOperation[],
+  beforeBlocks: LocalAiDocumentBlock[],
+  afterBlocks: LocalAiDocumentBlock[],
+): AiDocumentEditVerificationResult {
+  let failedCount = 0;
+
+  operations.forEach((operation) => {
+    if (!verifyAiDocumentEditOperation(operation, beforeBlocks, afterBlocks)) {
+      failedCount += 1;
+    }
+  });
+
+  return {
+    failedCount,
+    verified: failedCount === 0,
+  };
+}
+
+function verifyAiDocumentEditOperation(
+  operation: AiDocumentEditOperation,
+  beforeBlocks: LocalAiDocumentBlock[],
+  afterBlocks: LocalAiDocumentBlock[],
+) {
+  const beforeBlock = beforeBlocks.find((block) => block.id === operation.blockId);
+  const afterBlock = getBlockAtOriginalIndex(operation.blockId, afterBlocks);
+
+  if (operation.type === "delete_block") {
+    return Boolean(beforeBlock) && !hasSameBlockAtOriginalIndex(beforeBlock, afterBlock);
+  }
+
+  if (operation.type === "replace_block") {
+    return blockContainsText(afterBlock, getExpectedContentText(operation.content));
+  }
+
+  if (operation.type === "insert_before_block" || operation.type === "insert_after_block") {
+    return blocksContainText(afterBlocks, getExpectedContentText(operation.content));
+  }
+
+  if (operation.type === "replace_text_in_block") {
+    return (
+      Boolean(operation.targetText) &&
+      !blockContainsText(afterBlock, operation.targetText) &&
+      blockContainsText(afterBlock, operation.replacementText ?? "")
+    );
+  }
+
+  if (operation.type === "replace_all_text") {
+    const documentText = afterBlocks.map((block) => block.text).join("\n");
+    const replacementText = operation.replacementText ?? "";
+
+    return (
+      Boolean(operation.targetText) &&
+      !documentText.includes(operation.targetText ?? "") &&
+      (!replacementText || documentText.includes(replacementText))
+    );
+  }
+
+  if (operation.type === "set_heading_level") {
+    return afterBlock?.type === "heading" && afterBlock.level === operation.level;
+  }
+
+  if (operation.type === "set_block_type") {
+    return (
+      Boolean(operation.blockType) &&
+      afterBlock?.type === operation.blockType &&
+      (operation.blockType !== "heading" || afterBlock.level === operation.level)
+    );
+  }
+
+  if (operation.type === "set_list_type") {
+    return Boolean(operation.listType) && afterBlock?.type === operation.listType;
+  }
+
+  if (operation.type === "set_task_item_checked") {
+    return nodeHasTaskItemChecked(afterBlock, operation.targetText, operation.checked);
+  }
+
+  if (operation.type === "set_text_marks" || operation.type === "unset_text_marks") {
+    return blockTextHasMarks(
+      afterBlock,
+      operation.targetText,
+      operation.marks ?? operation.mark,
+      operation.type === "set_text_marks",
+    );
+  }
+
+  if (operation.type === "set_link" || operation.type === "unset_link") {
+    return blockTextHasLink(
+      afterBlock,
+      operation.targetText,
+      operation.type === "set_link" ? operation.href : undefined,
+      operation.type === "set_link",
+    );
+  }
+
+  if (operation.type === "update_table_cell") {
+    return tableCellContainsText(afterBlock, operation.row, operation.column, operation.content);
+  }
+
+  if (
+    operation.type === "insert_table_row_before" ||
+    operation.type === "insert_table_row_after"
+  ) {
+    return getTableRowCount(afterBlock) === getTableRowCount(beforeBlock) + 1;
+  }
+
+  if (operation.type === "delete_table_row") {
+    return getTableRowCount(afterBlock) === Math.max(0, getTableRowCount(beforeBlock) - 1);
+  }
+
+  if (
+    operation.type === "insert_table_column_before" ||
+    operation.type === "insert_table_column_after"
+  ) {
+    return (
+      getTableColumnCount(afterBlock) === getTableColumnCount(beforeBlock) + 1 &&
+      (!operation.content ||
+        tableCellContainsText(
+          afterBlock,
+          1,
+          getInsertedColumnIndex(operation),
+          operation.content,
+        ))
+    );
+  }
+
+  if (operation.type === "delete_table_column") {
+    return getTableColumnCount(afterBlock) === Math.max(0, getTableColumnCount(beforeBlock) - 1);
+  }
+
+  if (operation.type === "toggle_table_header_row") {
+    return tableHeaderRowToggled(beforeBlock, afterBlock);
+  }
+
+  if (operation.type === "move_block" || operation.type === "copy_block") {
+    return Boolean(beforeBlock?.text && blocksContainText(afterBlocks, beforeBlock.text));
+  }
+
+  return false;
+}
+
+function getBlockAtOriginalIndex(blockId: string, blocks: LocalAiDocumentBlock[]) {
+  const index = getBlockIndex(blockId);
+
+  return index == null ? undefined : blocks[index];
+}
+
+function getBlockIndex(blockId: string) {
+  const match = blockId.match(/^block_(\d+)$/);
+
+  return match ? Number(match[1]) - 1 : null;
+}
+
+function hasSameBlockAtOriginalIndex(
+  beforeBlock: LocalAiDocumentBlock,
+  afterBlock: LocalAiDocumentBlock | undefined,
+) {
+  return Boolean(
+    afterBlock &&
+      afterBlock.type === beforeBlock.type &&
+      afterBlock.level === beforeBlock.level &&
+      afterBlock.text === beforeBlock.text,
+  );
+}
+
+function blocksContainText(blocks: LocalAiDocumentBlock[], expectedText: string) {
+  return Boolean(expectedText && blocks.some((block) => blockContainsText(block, expectedText)));
+}
+
+function blockContainsText(block: LocalAiDocumentBlock | undefined, expectedText: string) {
+  return Boolean(expectedText && block?.text.includes(expectedText));
+}
+
+function nodeHasTaskItemChecked(
+  block: LocalAiDocumentBlock | undefined,
+  targetText: string | undefined,
+  checked: boolean | undefined,
+) {
+  if (!block || typeof checked !== "boolean") {
+    return false;
+  }
+
+  let found = false;
+
+  block.node.descendants((node) => {
+    if (
+      !found &&
+      node.type.name === "taskItem" &&
+      (!targetText || node.textContent.includes(targetText)) &&
+      node.attrs.checked === checked
+    ) {
+      found = true;
+    }
+  });
+
+  return found;
+}
+
+function blockTextHasMarks(
+  block: LocalAiDocumentBlock | undefined,
+  targetText: string | undefined,
+  marks: string | string[] | undefined,
+  shouldHaveMarks: boolean,
+) {
+  const markNames = [marks].flat().filter((mark): mark is string => Boolean(mark));
+
+  if (!block || !targetText || !markNames.length) {
+    return false;
+  }
+
+  return findTargetTextRanges(block, targetText).some((range) =>
+    markNames.every((markName) => rangeHasMark(block, range, markName) === shouldHaveMarks),
+  );
+}
+
+function blockTextHasLink(
+  block: LocalAiDocumentBlock | undefined,
+  targetText: string | undefined,
+  href: string | undefined,
+  shouldHaveLink: boolean,
+) {
+  if (!block || !targetText) {
+    return false;
+  }
+
+  return findTargetTextRanges(block, targetText).some((range) =>
+    rangeHasLink(block, range, href) === shouldHaveLink,
+  );
+}
+
+function rangeHasMark(
+  block: LocalAiDocumentBlock,
+  range: { from: number; to: number },
+  markName: string,
+) {
+  return getTextNodesInRange(block, range).every((node) =>
+    node.marks.some((mark) => mark.type.name === markName),
+  );
+}
+
+function rangeHasLink(
+  block: LocalAiDocumentBlock,
+  range: { from: number; to: number },
+  href: string | undefined,
+) {
+  return getTextNodesInRange(block, range).every((node) =>
+    node.marks.some(
+      (mark) => mark.type.name === "link" && (!href || mark.attrs.href === href),
+    ),
+  );
+}
+
+function getTextNodesInRange(
+  block: LocalAiDocumentBlock,
+  range: { from: number; to: number },
+) {
+  const nodes: Array<{ marks: readonly { attrs: Record<string, unknown>; type: { name: string } }[] }> = [];
+
+  block.node.descendants((node, pos) => {
+    if (!node.isText || !node.text) {
+      return;
+    }
+
+    const from = block.pos + 1 + pos;
+    const to = from + node.text.length;
+
+    if (from < range.to && to > range.from) {
+      nodes.push({ marks: node.marks });
+    }
+  });
+
+  return nodes;
+}
