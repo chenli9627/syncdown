@@ -91,6 +91,7 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "For task checkbox changes, use set_task_item_checked with exact targetText and checked true or false.",
       "For moving or copying blocks, use move_block or copy_block with targetBlockId and placement before or after.",
       "For bold, italic, strikethrough, or inline code changes, use set_text_marks or unset_text_marks with exact targetText and marks.",
+      "For all/every occurrences of a text mark or text replacement request, include one operation for each matching block. One set_text_marks, unset_text_marks, or replace_all_text operation applies to every occurrence of targetText inside its target block.",
       "For link changes, use set_link with exact targetText and href, or unset_link with exact targetText.",
       "For document-wide exact replacements, use replace_all_text with targetText and replacementText.",
       "For table cell changes, use update_table_cell with one-based row and column plus content.",
