@@ -260,7 +260,7 @@ export function EditorSurface({
       </div>
       {model.canEditBody && !aiChatOpen ? (
         <button
-          className="fixed bottom-5 right-5 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full shadow-[var(--shadow-soft-card)] transition hover:brightness-95"
+          className="fixed bottom-5 right-5 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full shadow-[0_10px_28px_rgba(0,0,0,0.18),0_2px_8px_rgba(0,0,0,0.12)] transition hover:brightness-95"
           onClick={() => setAiChatOpen(true)}
           style={{
             backgroundColor: isDarkTheme ? "#000000" : "#ffffff",
