@@ -4,19 +4,12 @@ import type { Editor } from "@tiptap/react";
 import {
   markdownToEditorHtml,
   validateStandaloneMarkdownAssets,
-  validateSupportedMarkdown,
 } from "@/features/editor/lib/markdown";
 
 export function shouldParseMarkdownPaste(text: string) {
   const normalized = text.replace(/\r\n?/g, "\n").trim();
 
   if (!normalized || !looksLikeStructuredMarkdown(normalized)) {
-    return false;
-  }
-
-  const validation = validateSupportedMarkdown(normalized);
-
-  if (!validation.ok) {
     return false;
   }
 

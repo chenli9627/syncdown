@@ -130,3 +130,74 @@ test("accepts mixed markdown text with autolinks and unsupported plain-text tabl
   assert.match(html, /<a href="https:\/\/example\.com">https:\/\/example\.com<\/a>/);
   assert.match(html, /┌───────┬──────┬──────────┐/);
 });
+
+test("tolerates unsupported markdown blocks during paste without dropping supported blocks", () => {
+  const markdown = `# h1
+
+## h2
+
+### h3
+
+#### h4
+
+##### h5
+
+###### h6
+
+- hello
+- dkf
+  - dsklf
+    - dskf
+
+1. hello
+2. dkfs
+
+- [ ] dkfs
+- [x] dkfs
+
+"dkfskdfk"
+
+|one|two|three|four|
+|-|-|-| -|
+|ok|dkfks|dsk|[dfk](google.com)|
+
+|Done|Contents|Description|
+|-|-|-|
+|Reading *The Pale Dot*| | |
+
+[TOC]
+---
+
+***
+
+\`\`
+console.log('dskf')
+\`\`
+
+\`\`
+consolg.log(dkf)
+\`\`
+
+---------
+
+北京市，简称“京”，旧称“北平”。
+
+*加粗* **斜体** ***斜加粗*** ~~删除线~~ \`代码\` [链接](google.com)`;
+
+  assert.equal(shouldParseMarkdownPaste(markdown), true);
+
+  const html = markdownToEditorHtml(markdown);
+  assert.match(html, /<h1>h1<\/h1>/);
+  assert.match(html, /<h6>h6<\/h6>/);
+  assert.match(html, /<ul><li>hello<\/li><li>dkf<\/li><li>dsklf<\/li><li>dskf<\/li><\/ul>/);
+  assert.match(html, /<ol><li>hello<\/li><li>dkfs<\/li><\/ol>/);
+  assert.match(html, /<ul data-type="taskList">/);
+  assert.match(html, /<table>/);
+  assert.match(html, /<a href="https:\/\/google\.com">dfk<\/a>/);
+  assert.match(html, /<hr>/);
+  assert.match(html, /<strong><em>斜加粗<\/em><\/strong>/);
+  assert.match(html, /<s>删除线<\/s>/);
+  assert.match(html, /<code>代码<\/code>/);
+  assert.match(html, /\[TOC\]/);
+  assert.match(html, /<code> console\.log/);
+});

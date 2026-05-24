@@ -64,6 +64,7 @@ function inlineMarkdownToHtml(text: string) {
   });
 
   result = result.replace(/~~(.+?)~~/g, "<s>$1</s>");
+  result = result.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
   result = result.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   result = result.replace(/\*(.+?)\*/g, "<em>$1</em>");
   result = result.replace(/_(.+?)_/g, "<em>$1</em>");
@@ -73,12 +74,14 @@ function inlineMarkdownToHtml(text: string) {
 }
 
 function stashLink(links: string[], escapedLabel: string, escapedHref: string) {
-  if (!isSafeMarkdownLinkHref(escapedHref)) {
+  const href = normalizeMarkdownLinkHref(escapedHref);
+
+  if (!href || !isSafeMarkdownLinkHref(href)) {
     return null;
   }
 
   const index = links.length;
-  links.push(`<a href="${escapedHref}">${escapedLabel}</a>`);
+  links.push(`<a href="${href}">${escapedLabel}</a>`);
   return `\uE000LINK${index}\uE000`;
 }
 
@@ -88,6 +91,18 @@ function restoreLinks(input: string, links: string[]) {
 
 function isSafeMarkdownLinkHref(href: string) {
   return /^(?:https?:\/\/|mailto:|\/|#)/i.test(href);
+}
+
+function normalizeMarkdownLinkHref(href: string) {
+  if (/^(?:https?:\/\/|mailto:|\/|#)/i.test(href)) {
+    return href;
+  }
+
+  if (/^[a-z0-9.-]+\.[a-z]{2,}(?:[/?#][^\s]*)?$/i.test(href)) {
+    return `https://${href}`;
+  }
+
+  return null;
 }
 
 function splitTrailingUrlPunctuation(href: string) {
@@ -368,7 +383,7 @@ export function markdownToEditorHtml(markdown: string) {
       continue;
     }
 
-    if (/^---+$/.test(trimmed)) {
+    if (/^(?:---+|\*\*\*+)$/.test(trimmed)) {
       blocks.push("<hr>");
       index += 1;
       continue;
