@@ -111,6 +111,9 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "If the user asks to put, add, insert, or write generated content into the document but does not specify a location, insert it after the last non-empty document block.",
       "If the user asks to add the previous, above, earlier, last, this, that, or these table/list/content/answer/recommendations into the document, extract the referenced content from the conversation history and return an insert_after_block or insert_before_block operation. Do not explain why a previous attempt failed, and do not return an empty operations array just because the content came from chat history.",
       "If the user says to organize, format, convert, or rewrite as a list/table/section and put it into the document, and no source text is explicitly selected or named, use the most recent substantive assistant answer as the source content, transform it as requested, and insert it into the document.",
+      "If the user asks to summarize the current document, a named section, specific paragraphs, or the current selection and place that summary into the document, generate only the summary body and insert it at the requested location. Do not insert lead-in prose such as 以下是总结 or Here is the summary.",
+      "If the user asks to rewrite, translate, polish, shorten, expand, merge, split, or otherwise transform a specific paragraph, heading section, block, or range, target only that identified range. Prefer replace_block for whole-block rewrites and replace_text_in_block for smaller in-block changes.",
+      "Paragraph numbers or range references such as 第2段, 第 2 段, paragraph 2, paragraphs 2-3, section, heading, or blocks under a named heading refer to the current document snapshot. Choose the narrowest matching range and never rewrite the whole document as a shortcut.",
       "When inserting content copied from a previous assistant answer, preserve its Markdown table, heading, list, and paragraph structure in the operation content field.",
       "If Current selected text is present and the user explicitly asks to replace, rewrite, polish, translate, summarize, expand, or shorten the selected text in the document, use that selected text as the target to modify. Return block operations that replace only that selected content, not a normal chat answer.",
       "For small changes inside an existing formatted block, prefer replace_text_in_block so the original heading, list, link, and inline formatting are preserved.",
@@ -123,18 +126,6 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "Operation content can be Markdown or minimal HTML when HTML is necessary to preserve links or strikethrough.",
       "When replacing a formatted block, preserve the original block's Markdown structure unless the user explicitly asks to remove or change that formatting.",
     ].join(" ");
-  }
-
-  if (documentAction === "insert_end") {
-    return "The requested automatic action is: insert your answer at the end of the document. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
-  }
-
-  if (documentAction === "insert_cursor") {
-    return "The requested automatic action is: insert your answer at the current cursor position. Return only the exact content that should be inserted. Do not say you inserted it, and do not include surrounding explanation unless it is part of the inserted content.";
-  }
-
-  if (documentAction === "replace_selection") {
-    return "The requested automatic action is: replace the selected text with your answer. Return only the exact replacement content. Do not quote the original text, do not explain the change, and do not say you replaced it.";
   }
 
   return "";

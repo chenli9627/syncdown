@@ -63,6 +63,35 @@ test("builds deterministic exact text replacement operations", () => {
   });
 });
 
+test("builds deterministic containing-block replacement operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload(
+      "把包含“北京是一座历史与现代交融的城市”的段落改成北京是一座兼具历史底蕴与现代活力的城市。",
+      documentBlocks,
+    ),
+    {
+      operations: [
+        {
+          blockId: "block_8",
+          content: "北京是一座兼具历史底蕴与现代活力的城市",
+          type: "replace_block",
+        },
+      ],
+      summary: "已改写包含“北京是一座历史与现代交融的城市”的段落。",
+    },
+  );
+});
+
+test("builds deterministic containing-block delete operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("删除包含“天坛”的列表。", documentBlocks),
+    {
+      operations: [{ blockId: "block_2", type: "delete_block" }],
+      summary: "已删除包含“天坛”的列表。",
+    },
+  );
+});
+
 test("builds deterministic table cell update operations", () => {
   assert.deepEqual(
     buildDeterministicAiDocumentEditPayload("把 Day 2 的备注改成午后出发。", documentBlocks),

@@ -132,6 +132,9 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   assert.match(prompt, /Current selected text is present/);
   assert.match(prompt, /extract the referenced content from the conversation history/);
   assert.match(prompt, /use the most recent substantive assistant answer as the source content/);
+  assert.match(prompt, /summarize the current document, a named section, specific paragraphs, or the current selection/);
+  assert.match(prompt, /rewrite, translate, polish, shorten, expand, merge, split/);
+  assert.match(prompt, /Paragraph numbers or range references such as 第2段, 第 2 段, paragraph 2, paragraphs 2-3/);
   assert.match(prompt, /preserve its Markdown table, heading, list, and paragraph structure/);
   assert.match(prompt, /unsupported, too complex, ambiguous/);
   assert.match(prompt, /I cannot do that edit yet/);

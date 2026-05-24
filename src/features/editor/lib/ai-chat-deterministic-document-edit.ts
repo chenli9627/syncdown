@@ -18,6 +18,8 @@ export function buildDeterministicAiDocumentEditPayload(
   documentBlocks: AiChatDocumentBlock[],
 ): AiDocumentEditPayload | null {
   return (
+    buildContainingBlockDeletePayload(prompt, documentBlocks) ??
+    buildContainingBlockReplacementPayload(prompt, documentBlocks) ??
     buildTableCellUpdatePayload(prompt, documentBlocks) ??
     buildTaskItemCheckedPayload(prompt, documentBlocks) ??
     buildHeadingLevelPayload(prompt, documentBlocks) ??
@@ -25,6 +27,69 @@ export function buildDeterministicAiDocumentEditPayload(
     buildLinkPayload(prompt, documentBlocks) ??
     buildExactTextReplacementPayload(prompt, documentBlocks)
   );
+}
+
+function buildContainingBlockDeletePayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  const chineseMatch = prompt.match(
+    /(?:删除|移除|删掉|去掉)\s*(?:包含|含有)\s*[“"'`]?([^“”"'`\n]{1,96})[”"'`]?\s*(?:的)?(段落|标题|小节|列表|表格|块|引用|代码块)?/u,
+  );
+  const englishMatch = prompt.match(
+    /\b(?:delete|remove)\s+(?:the\s+)?(?:(paragraph|heading|section|list|table|block|quote|code block)\s+)?(?:containing|with)\s+["'`]?([^"'`\n]{1,96})["'`]?/i,
+  );
+  const target = cleanTarget(chineseMatch?.[1] ?? englishMatch?.[2]);
+  const kind = cleanTarget(chineseMatch?.[2] ?? englishMatch?.[1]);
+  if (!target) {
+    return null;
+  }
+
+  const block = findSingleBlockContaining(
+    documentBlocks,
+    target,
+    resolveTargetBlockTypes(kind),
+  );
+  if (!block) {
+    return null;
+  }
+
+  return {
+    operations: [{ blockId: block.id, type: "delete_block" }],
+    summary: `已删除包含“${target}”的${describeBlockKind(kind, block.type)}。`,
+  };
+}
+
+function buildContainingBlockReplacementPayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  const chineseMatch = prompt.match(
+    /(?:把|将)\s*(?:包含|含有)\s*[“"'`]?([^“”"'`\n]{1,96})[”"'`]?\s*(?:的)?(段落|标题|小节|列表|表格|块|引用|代码块)?\s*(?:改成|改为|替换成|替换为|重写成)\s*([^\n]{1,240})/u,
+  );
+  const englishMatch = prompt.match(
+    /\b(?:change|replace|rewrite|revise|update)\s+(?:the\s+)?(?:(paragraph|heading|section|list|table|block|quote|code block)\s+)?(?:containing|with)\s+["'`]?([^"'`\n]{1,96})["'`]?\s+(?:to|with)\s+["'`]?([^"'`\n]{1,240})["'`]?/i,
+  );
+  const target = cleanTarget(chineseMatch?.[1] ?? englishMatch?.[2]);
+  const kind = cleanTarget(chineseMatch?.[2] ?? englishMatch?.[1]);
+  const replacementContent = cleanValue(chineseMatch?.[3] ?? englishMatch?.[3]);
+  if (!target || !replacementContent) {
+    return null;
+  }
+
+  const block = findSingleBlockContaining(
+    documentBlocks,
+    target,
+    resolveTargetBlockTypes(kind),
+  );
+  if (!block) {
+    return null;
+  }
+
+  return {
+    operations: [{ blockId: block.id, content: replacementContent, type: "replace_block" }],
+    summary: `已改写包含“${target}”的${describeBlockKind(kind, block.type)}。`,
+  };
 }
 
 function buildTaskItemCheckedPayload(
@@ -251,4 +316,81 @@ function buildExactTextReplacementPayload(
     ],
     summary: `已将“${target}”改为“${replacementText}”。`,
   };
+}
+
+function resolveTargetBlockTypes(kind: string) {
+  if (!kind) {
+    return undefined;
+  }
+
+  if (/(?:段落|paragraph|block)$/i.test(kind)) {
+    return ["paragraph"];
+  }
+
+  if (/(?:标题|heading)$/i.test(kind)) {
+    return ["heading"];
+  }
+
+  if (/(?:小节|section)$/i.test(kind)) {
+    return ["heading"];
+  }
+
+  if (/(?:列表|list)$/i.test(kind)) {
+    return ["bulletList", "orderedList", "taskList"];
+  }
+
+  if (/(?:表格|table)$/i.test(kind)) {
+    return ["table"];
+  }
+
+  if (/(?:引用|quote)$/i.test(kind)) {
+    return ["blockquote"];
+  }
+
+  if (/(?:代码块|codeblock|code block)$/i.test(kind)) {
+    return ["codeBlock"];
+  }
+
+  return undefined;
+}
+
+function describeBlockKind(kind: string, fallbackType: string) {
+  if (kind) {
+    if (/(?:标题|heading)$/i.test(kind)) {
+      return "标题";
+    }
+    if (/(?:小节|section)$/i.test(kind)) {
+      return "小节";
+    }
+    if (/(?:列表|list)$/i.test(kind)) {
+      return "列表";
+    }
+    if (/(?:表格|table)$/i.test(kind)) {
+      return "表格";
+    }
+    if (/(?:引用|quote)$/i.test(kind)) {
+      return "引用块";
+    }
+    if (/(?:代码块|codeblock|code block)$/i.test(kind)) {
+      return "代码块";
+    }
+  }
+
+  if (fallbackType === "heading") {
+    return "标题";
+  }
+  if (fallbackType === "table") {
+    return "表格";
+  }
+  if (fallbackType === "blockquote") {
+    return "引用块";
+  }
+  if (fallbackType === "codeBlock") {
+    return "代码块";
+  }
+  if (fallbackType === "bulletList" || fallbackType === "orderedList" || fallbackType === "taskList") {
+    return "列表";
+  }
+
+  return "段落";
 }
