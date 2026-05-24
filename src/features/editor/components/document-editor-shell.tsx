@@ -51,33 +51,13 @@ export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
   }
 
   return (
-    <>
-      <style jsx global>{`
-        .syntext-editor ul:has(> li > p > a.editor-link.block[href^="#"]),
-        .syntext-editor ol:has(> li > p > a.editor-link.block[href^="#"]) {
-          margin: 0;
-          padding-left: 0;
-          list-style: none;
-        }
-
-        .syntext-editor li:has(> p > a.editor-link.block[href^="#"]) {
-          margin: 0;
-          padding: 0;
-          list-style: none;
-        }
-
-        .syntext-editor li:has(> p > a.editor-link.block[href^="#"]) > p {
-          margin: 0;
-        }
-      `}</style>
-      <EditorSurface
-        document={document}
-        initialFocusTitle={initialFocusTitle}
-        key={document.id}
-        permission={permission}
-        saveDocument={saveDocument}
-      />
-    </>
+    <EditorSurface
+      document={document}
+      initialFocusTitle={initialFocusTitle}
+      key={document.id}
+      permission={permission}
+      saveDocument={saveDocument}
+    />
   );
 }
 
