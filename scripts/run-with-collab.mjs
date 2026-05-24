@@ -11,6 +11,7 @@ const devAppMaxRssMb = Number(process.env.SYNCDOWN_DEV_APP_MAX_RSS_MB ?? "3072")
 const devAppMemoryCheckMs = Number(
   process.env.SYNCDOWN_DEV_MEMORY_CHECK_MS ?? "15000",
 );
+const collabHealthCheckMs = Number(process.env.SYNCDOWN_COLLAB_CHECK_MS ?? "2000");
 
 function canConnect(host, port) {
   return new Promise((resolve) => {
@@ -33,22 +34,19 @@ function canConnect(host, port) {
   });
 }
 
-const collabAlreadyRunning = await canConnect("127.0.0.1", collabPort);
-const collab = collabAlreadyRunning
-  ? null
-  : spawn(
-      process.execPath,
-      ["./scripts/collab-server.mjs", "--host", collabHost, "--port", collabPort],
-      {
-        cwd: process.cwd(),
-        env: process.env,
-        stdio: "inherit",
-      },
-    );
-
+let collab = null;
+let collabEnsuring = false;
+let collabWatchdog = null;
+let shuttingDown = false;
 let appRestarting = false;
 let app = startApp();
 let memoryGuard = null;
+
+await ensureCollab();
+collabWatchdog = setInterval(() => {
+  void ensureCollab();
+}, collabHealthCheckMs);
+collabWatchdog.unref();
 
 if (devMemoryGuardEnabled && Number.isFinite(devAppMaxRssMb) && devAppMaxRssMb > 0) {
   memoryGuard = setInterval(checkAppMemory, devAppMemoryCheckMs);
@@ -69,14 +67,69 @@ function startApp() {
       return;
     }
 
-    terminateChildren("SIGTERM");
+    shutdownChildren("SIGTERM");
     process.exit(code ?? 0);
   });
 
   return child;
 }
 
-function terminateChildren(signal = "SIGTERM") {
+async function ensureCollab() {
+  if (shuttingDown || collabEnsuring) {
+    return;
+  }
+
+  if (collab && !collab.killed) {
+    return;
+  }
+
+  collabEnsuring = true;
+
+  try {
+    if (await canConnect("127.0.0.1", collabPort)) {
+      return;
+    }
+
+    startManagedCollab();
+  } finally {
+    collabEnsuring = false;
+  }
+}
+
+function startManagedCollab() {
+  if (shuttingDown || collab) {
+    return;
+  }
+
+  collab = spawn(
+    process.execPath,
+    ["./scripts/collab-server.mjs", "--host", collabHost, "--port", collabPort],
+    {
+      cwd: process.cwd(),
+      env: process.env,
+      stdio: "inherit",
+    },
+  );
+
+  collab.on("exit", (code, signal) => {
+    collab = null;
+
+    if (shuttingDown) {
+      return;
+    }
+
+    const reason = signal ? `signal ${signal}` : `code ${code ?? 0}`;
+    console.warn(`[syncdown] collab server stopped (${reason}); retrying.`);
+    setTimeout(() => {
+      void ensureCollab();
+    }, 500).unref();
+  });
+}
+
+function shutdownChildren(signal = "SIGTERM") {
+  shuttingDown = true;
+  clearIntervals();
+
   if (collab && !collab.killed) {
     collab.kill(signal);
   }
@@ -85,21 +138,12 @@ function terminateChildren(signal = "SIGTERM") {
   }
 }
 
-collab?.on("exit", (code) => {
-  if (code && !app.killed) {
-    app.kill("SIGTERM");
-    process.exit(code);
-  }
-});
-
 process.on("SIGINT", () => {
-  clearMemoryGuard();
-  terminateChildren("SIGINT");
+  shutdownChildren("SIGINT");
 });
 
 process.on("SIGTERM", () => {
-  clearMemoryGuard();
-  terminateChildren("SIGTERM");
+  shutdownChildren("SIGTERM");
 });
 
 function checkAppMemory() {
@@ -130,6 +174,18 @@ function clearMemoryGuard() {
     clearInterval(memoryGuard);
     memoryGuard = null;
   }
+}
+
+function clearCollabWatchdog() {
+  if (collabWatchdog) {
+    clearInterval(collabWatchdog);
+    collabWatchdog = null;
+  }
+}
+
+function clearIntervals() {
+  clearMemoryGuard();
+  clearCollabWatchdog();
 }
 
 function terminateProcessTree(rootPid, signal) {

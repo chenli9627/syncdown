@@ -53,6 +53,10 @@ export function buildDocumentChatSystemPrompt(
       : "",
     getAutomaticActionInstruction(documentAction),
     "Use Markdown when lists, headings, or emphasis make the answer clearer.",
+    "For follow-up transform requests such as 整理为列表, 整理成表格, 提炼为要点, make it explicit: use the most recent substantive assistant answer as the source unless the user names a different source.",
+    "If the user asks for a list, return a real Markdown list with list markers instead of another heading outline.",
+    "If the user asks for key points, return a concise Markdown bullet list of those points.",
+    "If the user asks for a table, return a real Markdown table instead of prose that only looks tabular.",
     documentAction
       ? "Do not claim that the document has already changed while you are generating the answer."
       : "Do not invent a new document change for this turn. Treat previous document edits as successful only when explicit Syncdown status notices or the current document snapshot show the change.",

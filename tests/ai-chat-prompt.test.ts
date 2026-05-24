@@ -40,6 +40,9 @@ test("AI chat prompt does not tell the model to invent UI apply instructions", (
   assert.match(prompt, /no document change was applied/);
   assert.match(prompt, /Do not invent a new document change/);
   assert.match(prompt, /current document snapshot show the change/);
+  assert.match(prompt, /most recent substantive assistant answer as the source/);
+  assert.match(prompt, /real Markdown list with list markers/);
+  assert.match(prompt, /real Markdown table instead of prose/);
   assert.doesNotMatch(prompt, /explicit buttons/);
   assert.doesNotMatch(prompt, /user applies your response/);
 });
