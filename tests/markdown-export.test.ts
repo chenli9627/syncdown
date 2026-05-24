@@ -237,15 +237,22 @@ test("exports footnote references and definitions to markdown", () => {
         body: new TestElement("body", {}, [
           new TestElement("p", {}, [
             new TestTextNode("北京"),
-            new TestElement("a", { href: "#footnote-1", "data-footnote-ref": "1" }, [
+            new TestElement("a", { href: "#footnote-1", "data-footnote-ref": "1", id: "footnote-ref-1-1" }, [
+              new TestTextNode("[1]"),
+            ]),
+            new TestTextNode("，再次引用"),
+            new TestElement("a", { href: "#footnote-1", "data-footnote-ref": "1", id: "footnote-ref-1-2" }, [
               new TestTextNode("[1]"),
             ]),
           ]),
-          new TestElement("p", { "data-footnote-definition": "1" }, [
-            new TestElement("a", { href: "#footnote-1", "data-footnote-ref": "1" }, [
+          new TestElement("p", { "data-footnote-definition": "1", id: "footnote-1" }, [
+            new TestElement("a", { href: "#footnote-1", "data-footnote-ref": "1", id: "footnote-ref-1-3" }, [
               new TestTextNode("[1]"),
             ]),
-            new TestTextNode(": 脚注内容"),
+            new TestTextNode(": 脚注内容 "),
+            new TestElement("a", { href: "#footnote-ref-1-1", "data-footnote-backref": "1" }, [
+              new TestTextNode("↩"),
+            ]),
           ]),
         ]),
       };
@@ -259,7 +266,7 @@ test("exports footnote references and definitions to markdown", () => {
   try {
     assert.equal(
       editorHtmlToMarkdown("<ignored>"),
-      "北京[^1]\n\n[^1]: 脚注内容",
+      "北京[^1]，再次引用[^1]\n\n[^1]: 脚注内容",
     );
   } finally {
     globalThis.DOMParser = originalDOMParser;

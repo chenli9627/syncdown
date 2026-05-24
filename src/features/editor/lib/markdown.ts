@@ -38,12 +38,23 @@ function escapeMarkdown(input: string) {
   return input.replaceAll("\\", "\\\\").replaceAll("*", "\\*").replaceAll("_", "\\_");
 }
 
-function inlineMarkdownToHtml(text: string) {
+function createInlineMarkdownRenderer() {
+  const footnoteReferenceCounts = new Map<string, number>();
+
+  return {
+    footnoteReferenceCounts,
+    renderInlineMarkdown(text: string) {
+      return inlineMarkdownToHtml(text, footnoteReferenceCounts);
+    },
+  };
+}
+
+function inlineMarkdownToHtml(text: string, footnoteReferenceCounts?: Map<string, number>) {
   let result = escapeHtml(text);
   const links: string[] = [];
 
   result = result.replace(/\[\^([^\]]+)\]/g, (_match, id: string) => {
-    return stashFootnoteReference(links, id);
+    return stashFootnoteReference(links, id, footnoteReferenceCounts);
   });
   result = result.replace(
     /&lt;((?:https?:\/\/|mailto:)[^&\s<>]+)&gt;/gi,
@@ -80,12 +91,19 @@ function stashLink(links: string[], escapedLabel: string, escapedHref: string) {
   return `\uE000LINK${index}\uE000`;
 }
 
-function stashFootnoteReference(links: string[], id: string) {
+function stashFootnoteReference(
+  links: string[],
+  id: string,
+  footnoteReferenceCounts?: Map<string, number>,
+) {
+  const nextCount = (footnoteReferenceCounts?.get(id) ?? 0) + 1;
+  footnoteReferenceCounts?.set(id, nextCount);
+  const referenceId = `footnote-ref-${id}-${nextCount}`;
   const href = `#footnote-${id}`;
   const label = formatFootnoteLabel(id);
   const index = links.length;
   links.push(
-    `<a href="${href}" data-footnote-ref="${escapeHtml(id)}" class="footnote-ref">${label}</a>`,
+    `<a href="${href}" id="${escapeHtml(referenceId)}" data-footnote-ref="${escapeHtml(id)}" data-footnote-ref-index="${nextCount}" class="footnote-ref">${label}</a>`,
   );
   return `\uE000LINK${index}\uE000`;
 }
@@ -147,6 +165,11 @@ function htmlInlineToMarkdown(node: Node): string {
     case "A": {
       const href = node.getAttribute("href") ?? "";
       const footnoteRef = node.getAttribute("data-footnote-ref");
+      const footnoteBackref = node.getAttribute("data-footnote-backref");
+
+      if (footnoteBackref) {
+        return "";
+      }
 
       if (footnoteRef) {
         return `[^${footnoteRef}]`;
@@ -380,6 +403,7 @@ export function markdownToEditorHtml(markdown: string) {
 
   const lines = normalized.split("\n");
   const blocks: string[] = [];
+  const { renderInlineMarkdown } = createInlineMarkdownRenderer();
   let index = 0;
 
   while (index < lines.length) {
@@ -448,7 +472,7 @@ export function markdownToEditorHtml(markdown: string) {
       }
 
       blocks.push(
-        `<p data-footnote-definition="${escapeHtml(footnoteId)}">${inlineMarkdownToHtml(`[^${footnoteId}]`)}: ${inlineMarkdownToHtml(footnoteLines.join(" "))}</p>`,
+        `<p id="footnote-${escapeHtml(footnoteId)}" data-footnote-definition="${escapeHtml(footnoteId)}">${renderInlineMarkdown(`[^${footnoteId}]`)}: ${renderInlineMarkdown(footnoteLines.join(" "))} <a href="#footnote-ref-${escapeHtml(footnoteId)}-1" data-footnote-backref="${escapeHtml(footnoteId)}" class="footnote-backref">↩</a></p>`,
       );
       continue;
     }
@@ -467,7 +491,7 @@ export function markdownToEditorHtml(markdown: string) {
 
     if (headingMatch) {
       const level = headingMatch[1]?.length ?? 1;
-      blocks.push(`<h${level}>${inlineMarkdownToHtml(headingMatch[2] ?? "")}</h${level}>`);
+      blocks.push(`<h${level}>${renderInlineMarkdown(headingMatch[2] ?? "")}</h${level}>`);
       index += 1;
       continue;
     }
@@ -482,7 +506,7 @@ export function markdownToEditorHtml(markdown: string) {
 
       blocks.push(
         `<blockquote>${quoteLines
-          .map((quoteLine) => `<p>${inlineMarkdownToHtml(quoteLine)}</p>`)
+          .map((quoteLine) => `<p>${renderInlineMarkdown(quoteLine)}</p>`)
           .join("")}</blockquote>`,
       );
       continue;
@@ -509,12 +533,12 @@ export function markdownToEditorHtml(markdown: string) {
         index += 1;
       }
 
-      blocks.push(markdownTableToHtml(headerCells, bodyRows));
+      blocks.push(markdownTableToHtml(headerCells, bodyRows, renderInlineMarkdown));
       continue;
     }
 
     if (isMarkdownListLine(line)) {
-      const parsedList = parseMarkdownList(lines, index);
+      const parsedList = parseMarkdownList(lines, index, -1, renderInlineMarkdown);
       blocks.push(parsedList.html);
       index = parsedList.nextIndex;
       continue;
@@ -527,7 +551,7 @@ export function markdownToEditorHtml(markdown: string) {
       index += 1;
     }
 
-    blocks.push(`<p>${inlineMarkdownToHtml(paragraphLines.join(" "))}</p>`);
+    blocks.push(`<p>${renderInlineMarkdown(paragraphLines.join(" "))}</p>`);
   }
 
   return blocks.join("");
@@ -776,7 +800,12 @@ function isMarkdownListLine(line: string) {
   return parseMarkdownListLine(line) !== null;
 }
 
-function parseMarkdownList(lines: string[], startIndex: number, parentIndent = -1) {
+function parseMarkdownList(
+  lines: string[],
+  startIndex: number,
+  parentIndent = -1,
+  renderInlineMarkdown: (text: string) => string = inlineMarkdownToHtml,
+) {
   let index = startIndex;
   let listType: MarkdownListType | null = null;
   const items: string[] = [];
@@ -818,7 +847,7 @@ function parseMarkdownList(lines: string[], startIndex: number, parentIndent = -
       continue;
     }
 
-    const itemHtml = renderMarkdownListItem(listLine);
+    const itemHtml = renderMarkdownListItem(listLine, renderInlineMarkdown);
     items.push(itemHtml);
     index += 1;
 
@@ -837,7 +866,7 @@ function parseMarkdownList(lines: string[], startIndex: number, parentIndent = -
         break;
       }
 
-      const nested = parseMarkdownList(lines, index, listLine.indent);
+      const nested = parseMarkdownList(lines, index, listLine.indent, renderInlineMarkdown);
       const lastItem = items.pop();
 
       if (lastItem) {
@@ -898,8 +927,11 @@ function normalizeMarkdownListIndent(indent: string) {
   return Math.floor(spaces / 2);
 }
 
-function renderMarkdownListItem(item: MarkdownListLine) {
-  const content = inlineMarkdownToHtml(item.content.trim());
+function renderMarkdownListItem(
+  item: MarkdownListLine,
+  renderInlineMarkdown: (text: string) => string = inlineMarkdownToHtml,
+) {
+  const content = renderInlineMarkdown(item.content.trim());
 
   if (item.listType === "task") {
     return `<li data-checked="${item.checked ? "true" : "false"}" data-type="taskItem"><label><input ${
@@ -932,9 +964,13 @@ function nextNonEmptyLineIndex(lines: string[], index: number) {
   return currentIndex;
 }
 
-function markdownTableToHtml(headerCells: string[], bodyRows: string[][]) {
+function markdownTableToHtml(
+  headerCells: string[],
+  bodyRows: string[][],
+  renderInlineMarkdown: (text: string) => string = inlineMarkdownToHtml,
+) {
   const header = `<thead><tr>${headerCells
-    .map((cell) => `<th>${inlineMarkdownToHtml(cell)}</th>`)
+    .map((cell) => `<th>${renderInlineMarkdown(cell)}</th>`)
     .join("")}</tr></thead>`;
   const body = `<tbody>${bodyRows
     .map((row) => {
@@ -946,7 +982,7 @@ function markdownTableToHtml(headerCells: string[], bodyRows: string[][]) {
 
       return `<tr>${padded
         .slice(0, headerCells.length)
-        .map((cell) => `<td>${inlineMarkdownToHtml(cell)}</td>`)
+        .map((cell) => `<td>${renderInlineMarkdown(cell)}</td>`)
         .join("")}</tr>`;
     })
     .join("")}</tbody>`;

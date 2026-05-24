@@ -259,6 +259,11 @@ export function useSyntextEditor({
           return false;
         }
 
+        if (handleFootnoteLinkClick(link)) {
+          event.preventDefault();
+          return true;
+        }
+
         event.preventDefault();
         window.open(link.href, "_blank", "noopener,noreferrer");
         return true;
@@ -485,6 +490,54 @@ export function useSyntextEditor({
       }
     });
   }
+}
+
+function handleFootnoteLinkClick(link: HTMLAnchorElement) {
+  const href = link.getAttribute("href") ?? "";
+  const editorRoot = link.closest(".ProseMirror");
+
+  if (!(editorRoot instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (link.classList.contains("footnote-ref")) {
+    const definitionLink = Array.from(
+      editorRoot.querySelectorAll<HTMLAnchorElement>(`a.footnote-ref[href="${href}"]`),
+    ).find((candidate) => {
+      const paragraph = candidate.closest("p");
+      return paragraph?.textContent?.trim().startsWith(`${candidate.textContent ?? ""}:`) ?? false;
+    });
+
+    definitionLink?.closest("p")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    return Boolean(definitionLink);
+  }
+
+  if (link.classList.contains("footnote-backref")) {
+    const footnoteIdMatch = href.match(/^#footnote-ref-(.+)-\d+$/);
+    const footnoteHref = footnoteIdMatch ? `#footnote-${footnoteIdMatch[1]}` : null;
+
+    if (!footnoteHref) {
+      return false;
+    }
+
+    const referenceLink = Array.from(
+      editorRoot.querySelectorAll<HTMLAnchorElement>(`a.footnote-ref[href="${footnoteHref}"]`),
+    ).find((candidate) => {
+      const paragraph = candidate.closest("p");
+      return !(paragraph?.textContent?.trim().startsWith(`${candidate.textContent ?? ""}:`) ?? false);
+    });
+
+    referenceLink?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    return Boolean(referenceLink);
+  }
+
+  return false;
 }
 
 function isCursorInEmptyListItem(editor: Editor) {

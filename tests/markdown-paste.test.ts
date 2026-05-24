@@ -52,15 +52,19 @@ test("detects multiline markdown with inline syntax from plain-text clipboard", 
 });
 
 test("detects markdown footnotes in plain-text paste", () => {
-  const markdown = `北京[^1]
+  const markdown = `北京[^1]，再次引用[^1]
 
 [^1]: 脚注内容`;
 
   assert.equal(shouldParseMarkdownPaste(markdown), true);
   const html = markdownToEditorHtml(markdown);
   assert.match(html, /data-footnote-ref="1"/);
+  assert.match(html, /id="footnote-ref-1-1"/);
+  assert.match(html, /id="footnote-ref-1-2"/);
   assert.match(html, />\[1\]<\/a>/);
   assert.match(html, /data-footnote-definition="1"/);
+  assert.match(html, /id="footnote-1"/);
+  assert.match(html, /data-footnote-backref="1"/);
   assert.match(html, /脚注内容/);
 });
 
