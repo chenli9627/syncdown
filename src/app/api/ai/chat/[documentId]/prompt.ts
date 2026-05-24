@@ -59,7 +59,7 @@ export function buildDocumentChatSystemPrompt(
     "If the user asks for a list, return a real Markdown list with list markers instead of another heading outline.",
     "If the user asks for key points, return a concise Markdown bullet list of those points.",
     "If the user asks for a table, return a real Markdown table instead of prose that only looks tabular.",
-    getResponseModeInstruction(responseMode),
+    getResponseModeInstruction(documentAction, responseMode),
     documentAction
       ? "Do not claim that the document has already changed while you are generating the answer."
       : "Do not invent a new document change for this turn. Treat previous document edits as successful only when explicit Syncdown status notices or the current document snapshot show the change.",
@@ -139,9 +139,28 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
   return "";
 }
 
-function getResponseModeInstruction(responseMode: AiChatResponseMode | null) {
+function getResponseModeInstruction(
+  documentAction: AiChatDocumentAction | null,
+  responseMode: AiChatResponseMode | null,
+) {
+  if (documentAction === "edit_blocks") {
+    if (responseMode === "list") {
+      return "If you generate list content inside an operation content field, that content must be a real Markdown list with list markers. Do not put any lead-in sentence inside summary or operation content.";
+    }
+
+    if (responseMode === "table") {
+      return "If you generate table content inside an operation content field, that content must be a real Markdown table. Do not put any lead-in sentence inside summary or operation content.";
+    }
+
+    if (responseMode === "key_points") {
+      return "If you generate key points inside an operation content field, that content must be a concise Markdown bullet list. Do not put any lead-in sentence inside summary or operation content.";
+    }
+
+    return "";
+  }
+
   if (responseMode === "list") {
-    return "This turn is a list-format transform. Return only the final Markdown list itself. Do not add any lead-in sentence such as 好的，下面是..., 以下是..., Here is..., or Below is....";
+    return "This turn is a list-format transform. Return only the final Markdown list itself. Every non-empty item line must use a list marker such as - or 1. Do not add any lead-in sentence such as 好的，下面是..., 以下是..., Here is..., or Below is....";
   }
 
   if (responseMode === "table") {
@@ -149,7 +168,7 @@ function getResponseModeInstruction(responseMode: AiChatResponseMode | null) {
   }
 
   if (responseMode === "key_points") {
-    return "This turn is a key-points transform. Return only the final Markdown bullet list of key points. Do not add any lead-in sentence such as 好的，下面是..., 以下是..., Here is..., or Below is....";
+    return "This turn is a key-points transform. Return only the final Markdown bullet list of key points. Every non-empty item line must use a list marker such as - or 1. Do not add any lead-in sentence such as 好的，下面是..., 以下是..., Here is..., or Below is....";
   }
 
   return "";

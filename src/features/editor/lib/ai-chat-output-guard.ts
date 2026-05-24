@@ -38,7 +38,14 @@ export function sanitizeAiAssistantText(
     });
   }
 
-  return stripLeadingAssistantPreamble(text, documentAction, responseMode);
+  if (documentAction === "edit_blocks") {
+    return text;
+  }
+
+  return normalizeStructuredTransformContent(
+    stripLeadingAssistantPreamble(text, documentAction, responseMode),
+    responseMode,
+  );
 }
 
 export function sanitizeAiChatMessage(
@@ -250,4 +257,46 @@ function looksLikeStructuredTransformContent(
     /^(?:[-*+]\s+|\d+\.\s+|#{1,6}\s+)/m.test(trimmed) ||
     nonEmptyLines.length >= 3
   );
+}
+
+function normalizeStructuredTransformContent(
+  text: string,
+  responseMode: AiChatResponseMode | null,
+) {
+  if (responseMode !== "list" && responseMode !== "key_points") {
+    return text;
+  }
+
+  const normalized = text.replace(/\r\n?/g, "\n").trim();
+
+  if (!normalized || /^(?:[-*+]\s+|\d+\.\s+)/m.test(normalized)) {
+    return normalized;
+  }
+
+  if (/^\|.+\|(?:\n\|[-:| ]+\|)?/m.test(normalized) || /<table(?:\s|>)/i.test(normalized)) {
+    return normalized;
+  }
+
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) {
+    return normalized;
+  }
+
+  return lines
+    .map((line) => {
+      if (/^#{1,6}\s+/.test(line)) {
+        return `- ${line.replace(/^#{1,6}\s+/, "").trim()}`;
+      }
+
+      if (/^[-*+]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
+        return line;
+      }
+
+      return `- ${line}`;
+    })
+    .join("\n");
 }

@@ -51,6 +51,22 @@ test("AI chat prompt does not tell the model to invent UI apply instructions", (
   assert.doesNotMatch(prompt, /user applies your response/);
 });
 
+test("AI chat prompt keeps edit-block JSON mode authoritative even with response modes", () => {
+  const prompt = buildDocumentChatSystemPrompt(
+    "Trips",
+    "北京景点",
+    [{ id: "block_1", text: "北京景点", type: "paragraph" }],
+    null,
+    "deepseek-v4-flash",
+    "edit_blocks",
+    "list",
+  );
+
+  assert.match(prompt, /Return only valid JSON/);
+  assert.match(prompt, /operation content field, that content must be a real Markdown list/);
+  assert.doesNotMatch(prompt, /Return only the final Markdown list itself/);
+});
+
 test("AI chat prompt includes rich-text blocks for ordinary document questions", () => {
   const prompt = buildDocumentChatSystemPrompt(
     "Formatted note",

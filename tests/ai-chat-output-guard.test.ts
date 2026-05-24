@@ -39,6 +39,17 @@ test("strips transform preambles before list-format chat answers", () => {
   );
 });
 
+test("normalizes colon lines into a markdown list for list-format chat answers", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "城市定位：浙江省省会\n地理位置：中国东部\n核心景点：西湖",
+      null,
+      "list",
+    ),
+    "- 城市定位：浙江省省会\n- 地理位置：中国东部\n- 核心景点：西湖",
+  );
+});
+
 test("strips transform preambles before table-format chat answers", () => {
   assert.equal(
     sanitizeAiAssistantText(
@@ -48,6 +59,13 @@ test("strips transform preambles before table-format chat answers", () => {
     ),
     "| 景点 | 说明 |\n| --- | --- |\n| 西湖 | 世界遗产 |",
   );
+});
+
+test("leaves valid edit-block JSON unchanged even when a response mode is present", () => {
+  const payload =
+    '{"summary":"已在文档末尾插入列表。","operations":[{"type":"insert_after_block","blockId":"block_1","content":"- 西湖\\n- 灵隐寺"}]}';
+
+  assert.equal(sanitizeAiAssistantText(payload, "edit_blocks", "list"), payload);
 });
 
 test("strips inserted-content preambles before document-end insertion", () => {
