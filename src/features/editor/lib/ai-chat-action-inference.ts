@@ -31,6 +31,10 @@ export function inferAiChatDocumentAction(
     return "edit_blocks";
   }
 
+  if (isPreviousAssistantContentInsertPrompt(compactPrompt, lowerPrompt)) {
+    return "edit_blocks";
+  }
+
   if (isErrorCorrectionDocumentEditPrompt(compactPrompt, lowerPrompt)) {
     return "edit_blocks";
   }
@@ -150,6 +154,26 @@ function isDocumentEditFollowUpPrompt(compactPrompt: string, lowerPrompt: string
       lowerPrompt,
     ) ||
     /\b(?:that|this|it|the change|the edit|the fix|your suggestion)\b[\s\S]{0,160}\b(?:fix|correct|repair|redo|retry|try again|apply|run|execute|make)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isPreviousAssistantContentInsertPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:刚才|上面|前面|之前|你推荐的|你列的|你给的|这个|这些|该|那个|那张|这些).{0,48}(?:表格|列表|清单|说明|回答|结果|内容|景点|推荐).{0,48}(?:添加|加入|插入|写入|放到|放入|放进|放在|加到).{0,24}(?:文档|正文|文章|页面)/.test(
+      compactPrompt,
+    ) ||
+    /(?:添加|加入|插入|写入|放到|放入|放进|放在|加到).{0,48}(?:刚才|上面|前面|之前|你推荐的|你列的|你给的|这个|这些|该|那个|那张|这些).{0,48}(?:表格|列表|清单|说明|回答|结果|内容|景点|推荐).{0,24}(?:文档|正文|文章|页面)/.test(
+      compactPrompt,
+    ) ||
+    /(?:表格|列表|清单|说明|回答|结果|内容|景点|推荐).{0,48}(?:添加|加入|插入|写入|放到|放入|放进|放在|加到).{0,24}(?:文档|正文|文章|页面)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:add|insert|append|put|place)\b[\s\S]{0,160}\b(?:previous|above|earlier|last|this|that|these|the)\b[\s\S]{0,120}\b(?:table|list|answer|response|content|result|recommendations?)\b[\s\S]{0,80}\b(?:document|doc|page)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:previous|above|earlier|last|this|that|these|the)\b[\s\S]{0,120}\b(?:table|list|answer|response|content|result|recommendations?)\b[\s\S]{0,160}\b(?:add|insert|append|put|place)\b[\s\S]{0,80}\b(?:document|doc|page)\b/.test(
       lowerPrompt,
     )
   );

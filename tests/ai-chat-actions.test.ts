@@ -72,6 +72,17 @@ test("infers block-edit action from explicit error correction requests", () => {
   assert.equal(inferAiChatDocumentAction("Fix the mistakes in the document"), "edit_blocks");
 });
 
+test("infers block-edit action from previous assistant content insertion requests", () => {
+  assert.equal(inferAiChatDocumentAction("把景点表格添加到文档中"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把刚才的表格添加到文档中"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把上面的内容加入文档"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("将这些景点说明写入文档"), "edit_blocks");
+  assert.equal(
+    inferAiChatDocumentAction("Add the previous recommendations table to the document"),
+    "edit_blocks",
+  );
+});
+
 test("infers block-edit action from document-scoped local deletions", () => {
   assert.equal(inferAiChatDocumentAction("删除这篇文档里重复的内容"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("删除北京简介里的引用标注"), "edit_blocks");
