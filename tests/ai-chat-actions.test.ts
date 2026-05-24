@@ -100,6 +100,11 @@ test("infers block-edit action from targeted block edit requests", () => {
   assert.equal(inferAiChatDocumentAction("给官网两个字加上链接"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("把表格第二行第三列改成 Done"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("Make Alpha bold and update its link"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把风险表格移动到方案下面"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把所有 Alpha 替换成 Beta"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把第二个列表转成任务列表"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("勾选包含发布的任务项"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("给表格新增一列"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("Delete the paragraph containing Gamma"), "edit_blocks");
 });
 

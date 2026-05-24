@@ -26,6 +26,7 @@ export function inferAiChatDocumentAction(
   if (
     isHeadingLevelEditPrompt(compactPrompt, lowerPrompt) ||
     isSpecialFormatEditPrompt(compactPrompt, lowerPrompt) ||
+    isDocumentStructureEditPrompt(compactPrompt, lowerPrompt) ||
     isSpecificPlacementPrompt(compactPrompt, lowerPrompt) ||
     isTargetedBlockEditPrompt(compactPrompt, lowerPrompt)
   ) {
@@ -187,6 +188,23 @@ function isSpecialFormatEditPrompt(compactPrompt: string, lowerPrompt: string) {
       lowerPrompt,
     ) ||
     /\b(?:bold|italic|strikethrough|strike|inline code|code format|link|url|table cell|cell|row|column|paragraph|code block)\b[\s\S]{0,160}\b(?:add|set|make|turn|change|update|remove|clear|delete|replace)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isDocumentStructureEditPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:移动|挪动|复制|拷贝|移动到|挪到|复制到|替换所有|全部替换|批量替换|所有|全部|勾选|取消勾选|改成任务|转成任务|任务列表|有序列表|无序列表|项目符号|编号列表|新增行|插入行|删除行|新增列|插入列|删除列|表头|标题行).{0,64}(?:替换|改成|块|段落|标题|列表|任务|表格|行|列|单元格|文档|全文|内容)/.test(
+      compactPrompt,
+    ) ||
+    /(?:替换|块|段落|标题|列表|任务|表格|行|列|单元格|文档|全文|内容).{0,64}(?:移动|挪动|复制|拷贝|移动到|挪到|复制到|替换所有|全部替换|批量替换|所有|全部|勾选|取消勾选|改成任务|转成任务|任务列表|有序列表|无序列表|项目符号|编号列表|新增行|插入行|删除行|新增列|插入列|删除列|表头|标题行)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:move|copy|duplicate|replace all|replace every|check|uncheck|toggle|convert|turn|insert|add|delete|remove)\b[\s\S]{0,180}\b(?:block|paragraph|heading|list|task|table|row|column|header row|document|content)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:block|paragraph|heading|list|task|table|row|column|header row|document|content)\b[\s\S]{0,180}\b(?:move|copy|duplicate|replace all|replace every|check|uncheck|toggle|convert|turn|insert|add|delete|remove)\b/.test(
       lowerPrompt,
     )
   );

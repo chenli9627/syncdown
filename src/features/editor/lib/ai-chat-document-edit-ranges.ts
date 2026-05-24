@@ -1,5 +1,12 @@
 import type { LocalAiDocumentBlock } from "@/features/editor/lib/ai-chat-document-edit-types";
 
+export type NestedNodeRange = {
+  attrs: Record<string, unknown>;
+  from: number;
+  to: number;
+  typeName: string;
+};
+
 export function findTargetTextRange(
   block: LocalAiDocumentBlock,
   targetText: string | undefined,
@@ -38,6 +45,101 @@ export function findTableCellContentRange(
         to: cellPosition + cellNode.nodeSize - 1,
       };
     });
+  });
+
+  return range;
+}
+
+export function findTaskItemRange(
+  block: LocalAiDocumentBlock,
+  targetText: string | undefined,
+): NestedNodeRange | null {
+  return findDescendantRange(block, "taskItem", targetText);
+}
+
+export function findTableRowRange(
+  block: LocalAiDocumentBlock,
+  row: number | undefined,
+): NestedNodeRange | null {
+  if (block.node.type.name !== "table" || !isPositiveInteger(row)) {
+    return null;
+  }
+
+  let range: NestedNodeRange | null = null;
+
+  block.node.forEach((rowNode, rowOffset, rowIndex) => {
+    if (range || rowNode.type.name !== "tableRow" || rowIndex + 1 !== row) {
+      return;
+    }
+
+    range = {
+      attrs: rowNode.attrs,
+      from: block.pos + 1 + rowOffset,
+      to: block.pos + 1 + rowOffset + rowNode.nodeSize,
+      typeName: rowNode.type.name,
+    };
+  });
+
+  return range;
+}
+
+export function findTableColumnRanges(
+  block: LocalAiDocumentBlock,
+  column: number | undefined,
+): NestedNodeRange[] {
+  if (block.node.type.name !== "table" || !isPositiveInteger(column)) {
+    return [];
+  }
+
+  const ranges: NestedNodeRange[] = [];
+
+  block.node.forEach((rowNode, rowOffset) => {
+    if (rowNode.type.name !== "tableRow") {
+      return;
+    }
+
+    rowNode.forEach((cellNode, cellOffset, cellIndex) => {
+      if (
+        cellIndex + 1 !== column ||
+        (cellNode.type.name !== "tableCell" && cellNode.type.name !== "tableHeader")
+      ) {
+        return;
+      }
+
+      ranges.push({
+        attrs: cellNode.attrs,
+        from: block.pos + 2 + rowOffset + cellOffset,
+        to: block.pos + 2 + rowOffset + cellOffset + cellNode.nodeSize,
+        typeName: cellNode.type.name,
+      });
+    });
+  });
+
+  return ranges;
+}
+
+function findDescendantRange(
+  block: LocalAiDocumentBlock,
+  typeName: string,
+  targetText: string | undefined,
+) {
+  let range: NestedNodeRange | null = null;
+
+  block.node.descendants((node, pos) => {
+    if (range || node.type.name !== typeName) {
+      return;
+    }
+
+    if (targetText && !node.textContent.includes(targetText)) {
+      return;
+    }
+
+    range = {
+      attrs: node.attrs,
+      from: block.pos + 1 + pos,
+      to: block.pos + 1 + pos + node.nodeSize,
+      typeName: node.type.name,
+    };
   });
 
   return range;

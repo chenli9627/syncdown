@@ -57,5 +57,9 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   assert.match(prompt, /set_text_marks/);
   assert.match(prompt, /set_link/);
   assert.match(prompt, /update_table_cell/);
+  assert.match(prompt, /move_block/);
+  assert.match(prompt, /set_task_item_checked/);
+  assert.match(prompt, /insert_table_row_after/);
+  assert.match(prompt, /Do not use image or media operations/);
   assert.match(prompt, /never return the full document body/);
 });

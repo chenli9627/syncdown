@@ -3,6 +3,7 @@ import type {
   BlockTypeName,
   HeadingLevel,
   InlineMarkName,
+  ListTypeName,
   LocalAiDocumentBlock,
 } from "@/features/editor/lib/ai-chat-document-edit-types";
 
@@ -27,6 +28,12 @@ export function normalizeInlineMarks(value: InlineMarkName | InlineMarkName[] | 
   const allowedMarks = new Set<InlineMarkName>(["bold", "code", "italic", "strike"]);
 
   return marks.filter((mark): mark is InlineMarkName => allowedMarks.has(mark));
+}
+
+export function normalizeListType(listType: unknown): ListTypeName | null {
+  return listType === "bulletList" || listType === "orderedList" || listType === "taskList"
+    ? listType
+    : null;
 }
 
 export function canSetHeadingLevel(block: LocalAiDocumentBlock) {
