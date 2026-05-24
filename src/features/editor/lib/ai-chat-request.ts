@@ -30,7 +30,7 @@ export function getAiChatRequestBody(
   return {
     applicationStatusNotices: applicationStatusNotices.slice(-8),
     documentAction,
-    documentBlocks: documentAction === "edit_blocks" ? getAiDocumentBlocks(editor) : [],
+    documentBlocks: getAiDocumentBlocks(editor),
     documentText: editor?.getText() ?? "",
     documentTitle,
     modelKey,

@@ -62,7 +62,9 @@ export function buildDocumentChatSystemPrompt(
     "",
     "Current document plain text:",
     cleanDocumentText,
-    documentAction === "edit_blocks" ? "\nCurrent document blocks:\n" + formatDocumentBlocks(documentBlocks) : "",
+    "\nCurrent document blocks with rich-text structure:",
+    formatDocumentBlocks(documentBlocks),
+    "Use block markdown/html fields to answer questions about formatting such as bold, italic, strikethrough, inline code, links, headings, lists, tasks, tables, and other rich-text structure. Plain text alone does not show formatting.",
     selectionText ? "\nCurrent selected text:\n" + selectionText : "",
     cleanApplicationStatusNotices.length
       ? "\nRecent explicit Syncdown status notices:\n" +

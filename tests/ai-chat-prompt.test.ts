@@ -41,6 +41,30 @@ test("AI chat prompt does not tell the model to invent UI apply instructions", (
   assert.doesNotMatch(prompt, /user applies your response/);
 });
 
+test("AI chat prompt includes rich-text blocks for ordinary document questions", () => {
+  const prompt = buildDocumentChatSystemPrompt(
+    "Formatted note",
+    "北京 官网",
+    [
+      {
+        html: "<p><strong>北京</strong> <a href=\"https://example.com\">官网</a></p>",
+        id: "block_1",
+        markdown: "**北京** [官网](https://example.com)",
+        text: "北京 官网",
+        type: "paragraph",
+      },
+    ],
+    null,
+    "deepseek-v4-flash",
+    null,
+  );
+
+  assert.match(prompt, /Current document blocks with rich-text structure/);
+  assert.match(prompt, /\*\*北京\*\*/);
+  assert.match(prompt, /<strong>北京<\/strong>/);
+  assert.match(prompt, /Use block markdown\/html fields to answer questions about formatting/);
+});
+
 test("AI chat prompt treats automatic document edits as real app edits", () => {
   const prompt = buildDocumentChatSystemPrompt(
     "Daily trends",
