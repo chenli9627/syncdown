@@ -14,6 +14,8 @@ type EditorAiChatThreadSwitcherProps = {
   threads: AiChatThread[];
 };
 
+const maxThreadLabelLength = 32;
+
 export function EditorAiChatThreadSwitcher({
   activeThreadId,
   onDeleteThread,
@@ -26,9 +28,10 @@ export function EditorAiChatThreadSwitcher({
   const [open, setOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement | null>(null);
   const activeThread = threads.find((thread) => thread.id === activeThreadId) ?? null;
-  const activeLabel = activeThread
+  const activeFullLabel = activeThread
     ? getThreadLabel(activeThread, t("aiUntitledChat"))
     : t("aiUntitledChat");
+  const activeLabel = truncateThreadLabel(activeFullLabel);
 
   useEffect(() => {
     if (!open) {
@@ -57,12 +60,12 @@ export function EditorAiChatThreadSwitcher({
   }, [open]);
 
   return (
-    <div className="relative min-w-0" ref={switcherRef}>
+    <div className="relative min-w-0 flex-1" ref={switcherRef}>
       <button
         aria-expanded={open}
-        className="flex h-8 max-w-44 min-w-0 items-center gap-1.5 border border-transparent px-1 text-left text-xs font-normal text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+        className="flex h-8 w-full min-w-0 items-center gap-1.5 border border-transparent px-1 text-left text-xs font-normal text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
         onClick={() => setOpen((current) => !current)}
-        title={activeLabel}
+        title={activeFullLabel}
         type="button"
       >
         <span className="truncate">{activeLabel}</span>
@@ -94,7 +97,8 @@ export function EditorAiChatThreadSwitcher({
             <div className="my-1 border-t border-[var(--color-border)]" />
           ) : null}
           {threads.map((thread) => {
-            const label = getThreadLabel(thread, t("aiUntitledChat"));
+            const fullLabel = getThreadLabel(thread, t("aiUntitledChat"));
+            const label = truncateThreadLabel(fullLabel);
             const confirming = confirmingThreadId === thread.id;
 
             return (
@@ -131,7 +135,7 @@ export function EditorAiChatThreadSwitcher({
                         onSelectThread(thread.id);
                       }}
                       role="menuitem"
-                      title={label}
+                      title={fullLabel}
                       type="button"
                     >
                       <span className="w-3 shrink-0">
@@ -169,4 +173,12 @@ function getThreadLabel(thread: AiChatThread, fallback: string) {
       .trim() ?? "";
 
   return text || fallback;
+}
+
+function truncateThreadLabel(label: string) {
+  if (label.length <= maxThreadLabelLength) {
+    return label;
+  }
+
+  return `${label.slice(0, maxThreadLabelLength - 3).trimEnd()}...`;
 }
