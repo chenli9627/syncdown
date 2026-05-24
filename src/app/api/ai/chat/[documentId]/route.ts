@@ -222,6 +222,7 @@ export async function POST(request: Request, context: RouteContext) {
             threadId: activeThreadId,
           }
         : undefined,
+    onError: (error) => formatAiChatStreamError(error),
     onFinish: async ({ messages: finishedMessages }) => {
       const latestState = await readStoredState();
       const sanitizedMessages = sanitizeFinishedMessages(
@@ -350,6 +351,27 @@ function getMessageText(message: AiChatMessage) {
     .trim();
 }
 
+function formatAiChatStreamError(error: unknown) {
+  const message =
+    error instanceof Error ? error.message.trim() : typeof error === "string" ? error.trim() : "";
+  const lowerMessage = message.toLowerCase();
+
+  if (
+    lowerMessage.includes("content exists risk") ||
+    lowerMessage.includes("content risk") ||
+    lowerMessage.includes("safety") ||
+    lowerMessage.includes("moderation")
+  ) {
+    return "请求被模型服务拦截。请换一种表达，或切换到另一个模型后再试。";
+  }
+
+  if (lowerMessage.includes("service is not configured")) {
+    return "AI 服务未配置。";
+  }
+
+  return message || "AI 请求失败。";
+}
+
 async function respondWithDeterministicEditPayload({
   documentAction,
   documentId,
@@ -407,6 +429,7 @@ async function respondWithDeterministicEditPayload({
 
   return createUIMessageStreamResponse({
     stream: createUIMessageStream<AiChatMessage>({
+      onError: (error) => formatAiChatStreamError(error),
       originalMessages: userMessages,
       execute: ({ writer }) => {
         writer.write({
