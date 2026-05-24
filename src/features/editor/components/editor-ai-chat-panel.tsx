@@ -431,7 +431,9 @@ export function EditorAiChatPanel({
             </div>
           )}
           {error ? (
-            <p className="mt-3 text-xs text-[#dd5b00]">{t("aiRequestFailed")}</p>
+            <p className="mt-3 text-xs text-[#dd5b00]">
+              {getAiRequestErrorText(error, t)}
+            </p>
           ) : null}
         </ConversationContent>
       </Conversation>
@@ -631,4 +633,21 @@ function writeStoredAppliedNotices(appliedNotices: Record<string, string>) {
   } catch {
     // ignore storage failures
   }
+}
+
+function getAiRequestErrorText(
+  error: Error,
+  t: (key: MessageKey) => string,
+) {
+  const message = error.message.trim();
+
+  if (!message) {
+    return t("aiRequestFailed");
+  }
+
+  if (message === t("aiRequestFailed")) {
+    return message;
+  }
+
+  return `${t("aiRequestFailed")} ${message}`;
 }
