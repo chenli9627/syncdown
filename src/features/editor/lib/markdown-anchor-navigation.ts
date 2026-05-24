@@ -28,13 +28,14 @@ export function handleMarkdownAnchorClick(link: HTMLAnchorElement) {
 }
 
 export function findHeadingForAnchor(root: ParentNode, href: string) {
-  const anchor = normalizeMarkdownAnchor(href);
+  const target = parseMarkdownAnchorTarget(href);
 
-  if (!anchor) {
+  if (!target.anchor) {
     return null;
   }
 
   const headings = Array.from(root.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+  let matchIndex = 0;
 
   for (const heading of headings) {
     const text = heading.textContent?.trim() ?? "";
@@ -43,7 +44,13 @@ export function findHeadingForAnchor(root: ParentNode, href: string) {
       continue;
     }
 
-    if (normalizeMarkdownAnchor(text) === anchor) {
+    if (normalizeMarkdownAnchor(text) !== target.anchor) {
+      continue;
+    }
+
+    matchIndex += 1;
+
+    if (matchIndex === target.occurrence) {
       return heading;
     }
   }
@@ -84,4 +91,17 @@ export function normalizeMarkdownAnchor(value: string) {
     .normalize("NFKC")
     .toLowerCase()
     .replace(/[\s\p{P}\p{S}]+/gu, "");
+}
+
+function parseMarkdownAnchorTarget(href: string) {
+  const decoded = decodeURIComponent(href.replace(/^#/, "").trim()).normalize("NFKC").toLowerCase();
+  const occurrenceMatch = decoded.match(/^(.*?)-(\d+)$/);
+  const occurrence = occurrenceMatch ? Number.parseInt(occurrenceMatch[2] ?? "1", 10) : 1;
+  const anchorSource =
+    occurrenceMatch && occurrence > 1 ? (occurrenceMatch[1] ?? "") : decoded;
+
+  return {
+    anchor: normalizeMarkdownAnchor(anchorSource),
+    occurrence: Number.isFinite(occurrence) && occurrence > 1 ? occurrence : 1,
+  };
 }

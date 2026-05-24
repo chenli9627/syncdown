@@ -23,24 +23,49 @@ test("findHeadingForAnchor matches headings by normalized anchor text", () => {
   assert.equal(findHeadingForAnchor(root as unknown as ParentNode, "#一项目介绍"), heading);
 });
 
+test("findHeadingForAnchor supports duplicate heading suffixes", () => {
+  const firstHeading = {
+    textContent: "一、项目介绍",
+  };
+  const secondHeading = {
+    textContent: "一、项目介绍",
+  };
+  const thirdHeading = {
+    textContent: "一、项目介绍",
+  };
+  const root = {
+    querySelectorAll: () => [firstHeading, secondHeading, thirdHeading],
+  };
+
+  assert.equal(findHeadingForAnchor(root as unknown as ParentNode, "#一项目介绍"), firstHeading);
+  assert.equal(findHeadingForAnchor(root as unknown as ParentNode, "#一项目介绍-2"), secondHeading);
+  assert.equal(findHeadingForAnchor(root as unknown as ParentNode, "#一项目介绍-3"), thirdHeading);
+});
+
 test("handleMarkdownAnchorClick scrolls matching heading in editor root", () => {
   const calls: string[] = [];
-  const heading = {
+  const firstHeading = {
     textContent: "三、使用说明",
     scrollIntoView: () => {
-      calls.push("scrolled");
+      calls.push("first");
+    },
+  };
+  const secondHeading = {
+    textContent: "三、使用说明",
+    scrollIntoView: () => {
+      calls.push("second");
     },
   };
   const editorRoot = {
-    querySelectorAll: () => [heading],
+    querySelectorAll: () => [firstHeading, secondHeading],
   };
   const link = {
-    getAttribute: (name: string) => (name === "href" ? "#三使用说明" : null),
+    getAttribute: (name: string) => (name === "href" ? "#三使用说明-2" : null),
     closest: (selector: string) => (selector === ".ProseMirror" ? editorRoot : null),
   };
 
   assert.equal(handleMarkdownAnchorClick(link as unknown as HTMLAnchorElement), true);
-  assert.deepEqual(calls, ["scrolled"]);
+  assert.deepEqual(calls, ["second"]);
 });
 
 test("handleMarkdownAnchorClick ignores footnote hashes and missing targets", () => {
