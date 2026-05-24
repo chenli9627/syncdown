@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { decodeHtmlEntities } from "@/lib/html-entities";
 
 const READ_LENGTH = 200_000;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
@@ -257,11 +258,11 @@ function joinChunks(chunks: Uint8Array[]) {
 
 function extractHtmlTitle(html: string) {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  return match?.[1] ? decodeHtml(stripTags(match[1])).trim() || null : null;
+  return match?.[1] ? decodeHtmlEntities(stripTags(match[1])).trim() || null : null;
 }
 
 function htmlToReadableText(html: string) {
-  return decodeHtml(
+  return decodeHtmlEntities(
     stripTags(
       html
         .replace(/<head[\s\S]*?<\/head>/gi, " ")
@@ -275,20 +276,6 @@ function htmlToReadableText(html: string) {
 
 function stripTags(input: string) {
   return input.replace(/<[^>]*>/g, " ");
-}
-
-function decodeHtml(input: string) {
-  return input
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&#(\d+);/g, (_match, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_match, code: string) =>
-      String.fromCodePoint(Number.parseInt(code, 16)),
-    );
 }
 
 function normalizeWhitespace(input: string) {

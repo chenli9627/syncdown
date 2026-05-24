@@ -250,14 +250,6 @@ button:disabled {
   vertical-align: top;
 }
 
-.syntext-editor td:focus-within,
-.syntext-editor th:focus-within,
-.syntext-editor td[data-active-table-cell="true"],
-.syntext-editor th[data-active-table-cell="true"] {
-  border-color: var(--color-primary);
-  box-shadow: inset 0 0 0 2px var(--color-primary);
-}
-
 .syntext-editor th {
   font-weight: 600;
 }

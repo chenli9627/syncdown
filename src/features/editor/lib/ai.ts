@@ -1,6 +1,7 @@
 import type { Locale } from "@/lib/i18n/messages";
 import { toEditorContent } from "@/features/editor/lib/content";
 import { markdownToEditorHtml } from "@/features/editor/lib/markdown";
+import { decodeHtmlEntities } from "@/lib/html-entities";
 
 export type AiActionKind =
   | "improve_writing"
@@ -93,7 +94,7 @@ export function toAiInsertHtml(resultText: string) {
     return toEditorContent(resultText);
   }
 
-  return markdownToEditorHtml(resultText);
+  return markdownToEditorHtml(decodeHtmlEntities(resultText));
 }
 
 export function toAiInlineInsertHtml(resultText: string) {

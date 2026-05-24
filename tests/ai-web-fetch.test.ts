@@ -7,7 +7,7 @@ test("fetchPublicUrlText extracts readable text from public html", async () => {
     assert.equal(input, "https://example.com/page");
 
     return new Response(
-      "<html><head><title>Example</title><style>.x{}</style></head><body><h1>Hello</h1><p>World&nbsp;Text</p><script>ignore()</script></body></html>",
+      "<html><head><title>Example &amp; Test</title><style>.x{}</style></head><body><h1>Hello</h1><p>World&nbsp;Text &mdash; &copy;</p><script>ignore()</script></body></html>",
       {
         headers: { "content-type": "text/html; charset=utf-8" },
         status: 200,
@@ -16,8 +16,8 @@ test("fetchPublicUrlText extracts readable text from public html", async () => {
   }, async () => [{ address: "93.184.216.34", family: 4 }]);
 
   assert.equal(result.error, undefined);
-  assert.equal(result.title, "Example");
-  assert.equal(result.text, "Hello\n World Text");
+  assert.equal(result.title, "Example & Test");
+  assert.equal(result.text, "Hello\n World Text \u2014 \u00a9");
 });
 
 test("fetchPublicUrlText rejects non-public and non-http urls", async () => {

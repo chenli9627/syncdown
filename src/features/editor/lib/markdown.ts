@@ -56,13 +56,49 @@ function escapeMarkdown(input: string) {
 
 function inlineMarkdownToHtml(text: string) {
   let result = escapeHtml(text);
+  const links: string[] = [];
+
+  result = result.replace(/(?<!!)\[([^\]]+)\]\(([^)\s]+)\)/g, (match, label: string, href: string) =>
+    stashLink(links, label, href) ?? match,
+  );
+  result = result.replace(/(^|[\s(])((?:https?:\/\/|mailto:)[^\s<]+)/gi, (match, prefix: string, href: string) => {
+    const { cleanHref, trailing } = splitTrailingUrlPunctuation(href);
+    const link = stashLink(links, cleanHref, cleanHref);
+    return link ? `${prefix}${link}${trailing}` : match;
+  });
 
   result = result.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   result = result.replace(/\*(.+?)\*/g, "<em>$1</em>");
   result = result.replace(/_(.+?)_/g, "<em>$1</em>");
   result = result.replace(/`([^`]+)`/g, "<code>$1</code>");
 
-  return result;
+  return restoreLinks(result, links);
+}
+
+function stashLink(links: string[], escapedLabel: string, escapedHref: string) {
+  if (!isSafeMarkdownLinkHref(escapedHref)) {
+    return null;
+  }
+
+  const index = links.length;
+  links.push(`<a href="${escapedHref}">${escapedLabel}</a>`);
+  return `\uE000LINK${index}\uE000`;
+}
+
+function restoreLinks(input: string, links: string[]) {
+  return input.replace(/\uE000LINK(\d+)\uE000/g, (_match, index: string) => links[Number(index)] ?? "");
+}
+
+function isSafeMarkdownLinkHref(href: string) {
+  return /^(?:https?:\/\/|mailto:|\/|#)/i.test(href);
+}
+
+function splitTrailingUrlPunctuation(href: string) {
+  const match = href.match(/^(.+?)([.,;:!?)]*)$/);
+  return {
+    cleanHref: match?.[1] ?? href,
+    trailing: match?.[2] ?? "",
+  };
 }
 
 function htmlInlineToMarkdown(node: Node): string {

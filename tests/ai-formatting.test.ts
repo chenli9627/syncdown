@@ -46,6 +46,26 @@ test("toAiInsertHtml rejects unsafe html-like AI responses", () => {
   assert.equal(html, "<p>&lt;button&gt;Apply&lt;/button&gt;</p>");
 });
 
+test("toAiInsertHtml decodes common escaped html entities as text", () => {
+  const html = toAiInsertHtml("Tom &amp; Jerry &copy; &reg; &euro; &lt;tag&gt; &quot;quoted&quot;");
+
+  assert.equal(html, "<p>Tom &amp; Jerry \u00a9 \u00ae \u20ac &lt;tag&gt; &quot;quoted&quot;</p>");
+});
+
+test("toAiInsertHtml converts markdown links inside tables", () => {
+  const html = toAiInsertHtml(`| Title | Link |
+| --- | --- |
+| Hacker News | [Open](https://news.ycombinator.com/news) |
+| Item | https://news.ycombinator.com/item?id=1 |`);
+
+  assert.match(html, /<table>/);
+  assert.match(html, /<a href="https:\/\/news\.ycombinator\.com\/news">Open<\/a>/);
+  assert.match(
+    html,
+    /<a href="https:\/\/news\.ycombinator\.com\/item\?id=1">https:\/\/news\.ycombinator\.com\/item\?id=1<\/a>/,
+  );
+});
+
 test("insertAiResultBelow appends an empty paragraph after the inserted content", () => {
   const html = insertAiResultBelow("<p>Inserted</p>");
 
