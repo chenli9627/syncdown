@@ -51,6 +51,17 @@ test("detects multiline markdown with inline syntax from plain-text clipboard", 
   assert.equal(shouldParseMarkdownPaste(markdown), true);
 });
 
+test("detects markdown footnotes in plain-text paste", () => {
+  const markdown = `北京[^1]
+
+[^1]: 脚注内容`;
+
+  assert.equal(shouldParseMarkdownPaste(markdown), true);
+  const html = markdownToEditorHtml(markdown);
+  assert.match(html, /<a href="#footnote-1">\[\^1\]<\/a>/);
+  assert.match(html, /脚注内容/);
+});
+
 test("does not parse markdown paste with local image assets", () => {
   assert.equal(
     shouldParseMarkdownPaste("![Local](assets/example.png)"),

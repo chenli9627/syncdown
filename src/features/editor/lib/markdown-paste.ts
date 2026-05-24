@@ -37,6 +37,7 @@ function looksLikeStructuredMarkdown(text: string) {
     /^```[\w+-]*$/m.test(text) ||
     /^---+$/m.test(text) ||
     /^!\[[^\]]*]\((.+?)\)$/m.test(text) ||
+    /\[\^[^\]]+\]:\s+\S/m.test(text) ||
     isMarkdownTable(text) ||
     /^- \[(?: |x|X)\]\s+\S/m.test(text)
   ) {
@@ -78,7 +79,7 @@ function hasMultilineMarkdownSignals(text: string) {
   }
 
   const inlineMarkdownPattern =
-    /(?<!!)\[[^\]]+\]\((?:[^)\s]+)\)|~~[^~]+~~|\*\*[^*]+\*\*|`[^`]+`|(?:^|\s)_(?:[^_\n]+)_(?=\s|$)|(?:^|\s)\*(?:[^*\n]+)\*(?=\s|$)/m;
+    /(?<!!)\[[^\]]+\]\((?:[^)\s]+)\)|\[\^[^\]]+\]|~~[^~]+~~|\*\*[^*]+\*\*|`[^`]+`|(?:^|\s)_(?:[^_\n]+)_(?=\s|$)|(?:^|\s)\*(?:[^*\n]+)\*(?=\s|$)/m;
 
   if (!inlineMarkdownPattern.test(text)) {
     return false;

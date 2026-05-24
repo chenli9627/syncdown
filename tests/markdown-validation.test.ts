@@ -35,6 +35,16 @@ test("accepts nested lists", () => {
   });
 });
 
+test("accepts footnotes", () => {
+  const result = validateSupportedMarkdown(`北京[^1]
+
+[^1]: 脚注内容`);
+
+  assert.deepEqual(result, {
+    ok: true,
+  });
+});
+
 test("rejects raw html blocks", () => {
   const result = validateSupportedMarkdown("<details><summary>Toggle</summary></details>");
 

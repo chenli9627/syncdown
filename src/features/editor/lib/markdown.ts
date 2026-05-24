@@ -19,10 +19,6 @@ const UNSUPPORTED_MARKDOWN_PATTERNS: Array<{
     error: "Raw HTML blocks are not supported in markdown import",
     pattern: /<(?!img\b|https?:\/\/|mailto:)(?:\/)?[a-z][^>]*>/i,
   },
-  {
-    error: "Footnotes are not supported yet",
-    pattern: /\[\^[^\]]+\]/,
-  },
 ];
 
 const DATA_IMAGE_URL_PATTERN = /^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/;
@@ -46,6 +42,10 @@ function inlineMarkdownToHtml(text: string) {
   let result = escapeHtml(text);
   const links: string[] = [];
 
+  result = result.replace(/\[\^([^\]]+)\]/g, (_match, id: string) => {
+    const label = `[^${id}]`;
+    return stashLink(links, label, `#footnote-${id}`) ?? label;
+  });
   result = result.replace(
     /&lt;((?:https?:\/\/|mailto:)[^&\s<>]+)&gt;/gi,
     (match, href: string) => stashLink(links, href, href) ?? match,
@@ -133,6 +133,9 @@ function htmlInlineToMarkdown(node: Node): string {
       return `~~${content}~~`;
     case "A": {
       const href = node.getAttribute("href") ?? "";
+      if (/^#footnote-/.test(href) && /^\[\^[^\]]+\]$/.test(content)) {
+        return content;
+      }
       return href ? `[${content}](${href})` : content;
     }
     case "CODE":
@@ -390,6 +393,36 @@ export function markdownToEditorHtml(markdown: string) {
     if (/^\[TOC\]$/i.test(trimmed)) {
       blocks.push('<div data-type="table-of-contents"></div>');
       index += 1;
+      continue;
+    }
+
+    const footnoteMatch = trimmed.match(/^\[\^([^\]]+)\]:\s*(.*)$/);
+
+    if (footnoteMatch) {
+      const footnoteId = footnoteMatch[1] ?? "";
+      const footnoteLines = [footnoteMatch[2] ?? ""];
+      index += 1;
+
+      while (index < lines.length) {
+        const continuationLine = lines[index] ?? "";
+
+        if (!continuationLine.trim()) {
+          index += 1;
+          continue;
+        }
+
+        if (/^(?: {2,}|\t)/.test(continuationLine)) {
+          footnoteLines.push(continuationLine.trim());
+          index += 1;
+          continue;
+        }
+
+        break;
+      }
+
+      blocks.push(
+        `<p>${inlineMarkdownToHtml(`[^${footnoteId}]`)}: ${inlineMarkdownToHtml(footnoteLines.join(" "))}</p>`,
+      );
       continue;
     }
 

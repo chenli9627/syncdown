@@ -226,6 +226,44 @@ test("exports links and strikethrough to markdown", () => {
   }
 });
 
+test("exports footnote references and definitions to markdown", () => {
+  const originalDOMParser = globalThis.DOMParser;
+  const originalHTMLElement = globalThis.HTMLElement;
+  const originalNode = globalThis.Node;
+
+  class FootnoteDOMParser {
+    parseFromString() {
+      return {
+        body: new TestElement("body", {}, [
+          new TestElement("p", {}, [
+            new TestTextNode("北京"),
+            new TestElement("a", { href: "#footnote-1" }, [new TestTextNode("[^1]")]),
+          ]),
+          new TestElement("p", {}, [
+            new TestElement("a", { href: "#footnote-1" }, [new TestTextNode("[^1]")]),
+            new TestTextNode(": 脚注内容"),
+          ]),
+        ]),
+      };
+    }
+  }
+
+  globalThis.DOMParser = FootnoteDOMParser as typeof DOMParser;
+  globalThis.HTMLElement = TestElement as unknown as typeof HTMLElement;
+  globalThis.Node = TestNode as unknown as typeof Node;
+
+  try {
+    assert.equal(
+      editorHtmlToMarkdown("<ignored>"),
+      "北京[^1]\n\n[^1]: 脚注内容",
+    );
+  } finally {
+    globalThis.DOMParser = originalDOMParser;
+    globalThis.HTMLElement = originalHTMLElement;
+    globalThis.Node = originalNode;
+  }
+});
+
 test("exports absolute api media URLs into markdown zip assets", async () => {
   const originalFetch = globalThis.fetch;
   const originalDOMParser = globalThis.DOMParser;
