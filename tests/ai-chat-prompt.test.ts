@@ -53,4 +53,6 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   assert.match(prompt, /treat those messages as obsolete/);
   assert.match(prompt, /where a previous automatic document edit went/);
   assert.match(prompt, /summary must say what changed and where it was placed/);
+  assert.match(prompt, /set_heading_level/);
+  assert.match(prompt, /never return the full document body/);
 });

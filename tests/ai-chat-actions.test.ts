@@ -93,6 +93,9 @@ test("infers block-edit action from targeted block edit requests", () => {
     inferAiChatDocumentAction("Update the original table to include sources"),
     "edit_blocks",
   );
+  assert.equal(inferAiChatDocumentAction("把第二个标题改成三级标题"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把标题层级调整为二级"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("Change the Background heading level to H3"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("Delete the paragraph containing Gamma"), "edit_blocks");
 });
 

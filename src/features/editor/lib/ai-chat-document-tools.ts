@@ -14,6 +14,7 @@ type LocalAiDocumentBlock = AiChatDocumentBlock & {
 type AiDocumentEditOperation = {
   blockId: string;
   content?: string;
+  level?: HeadingLevel;
   replacementText?: string;
   targetText?: string;
   type:
@@ -21,13 +22,16 @@ type AiDocumentEditOperation = {
     | "insert_after_block"
     | "insert_before_block"
     | "replace_block"
-    | "replace_text_in_block";
+    | "replace_text_in_block"
+    | "set_heading_level";
 };
 
 type AiDocumentEditPayload = {
   operations?: AiDocumentEditOperation[];
   summary?: string;
 };
+
+type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
 export function getAiDocumentBlocks(editor: Editor | null): AiChatDocumentBlock[] {
   return getLocalAiDocumentBlocks(editor).map(({ html, id, level, markdown, text, type }) => ({
@@ -74,6 +78,18 @@ export function applyAiDocumentEditToolResponse(editor: Editor | null, responseT
       editor.commands.focus();
     } else if (operation.type === "replace_block") {
       editor.chain().focus().insertContentAt(operation.range, operation.content).run();
+    } else if (operation.type === "set_heading_level") {
+      const headingType = editor.state.schema.nodes.heading;
+
+      if (!headingType || !operation.level) {
+        return;
+      }
+
+      const transaction = editor.state.tr.setNodeMarkup(operation.position, headingType, {
+        level: operation.level,
+      });
+      editor.view.dispatch(transaction);
+      editor.commands.focus();
     } else {
       editor.chain().focus().insertContentAt(operation.position, operation.content).run();
     }
@@ -127,6 +143,7 @@ function getLocalAiDocumentBlocks(editor: Editor | null): LocalAiDocumentBlock[]
 type ExecutableOperation = {
   content: string;
   index: number;
+  level?: HeadingLevel;
   position: number;
   range: { from: number; to: number };
   type: AiDocumentEditOperation["type"];
@@ -167,6 +184,24 @@ function toExecutableOperation(
 
   const range = { from: block.pos, to: block.pos + block.nodeSize };
   const position = operation.type === "insert_after_block" ? range.to : range.from;
+
+  if (operation.type === "set_heading_level") {
+    const level = normalizeHeadingLevel(operation.level);
+
+    if (!level || !canSetHeadingLevel(block)) {
+      return null;
+    }
+
+    return {
+      content: "",
+      index,
+      level,
+      position,
+      range,
+      type: operation.type,
+    };
+  }
+
   const content = operation.content?.trim() ? toAiInsertHtml(operation.content) : "";
 
   if (operation.type !== "delete_block" && !content) {
@@ -279,6 +314,16 @@ function findTextRangeInBlock(block: LocalAiDocumentBlock, targetText: string) {
     from: startSegment.from + targetStart - startSegment.textStart,
     to: endSegment.from + targetEnd - endSegment.textStart,
   };
+}
+
+function normalizeHeadingLevel(level: unknown): HeadingLevel | null {
+  return level === 1 || level === 2 || level === 3 || level === 4 || level === 5 || level === 6
+    ? level
+    : null;
+}
+
+function canSetHeadingLevel(block: LocalAiDocumentBlock) {
+  return block.node.isTextblock && block.node.type.name !== "codeBlock";
 }
 
 function hasRichMarkup(html: string) {

@@ -61,12 +61,15 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
     return [
       "The requested automatic action is: edit the document with block-level operations.",
       "Return only valid JSON, with no Markdown fences and no prose.",
-      "Schema: {\"summary\":\"short user-facing summary\",\"operations\":[{\"type\":\"insert_after_block|insert_before_block|replace_block|delete_block|replace_text_in_block\",\"blockId\":\"block_1\",\"content\":\"Markdown content for insert/replace block\",\"targetText\":\"exact text to replace for replace_text_in_block\",\"replacementText\":\"replacement text for replace_text_in_block\"}]}",
+      "Schema: {\"summary\":\"short user-facing summary\",\"operations\":[{\"type\":\"insert_after_block|insert_before_block|replace_block|delete_block|replace_text_in_block|set_heading_level\",\"blockId\":\"block_1\",\"content\":\"Markdown content for insert/replace block\",\"targetText\":\"exact text to replace for replace_text_in_block\",\"replacementText\":\"replacement text for replace_text_in_block\",\"level\":1}]}",
       "The summary must say what changed and where it was placed, using nearby block text when possible.",
       "Use only blockId values from Current document blocks.",
+      "For heading level changes, use set_heading_level with level 1, 2, 3, 4, 5, or 6.",
       "For location requests, choose the closest matching block and use insert_after_block or insert_before_block.",
       "For small changes inside an existing formatted block, prefer replace_text_in_block so the original heading, list, link, and inline formatting are preserved.",
       "For whole-block content changes, prefer replace_block or delete_block over replacing the whole document.",
+      "For one table, paragraph, heading, list, or section change, never return the full document body.",
+      "If you cannot find a matching blockId, return {\"summary\":\"No matching block found.\",\"operations\":[]} instead of returning prose or a full document.",
       "Operation content can be Markdown or minimal HTML when HTML is necessary to preserve links or strikethrough.",
       "When replacing a formatted block, preserve the original block's Markdown structure unless the user explicitly asks to remove or change that formatting.",
     ].join(" ");

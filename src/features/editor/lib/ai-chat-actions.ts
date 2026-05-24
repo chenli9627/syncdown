@@ -28,6 +28,10 @@ export function inferAiChatDocumentAction(
     return "insert_cursor";
   }
 
+  if (isHeadingLevelEditPrompt(compactPrompt, lowerPrompt)) {
+    return "edit_blocks";
+  }
+
   if (isSpecificPlacementPrompt(compactPrompt, lowerPrompt)) {
     return "edit_blocks";
   }
@@ -132,16 +136,16 @@ function isSpecificPlacementPrompt(compactPrompt: string, lowerPrompt: string) {
 
 function isTargetedBlockEditPrompt(compactPrompt: string, lowerPrompt: string) {
   return (
-    /(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新).{0,48}(?:包含|含有|这段|这一段|该段|段落|表格|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|删除线|链接|代码块|引用|五级标题|六级标题)/.test(
+    /(?:删除|移除|删掉|去掉|替换|修改|调整|设置|改写|改成|改为|变成|更新).{0,48}(?:包含|含有|这段|这一段|该段|段落|表格|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|删除线|链接|代码块|引用|一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|h[1-6])/i.test(
       compactPrompt,
     ) ||
-    /(?:包含|含有|这段|这一段|该段|段落|表格|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|删除线|链接|代码块|引用|五级标题|六级标题).{0,48}(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新)/.test(
+    /(?:包含|含有|这段|这一段|该段|段落|表格|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|删除线|链接|代码块|引用|一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|h[1-6]).{0,48}(?:删除|移除|删掉|去掉|替换|修改|调整|设置|改写|改成|改为|变成|更新)/i.test(
       compactPrompt,
     ) ||
-    /(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新).{0,48}(?:原文|已有|现有|原有|当前|这个|这张|该).{0,24}(?:段落|表格|列表|清单|小节|章节|标题|部分)/.test(
+    /(?:删除|移除|删掉|去掉|替换|修改|调整|设置|改写|改成|改为|变成|更新).{0,48}(?:原文|已有|现有|原有|当前|这个|这张|该).{0,24}(?:段落|表格|列表|清单|小节|章节|标题|部分)/.test(
       compactPrompt,
     ) ||
-    /(?:原文|已有|现有|原有|当前|这个|这张|该).{0,24}(?:段落|表格|列表|清单|小节|章节|标题|部分).{0,48}(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新)/.test(
+    /(?:原文|已有|现有|原有|当前|这个|这张|该).{0,24}(?:段落|表格|列表|清单|小节|章节|标题|部分).{0,48}(?:删除|移除|删掉|去掉|替换|修改|调整|设置|改写|改成|改为|变成|更新)/.test(
       compactPrompt,
     ) ||
     /\b(?:delete|remove|replace|change|update|edit|rewrite)\b[\s\S]{0,160}\b(?:containing|contains|paragraph|table|block|heading|section|part|background|plan|risk|conclusion|summary)\b/.test(
@@ -154,6 +158,26 @@ function isTargetedBlockEditPrompt(compactPrompt: string, lowerPrompt: string) {
       lowerPrompt,
     ) ||
     /\b(?:original|existing|current|this|that)\b[\s\S]{0,80}\b(?:paragraph|table|block|heading|section|list)\b[\s\S]{0,160}\b(?:delete|remove|replace|change|update|edit|rewrite)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isHeadingLevelEditPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:修改|调整|设置|改成|改为|变成|更新|升为|降为).{0,48}(?:标题|h[1-6]).{0,48}(?:层级|级别|等级|一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|h[1-6])/.test(
+      compactPrompt,
+    ) ||
+    /(?:标题|h[1-6]).{0,48}(?:层级|级别|等级|一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|h[1-6]).{0,48}(?:修改|调整|设置|改成|改为|变成|更新|升为|降为)/.test(
+      compactPrompt,
+    ) ||
+    /(?:层级|级别|等级|一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|h[1-6]).{0,48}(?:标题|h[1-6]).{0,48}(?:修改|调整|设置|改成|改为|变成|更新|升为|降为)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:change|update|set|make|turn)\b[\s\S]{0,120}\b(?:heading|h[1-6])\b[\s\S]{0,80}\b(?:level|h[1-6]|heading\s+[1-6])\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:heading|h[1-6])\b[\s\S]{0,80}\b(?:level|h[1-6]|heading\s+[1-6])\b[\s\S]{0,120}\b(?:change|update|set|make|turn)\b/.test(
       lowerPrompt,
     )
   );
