@@ -148,6 +148,13 @@ test("accepts mixed markdown text with autolinks and unsupported plain-text tabl
   assert.match(html, /┌───────┬──────┬──────────┐/);
 });
 
+test("preserves handwritten markdown link labels", () => {
+  const html = markdownToEditorHtml("官网：[北京文旅](https://example.com)\n\n[dfk](google.com)");
+
+  assert.match(html, /<a href="https:\/\/example\.com">北京文旅<\/a>/);
+  assert.match(html, /<a href="https:\/\/google\.com">dfk<\/a>/);
+});
+
 test("tolerates unsupported markdown blocks during paste without dropping supported blocks", () => {
   const markdown = `# h1
 
