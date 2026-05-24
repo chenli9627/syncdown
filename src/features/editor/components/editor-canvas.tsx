@@ -9,6 +9,7 @@ import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import * as Y from "yjs";
 import { useLocale } from "@/components/providers/locale-provider";
+import { EditorAiBubble } from "@/features/editor/components/editor-ai-bubble";
 import { EditorBlockControls } from "@/features/editor/components/editor-block-controls";
 import { EditorBlockMenu } from "@/features/editor/components/editor-block-menu";
 import { EditorSelectionBubble } from "@/features/editor/components/editor-selection-bubble";
@@ -20,6 +21,7 @@ import {
 } from "@/features/editor/components/editor-collaborator-avatar-stack";
 import { useEditorBlockDrag } from "@/features/editor/hooks/use-editor-block-drag";
 import type { RemoteAwarenessEntry } from "@/features/editor/hooks/use-editor-collaboration";
+import type { AiActionKind } from "@/features/editor/lib/ai";
 import {
   BLOCK_ELEMENT_SELECTOR,
   getBlockDropTargetFromPointer,
@@ -27,6 +29,7 @@ import {
   getTopLevelBlockStartPos,
 } from "@/features/editor/lib/utils";
 import type {
+  AiBubbleState,
   BlockTransformItem,
   HoveredBlock,
   SelectionBubbleState,
@@ -113,7 +116,18 @@ type EditorCanvasProps = {
   importInputRef: RefObject<HTMLInputElement | null>;
   remoteEntries: RemoteAwarenessEntry[];
   searchRects: SearchRect[];
+  aiHighlightRects: SearchRect[];
+  aiBubble: AiBubbleState;
+  aiBubbleRef: RefObject<HTMLDivElement | null>;
+  onAiApply: () => void;
+  onAiClose: () => void;
+  onAiInsertBelow: () => void;
+  onAiPreviewAction: (action: AiActionKind) => void;
+  onAiPromptChange: (value: string) => void;
+  onAiResultCountChange: (count: 1 | 2) => void;
+  onAiSelectCandidate: (index: number) => void;
   onFormatSelection: (command: "bold" | "italic" | "strike" | "code") => void;
+  onOpenAiMenu: () => void;
   selectionBubble: SelectionBubbleState;
   selectionBubbleRef: RefObject<HTMLDivElement | null>;
   syncHoveredBlockFromPos: (position: number) => void;
@@ -162,7 +176,18 @@ export function EditorCanvas({
   importInputRef,
   remoteEntries,
   searchRects,
+  aiHighlightRects,
+  aiBubble,
+  aiBubbleRef,
+  onAiApply,
+  onAiClose,
+  onAiInsertBelow,
+  onAiPreviewAction,
+  onAiPromptChange,
+  onAiResultCountChange,
+  onAiSelectCandidate,
   onFormatSelection,
+  onOpenAiMenu,
   selectionBubble,
   selectionBubbleRef,
   syncHoveredBlockFromPos,
@@ -958,6 +983,19 @@ export function EditorCanvas({
             }}
           />
         ))}
+        {aiHighlightRects.map((rect, index) => (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute z-[2] bg-[color-mix(in_srgb,var(--color-primary)_18%,transparent)]"
+            key={`${rect.left}-${rect.top}-${index}`}
+            style={{
+              height: `${rect.height}px`,
+              left: `${rect.left}px`,
+              top: `${rect.top}px`,
+              width: `${rect.width}px`,
+            }}
+          />
+        ))}
         {collaboratorBlockMarkers
           .filter(
             (marker) =>
@@ -1010,8 +1048,20 @@ export function EditorCanvas({
         <EditorSelectionBubble
           editor={editor}
           onFormat={onFormatSelection}
+          onOpenAi={onOpenAiMenu}
           selectionBubble={selectionBubble}
           selectionBubbleRef={selectionBubbleRef}
+        />
+        <EditorAiBubble
+          aiBubble={aiBubble}
+          aiBubbleRef={aiBubbleRef}
+          onApply={onAiApply}
+          onClose={onAiClose}
+          onInsertBelow={onAiInsertBelow}
+          onPreviewAction={onAiPreviewAction}
+          onPromptChange={onAiPromptChange}
+          onResultCountChange={onAiResultCountChange}
+          onSelectCandidate={onAiSelectCandidate}
         />
         {canEditBody && blockMenu.open && globalThis.document?.body
           ? createPortal(
