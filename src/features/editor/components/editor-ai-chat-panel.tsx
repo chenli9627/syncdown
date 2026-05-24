@@ -312,17 +312,19 @@ export function EditorAiChatPanel({
                   onSendEdit={handleSendEditedQuestion}
                 />
               ))}
+              {busy ? (
+                <div className="flex justify-start">
+                  <button
+                    className="border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                    onClick={() => void stop()}
+                    type="button"
+                  >
+                    {t("aiStop")}
+                  </button>
+                </div>
+              ) : null}
             </div>
           )}
-          {busy ? (
-            <button
-              className="mt-4 border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
-              onClick={() => void stop()}
-              type="button"
-            >
-              {t("aiStop")}
-            </button>
-          ) : null}
           {error ? (
             <p className="mt-3 text-xs text-[#dd5b00]">{t("aiRequestFailed")}</p>
           ) : null}
