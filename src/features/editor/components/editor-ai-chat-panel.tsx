@@ -171,6 +171,7 @@ export function EditorAiChatPanel({
           documentTitle,
           documentAction,
           threadId,
+          getOrderedApplicationStatusNotices(messages, appliedNotices),
         ),
       },
     );
@@ -220,6 +221,7 @@ export function EditorAiChatPanel({
           documentTitle,
           documentAction,
           threadId,
+          getOrderedApplicationStatusNotices(nextMessages, appliedNotices),
         ),
       },
     );
@@ -253,12 +255,14 @@ export function EditorAiChatPanel({
         onDeleteThread={handleDeleteThread}
         onModelChange={handleModelChange}
         onNewThread={() => {
+          setAppliedNotices({});
           setEditingQuestion(null);
           setVisibleMessageCount(initialVisibleMessageCount);
           handleNewThread();
         }}
         onResizeStart={onResizeStart}
         onSelectThread={(threadId) => {
+          setAppliedNotices({});
           setEditingQuestion(null);
           setVisibleMessageCount(initialVisibleMessageCount);
           handleSelectThread(threadId);
@@ -311,6 +315,7 @@ export function EditorAiChatPanel({
                           documentTitle,
                           null,
                           activeThreadId,
+                          getOrderedApplicationStatusNotices(messages, appliedNotices),
                         ),
                         messageId: message.id,
                       })
@@ -351,6 +356,15 @@ function focusPromptInput(inputRef: RefObject<HTMLTextAreaElement | null>) {
   window.requestAnimationFrame(() => {
     inputRef.current?.focus();
   });
+}
+
+function getOrderedApplicationStatusNotices(
+  messages: AiChatMessage[],
+  appliedNotices: Record<string, string>,
+) {
+  return messages
+    .map((message) => appliedNotices[message.id])
+    .filter((notice): notice is string => Boolean(notice));
 }
 
 function getAppliedNotice(

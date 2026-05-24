@@ -67,7 +67,8 @@ export function ChatMessage({
   const text = getAiChatMessageText(message, message.metadata?.documentAction ?? null);
   const isAssistant = message.role === "assistant";
   const toolSummary = isAssistant ? getAiDocumentEditToolSummary(text) : null;
-  const displayText = toolSummary ?? text;
+  const isNotChangedNotice = isDocumentNotChangedNotice(appliedNotice);
+  const displayText = isNotChangedNotice ? (appliedNotice ?? "") : (toolSummary ?? text);
   const [copied, setCopied] = useState(false);
   const editInputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -88,11 +89,13 @@ export function ChatMessage({
   }, [isEditing]);
 
   function handleCopy() {
-    if (!text.trim()) {
+    const copyText = isAssistant ? displayText : text;
+
+    if (!copyText.trim()) {
       return;
     }
 
-    void navigator.clipboard.writeText(text).then(() => {
+    void navigator.clipboard.writeText(copyText).then(() => {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1200);
     });
@@ -108,7 +111,7 @@ export function ChatMessage({
         )}
       >
         {isAssistant ? <MessageResponse>{displayText}</MessageResponse> : text}
-        {isAssistant && appliedNotice ? (
+        {isAssistant && appliedNotice && !isNotChangedNotice ? (
           <p className="mt-2 border-t border-[var(--color-border)] pt-2 text-xs text-[var(--color-muted-foreground)]">
             {appliedNotice}
           </p>
@@ -237,4 +240,8 @@ function ActionLabel({ children }: { children: string }) {
       {children}
     </span>
   );
+}
+
+function isDocumentNotChangedNotice(notice: string | undefined) {
+  return Boolean(notice && /^(未修改文档|Document was not changed)/i.test(notice.trim()));
 }

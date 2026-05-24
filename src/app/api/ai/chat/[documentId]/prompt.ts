@@ -11,10 +11,17 @@ export function buildDocumentChatSystemPrompt(
   selection: AiChatSelection | null,
   modelName: string,
   documentAction: AiChatDocumentAction | null,
+  applicationStatusNotices: string[] = [],
 ) {
   const cleanDocumentTitle = documentTitle.trim() || "(untitled document)";
   const cleanDocumentText = documentText.trim() || "(empty document)";
   const selectionText = selection?.text.trim();
+  const cleanApplicationStatusNotices = applicationStatusNotices
+    .map((notice) => notice.trim())
+    .filter(Boolean)
+    .slice(-8);
+  const latestApplicationStatusNotice =
+    cleanApplicationStatusNotices[cleanApplicationStatusNotices.length - 1] ?? "";
 
   return [
     "You are Syncdown's document assistant.",
@@ -34,7 +41,10 @@ export function buildDocumentChatSystemPrompt(
     "Never tell the user to copy, paste, manually insert, or manually apply content to the document.",
     "In Syncdown, automatic document actions are real app-driven edits. Do not apologize by saying you cannot directly modify the document when the user's request is a document edit.",
     "If earlier assistant messages say you cannot directly modify the document or ask the user to copy content manually, treat those messages as obsolete and do not repeat that behavior.",
-    "If the user asks where a previous automatic document edit went, answer from the previous operation summary and the current document context. Do not deny that the app applied it.",
+    "If the user asks whether a previous document edit happened, verify against the current document title, text, blocks, and explicit Syncdown status notices. If the requested change is not visible in the current document, say it was not applied.",
+    "For follow-up phrases such as just now, previous, last time, 刚才, 上次, or 之前, treat the latest explicit Syncdown status notice as authoritative for the most recent attempted document operation.",
+    "If the latest explicit Syncdown status notice says 未修改文档 or Document was not changed, say the most recent attempted operation did not modify the document, even if the current document already matches the requested end state because of an earlier operation.",
+    "Never claim you checked the live editor after your response. You only know the current document snapshot included in this request and any explicit Syncdown status notices in the conversation.",
     documentAction
       ? "The app will automatically apply your next answer as the payload for the requested document action."
       : "When the user asks for an edit, return content that can be inserted into the document directly.",
@@ -45,7 +55,7 @@ export function buildDocumentChatSystemPrompt(
     "Use Markdown when lists, headings, or emphasis make the answer clearer.",
     documentAction
       ? "Do not claim that the document has already changed while you are generating the answer."
-      : "Do not invent a new document change for this turn, but treat previous Syncdown-applied document actions as real changes; answer directly with the requested content or explanation.",
+      : "Do not invent a new document change for this turn. Treat previous document edits as successful only when explicit Syncdown status notices or the current document snapshot show the change.",
     "",
     "Current document title:",
     cleanDocumentTitle,
@@ -54,6 +64,14 @@ export function buildDocumentChatSystemPrompt(
     cleanDocumentText,
     documentAction === "edit_blocks" ? "\nCurrent document blocks:\n" + formatDocumentBlocks(documentBlocks) : "",
     selectionText ? "\nCurrent selected text:\n" + selectionText : "",
+    cleanApplicationStatusNotices.length
+      ? "\nRecent explicit Syncdown status notices:\n" +
+          cleanApplicationStatusNotices
+            .map((notice) =>
+              notice === latestApplicationStatusNotice ? `- latest: ${notice}` : `- ${notice}`,
+            )
+            .join("\n")
+      : "",
   ].join("\n");
 }
 

@@ -25,8 +25,10 @@ export function getAiChatRequestBody(
   documentTitle: string,
   documentAction: AiChatDocumentAction | null = null,
   threadId: string | null = null,
+  applicationStatusNotices: string[] = [],
 ) {
   return {
+    applicationStatusNotices: applicationStatusNotices.slice(-8),
     documentAction,
     documentBlocks: documentAction === "edit_blocks" ? getAiDocumentBlocks(editor) : [],
     documentText: editor?.getText() ?? "",

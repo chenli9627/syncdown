@@ -35,7 +35,8 @@ test("AI chat prompt does not tell the model to invent UI apply instructions", (
 
   assert.match(prompt, /Never add UI instructions/);
   assert.match(prompt, /Never tell the user to copy, paste, manually insert/);
-  assert.match(prompt, /answer directly with the requested content or explanation/);
+  assert.match(prompt, /Do not invent a new document change/);
+  assert.match(prompt, /current document snapshot show the change/);
   assert.doesNotMatch(prompt, /explicit buttons/);
   assert.doesNotMatch(prompt, /user applies your response/);
 });
@@ -48,6 +49,10 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
     null,
     "deepseek-v4-flash",
     "edit_blocks",
+    [
+      "已修改文档：已删除文档中的表格。",
+      "未修改文档：No matching document target found.",
+    ],
   );
 
   assert.match(prompt, /automatic document actions are real app-driven edits/);
@@ -55,7 +60,12 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   assert.match(prompt, /current web data cannot be fetched reliably/);
   assert.match(prompt, /Do not apologize by saying you cannot directly modify/);
   assert.match(prompt, /treat those messages as obsolete/);
-  assert.match(prompt, /where a previous automatic document edit went/);
+  assert.match(prompt, /verify against the current document title, text, blocks/);
+  assert.match(prompt, /Never claim you checked the live editor/);
+  assert.match(prompt, /explicit Syncdown status notices/);
+  assert.match(prompt, /latest explicit Syncdown status notice as authoritative/);
+  assert.match(prompt, /most recent attempted operation did not modify the document/);
+  assert.doesNotMatch(prompt, /Do not deny that the app applied it/);
   assert.match(prompt, /summary must say what changed and where it was placed/);
   assert.match(prompt, /set_heading_level/);
   assert.match(prompt, /set_text_marks/);
@@ -71,4 +81,7 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   assert.match(prompt, /I cannot do that edit yet/);
   assert.match(prompt, /Never return a rewritten full document as a workaround/);
   assert.match(prompt, /never return the full document body/);
+  assert.match(prompt, /Recent explicit Syncdown status notices/);
+  assert.match(prompt, /已修改文档：已删除文档中的表格/);
+  assert.match(prompt, /latest: 未修改文档：No matching document target found/);
 });

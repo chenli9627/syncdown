@@ -37,6 +37,7 @@ type RouteContext = {
 };
 
 type ChatBody = {
+  applicationStatusNotices?: string[];
   documentAction?: AiChatDocumentAction | null;
   documentBlocks?: AiChatDocumentBlock[];
   documentText?: string;
@@ -143,6 +144,7 @@ export async function POST(request: Request, context: RouteContext) {
     body.selection ?? null,
     modelConfig.name,
     documentAction,
+    body.applicationStatusNotices ?? [],
   );
 
   const result = streamText({
