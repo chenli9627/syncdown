@@ -10,6 +10,14 @@ import type {
 const schema = new Schema({
   nodes: {
     doc: { content: "block+" },
+    codeBlock: {
+      content: "text*",
+      group: "block",
+      code: true,
+      marks: "",
+      parseDOM: [{ tag: "pre", preserveWhitespace: "full" }],
+      toDOM: () => ["pre", ["code", 0]],
+    },
     heading: {
       attrs: { level: { default: 1 } },
       content: "text*",
@@ -90,6 +98,32 @@ test("AI edit converter creates replace operations for every matching target in 
   );
 });
 
+test("AI edit converter replaces every matching target inside a code block", () => {
+  const block = codeBlock("block_1", "const count = 1\nconsole.log(count)", 0);
+  const operations = toExecutableOperations(
+    {
+      blockId: "block_1",
+      replacementText: "total",
+      targetText: "count",
+      type: "replace_text_in_block",
+    },
+    [block],
+    0,
+  );
+
+  assert.deepEqual(
+    operations.map((operation) => ({
+      content: operation.content,
+      range: operation.range,
+      type: operation.type,
+    })),
+    [
+      { content: "total", range: { from: 7, to: 12 }, type: "replace_text_in_block" },
+      { content: "total", range: { from: 29, to: 34 }, type: "replace_text_in_block" },
+    ],
+  );
+});
+
 test("AI edit converter supports heading level changes without replacing the block text", () => {
   const block = headingBlock("block_1", "Roadmap", 0, 2);
   const operations = toExecutableOperations(
@@ -129,6 +163,19 @@ function paragraphBlock(id: string, text: string, pos: number): LocalAiDocumentB
     pos,
     text,
     type: "paragraph",
+  };
+}
+
+function codeBlock(id: string, text: string, pos: number): LocalAiDocumentBlock {
+  const node = schema.nodes.codeBlock.create(null, text ? schema.text(text) : undefined);
+
+  return {
+    id,
+    node,
+    nodeSize: node.nodeSize,
+    pos,
+    text,
+    type: "codeBlock",
   };
 }
 

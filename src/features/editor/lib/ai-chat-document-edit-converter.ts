@@ -35,6 +35,10 @@ export function toExecutableOperations(
     return [];
   }
 
+  if (operation.type === "replace_text_in_block") {
+    return toTextReplacementOperations(operation, index, block);
+  }
+
   if (isTextMarkOperation(operation.type)) {
     return toTextMarkOperations(operation, index, block);
   }
@@ -51,10 +55,6 @@ function toExecutableOperation(
 ): ExecutableOperation | null {
   if (operation.type === "move_block" || operation.type === "copy_block") {
     return toBlockPlacementOperation(operation, blocks, index, block);
-  }
-
-  if (operation.type === "replace_text_in_block") {
-    return toTextReplacementOperation(operation, index, block);
   }
 
   if (operation.type === "set_link" || operation.type === "unset_link") {
@@ -129,24 +129,29 @@ function toBlockPlacementOperation(
   };
 }
 
-function toTextReplacementOperation(
+function toTextReplacementOperations(
   operation: AiDocumentEditOperation,
   index: number,
   block: LocalAiDocumentBlock,
-): ExecutableOperation | null {
-  const range = findTargetTextRange(block, operation.targetText);
+) {
+  const ranges =
+    block.type === "codeBlock"
+      ? findTargetTextRanges(block, operation.targetText)
+      : [findTargetTextRange(block, operation.targetText)].filter(
+          (range): range is NonNullable<typeof range> => Boolean(range),
+        );
 
-  if (!range) {
-    return null;
+  if (!ranges.length) {
+    return [];
   }
 
-  return {
+  return ranges.map((range, rangeIndex) => ({
     content: operation.replacementText ?? "",
-    index,
+    index: index + rangeIndex / 1000000,
     position: range.from,
     range,
     type: operation.type,
-  };
+  }));
 }
 
 function toReplaceAllTextOperations(

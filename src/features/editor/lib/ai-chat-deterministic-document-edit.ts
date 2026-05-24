@@ -31,36 +31,54 @@ function buildTaskItemCheckedPayload(
   prompt: string,
   documentBlocks: AiChatDocumentBlock[],
 ): AiDocumentEditPayload | null {
-  const checked = !/(?:\u53d6\u6d88\u52fe\u9009|\u53d6\u6d88\u9009\u4e2d|\u53d6\u6d88\u5b8c\u6210|\buncheck\b)/i.test(
-    prompt,
-  );
-  const match =
-    prompt.match(
-      /^(?:\u52fe\u9009|\u9009\u4e2d|\u5b8c\u6210|\u53d6\u6d88\u52fe\u9009|\u53d6\u6d88\u9009\u4e2d|\u53d6\u6d88\u5b8c\u6210)\s*(?:\u4efb\u52a1\u91cc\u7684|\u4efb\u52a1\u4e2d\u7684|\u5f85\u529e\u91cc\u7684|\u5f85\u529e\u4e2d\u7684)?([^\n,\uff0c\u3002\uff01\uff1f]{1,48})/u,
-    ) ??
-    prompt.match(
-      /(?:\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*(?:\u8fd9\u4e2a)?(?:\u4efb\u52a1|\u5f85\u529e)?\s*(?:\u52fe\u9009|\u9009\u4e2d|\u5b8c\u6210|\u53d6\u6d88\u52fe\u9009|\u53d6\u6d88\u9009\u4e2d|\u53d6\u6d88\u5b8c\u6210)/u,
-    );
-  const target = cleanTarget(match?.[1]);
-  if (!target) {
-    return null;
-  }
+  const segments = prompt
+    .split(/(?:[，,；;]|(?:并且|并|然后|且))/u)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  const operations = segments
+    .map((segment) => {
+      const checked = !/(?:\u53d6\u6d88\u52fe\u9009|\u53d6\u6d88\u9009\u4e2d|\u53d6\u6d88\u5b8c\u6210|\buncheck\b)/i.test(
+        segment,
+      );
+      const match =
+        segment.match(
+          /^(?:\u52fe\u9009|\u9009\u4e2d|\u5b8c\u6210|\u53d6\u6d88\u52fe\u9009|\u53d6\u6d88\u9009\u4e2d|\u53d6\u6d88\u5b8c\u6210)\s*(?:\u4efb\u52a1\u91cc\u7684|\u4efb\u52a1\u4e2d\u7684|\u5f85\u529e\u91cc\u7684|\u5f85\u529e\u4e2d\u7684)?([^\n,\uff0c\u3002\uff01\uff1f]{1,48})/u,
+        ) ??
+        segment.match(
+          /(?:\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*(?:\u8fd9\u4e2a)?(?:\u4efb\u52a1|\u5f85\u529e)?\s*(?:\u52fe\u9009|\u9009\u4e2d|\u5b8c\u6210|\u53d6\u6d88\u52fe\u9009|\u53d6\u6d88\u9009\u4e2d|\u53d6\u6d88\u5b8c\u6210)/u,
+        );
+      const target = cleanTarget(match?.[1]);
+      if (!target) {
+        return null;
+      }
 
-  const block = findSingleBlockContaining(documentBlocks, target, ["taskList"]);
-  if (!block) {
+      const block = findSingleBlockContaining(documentBlocks, target, ["taskList"]);
+      if (!block) {
+        return null;
+      }
+
+      return {
+        blockId: block.id,
+        checked,
+        targetText: target,
+        type: "set_task_item_checked" as const,
+      };
+    })
+    .filter((operation): operation is NonNullable<typeof operation> => Boolean(operation));
+
+  if (!operations.length) {
     return null;
   }
 
   return {
-    operations: [
-      {
-        blockId: block.id,
-        checked,
-        targetText: target,
-        type: "set_task_item_checked",
-      },
-    ],
-    summary: checked ? `已勾选任务“${target}”。` : `已取消勾选任务“${target}”。`,
+    operations,
+    summary: operations
+      .map((operation) =>
+        operation.checked
+          ? `已勾选任务“${operation.targetText}”`
+          : `已取消勾选任务“${operation.targetText}”`,
+      )
+      .join("；") + "。",
   };
 }
 

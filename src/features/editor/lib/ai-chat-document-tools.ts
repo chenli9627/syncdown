@@ -50,6 +50,7 @@ export function applyAiDocumentEditToolResponseWithVerification(
 
   const payloadOperations = normalizeDependentTableInsertOperations(payload.operations);
   const blocks = getLocalAiDocumentBlocks(editor);
+  const beforeSnapshot = editor.state.doc.toJSON();
   const operations = payloadOperations
     .flatMap((operation, index) => toExecutableOperations(operation, blocks, index))
     .sort((a, b) => b.position - a.position || b.index - a.index);
@@ -75,6 +76,17 @@ export function applyAiDocumentEditToolResponseWithVerification(
     blocks,
     getLocalAiDocumentBlocks(editor),
   );
+
+  if (!verification.verified) {
+    restoreEditorDocumentSnapshot(editor, beforeSnapshot);
+
+    return {
+      appliedCount: 0,
+      failedVerificationCount: verification.failedCount,
+      requestedCount: payloadOperations.length,
+      verified: false,
+    };
+  }
 
   return {
     appliedCount,
@@ -134,6 +146,17 @@ function extractJsonObject(responseText: string) {
 
 function getEditorDocumentSnapshot(editor: Editor) {
   return JSON.stringify(editor.state.doc.toJSON());
+}
+
+function restoreEditorDocumentSnapshot(editor: Editor, snapshot: unknown) {
+  const documentNode = editor.state.schema.nodeFromJSON(snapshot);
+  const transaction = editor.state.tr.replaceWith(
+    0,
+    editor.state.doc.content.size,
+    documentNode.content,
+  );
+  editor.view.dispatch(transaction);
+  editor.commands.focus();
 }
 
 function normalizeDependentTableInsertOperations(operations: AiDocumentEditOperation[] = []) {

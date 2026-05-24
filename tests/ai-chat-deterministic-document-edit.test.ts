@@ -98,6 +98,29 @@ test("builds deterministic task checkbox operations", () => {
   );
 });
 
+test("builds deterministic task checkbox operations for multiple targets", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("取消勾选“买车票”，并勾选“订酒店”。", documentBlocks),
+    {
+      operations: [
+        {
+          blockId: "block_5",
+          checked: false,
+          targetText: "买车票",
+          type: "set_task_item_checked",
+        },
+        {
+          blockId: "block_5",
+          checked: true,
+          targetText: "订酒店",
+          type: "set_task_item_checked",
+        },
+      ],
+      summary: "已取消勾选任务“买车票”；已勾选任务“订酒店”。",
+    },
+  );
+});
+
 test("builds deterministic heading level operations", () => {
   assert.deepEqual(
     buildDeterministicAiDocumentEditPayload("把景点改成三级标题。", documentBlocks),
