@@ -16,6 +16,7 @@ test("AI chat prompt hides web fetch implementation details from final answers",
   assert.match(prompt, /request counts/);
   assert.match(prompt, /hasMore/);
   assert.match(prompt, /nextStart/);
+  assert.match(prompt, /do not copy raw HTML tags or angle-bracket markup/);
   assert.match(prompt, /Never ask the user for permission to continue reading/);
   assert.match(prompt, /answer the user's actual question directly/);
 });

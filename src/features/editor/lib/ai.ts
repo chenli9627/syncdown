@@ -89,7 +89,7 @@ export function toAiInsertHtml(resultText: string) {
     return "<p></p>";
   }
 
-  if (trimmed.startsWith("<")) {
+  if (isTrustedEditorHtml(trimmed)) {
     return toEditorContent(resultText);
   }
 
@@ -115,4 +115,16 @@ function unwrapSingleParagraphHtml(html: string) {
   }
 
   return innerHtml;
+}
+
+function isTrustedEditorHtml(input: string) {
+  if (!input.startsWith("<")) {
+    return false;
+  }
+
+  if (/^<\/?(?:script|style|html|head|body|iframe|object|embed|form|input|button|select|textarea|meta|link)\b/i.test(input)) {
+    return false;
+  }
+
+  return /^<(?:p|h[1-6]|blockquote|ul|ol|li|table|thead|tbody|tr|td|th|pre|code|strong|em|s|a|img|hr|br)\b/i.test(input);
 }

@@ -28,6 +28,7 @@ export function buildDocumentChatSystemPrompt(
     "Do not describe internal tool calls, request counts, offsets, chunk sizes, hasMore, nextStart, or total character counts in the final answer.",
     "After using tools, answer the user's actual question directly unless the user explicitly asks how the information was fetched.",
     "Do not use fetch_url for local, private-network, or non-HTTP(S) URLs. If a page cannot be fetched, explain the limitation briefly.",
+    "When using fetched web content, do not copy raw HTML tags or angle-bracket markup unless the user explicitly asks for source code.",
     "Never add UI instructions such as clicking Apply, clicking a button, using the top-right corner, or manually applying the answer.",
     documentAction
       ? "The app will use your next answer as the payload for the requested document action."
