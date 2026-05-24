@@ -158,6 +158,66 @@ button:disabled {
   color: color-mix(in srgb, var(--color-primary) 84%, #0d47a1 16%);
 }
 
+.syntext-editor a.footnote-ref,
+.syntext-editor a.footnote-ref:visited {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.22rem;
+  margin-left: 0.08rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  vertical-align: super;
+}
+
+.syntext-editor a.footnote-ref:hover {
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  color: color-mix(in srgb, var(--color-primary) 88%, #0d47a1 12%);
+}
+
+.syntext-editor p:has(> a.footnote-ref:first-child) {
+  margin-top: 0.4rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  color: var(--color-muted-foreground);
+  font-size: 0.94rem;
+  line-height: 1.7;
+}
+
+.syntext-editor p:has(> a.footnote-ref:first-child) > a.footnote-ref:first-child {
+  margin-left: 0;
+  margin-right: 0.35rem;
+  vertical-align: baseline;
+}
+
+.syntext-editor a.footnote-backref,
+.syntext-editor a.footnote-backref:visited {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.28rem;
+  color: var(--color-muted-foreground);
+  text-decoration: none;
+  opacity: 0.82;
+  transition:
+    color 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.syntext-editor a.footnote-backref:hover {
+  color: var(--color-primary);
+  opacity: 1;
+  transform: translateX(1px);
+}
+
 .syntext-editor [data-active-block="true"] {
   background: var(--color-active-block-background);
   box-shadow: inset 0 0 0 1px var(--color-active-block-ring);
