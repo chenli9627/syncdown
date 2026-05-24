@@ -108,7 +108,13 @@ export function getAiDocumentEditToolSummary(responseText: string) {
   const operations = payload.operations ?? [];
 
   if (!operations.length) {
-    return summary || null;
+    if (!summary) {
+      return "模型没有返回可应用的文档操作，未修改文档。";
+    }
+
+    return isNonAppliedEditSummary(summary)
+      ? summary
+      : "模型没有返回可应用的文档操作，未修改文档。";
   }
 
   return summary || "Document edit operations generated.";
@@ -225,5 +231,11 @@ function findDependentTableCellUpdateIndex(
       candidate.row === 1 &&
       candidate.column === insertedColumn &&
       Boolean(candidate.content?.trim()),
+  );
+}
+
+function isNonAppliedEditSummary(summary: string) {
+  return /^(?:未修改文档|No matching document target found\.?|I cannot do that edit yet\.?|I cannot do whole-document replacement yet\.?|模型没有返回可应用的文档操作，未修改文档。)/i.test(
+    summary.trim(),
   );
 }

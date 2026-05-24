@@ -39,6 +39,18 @@ test("shows unsupported document edit summaries from empty operations", () => {
   );
 });
 
+test("normalizes action-like summaries with empty operations into a non-applied fallback", () => {
+  assert.equal(
+    getAiDocumentEditToolSummary(
+      JSON.stringify({
+        operations: [],
+        summary: "在每个段落前插入对应的三级标题。",
+      }),
+    ),
+    "模型没有返回可应用的文档操作，未修改文档。",
+  );
+});
+
 test("counts requested AI document edit operations", () => {
   assert.equal(
     getAiDocumentEditToolOperationCount(
