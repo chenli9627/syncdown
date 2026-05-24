@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useAppState } from "@/features/app-state/providers/app-state-provider";
@@ -30,8 +31,10 @@ export function EditorSurface({
   saveDocument,
 }: EditorSurfaceProps) {
   const { t } = useLocale();
+  const { resolvedTheme } = useTheme();
   const router = useRouter();
   const blockMenuWidth = 168;
+  const isDarkTheme = resolvedTheme === "dark";
   const {
     aiChatOpen,
     aiPanelWidth,
@@ -257,8 +260,13 @@ export function EditorSurface({
       </div>
       {model.canEditBody && !aiChatOpen ? (
         <button
-          className="fixed bottom-5 right-5 z-30 inline-flex h-11 w-11 items-center justify-center border border-[#111111] bg-white text-[#111111] shadow-[var(--shadow-soft-card)] transition hover:bg-[#111111] hover:text-white"
+          className="fixed bottom-5 right-5 z-30 inline-flex h-11 w-11 items-center justify-center border shadow-[var(--shadow-soft-card)] transition hover:brightness-95"
           onClick={() => setAiChatOpen(true)}
+          style={{
+            backgroundColor: isDarkTheme ? "#f6f5f4" : "#111111",
+            borderColor: isDarkTheme ? "#f6f5f4" : "#111111",
+            color: isDarkTheme ? "#191816" : "#ffffff",
+          }}
           title={t("aiOpenChat")}
           type="button"
         >

@@ -58,6 +58,9 @@ type EditingQuestion = {
   text: string;
 };
 
+const initialVisibleMessageCount = 40;
+const visibleMessageStep = 40;
+
 export function EditorAiChatPanel({
   currentUser,
   documentId,
@@ -73,6 +76,7 @@ export function EditorAiChatPanel({
   const [appliedNotices, setAppliedNotices] = useState<Record<string, string>>({});
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredAiChatModelKey());
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
+  const [visibleMessageCount, setVisibleMessageCount] = useState(initialVisibleMessageCount);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const transport = useMemo(
     () =>
@@ -94,6 +98,10 @@ export function EditorAiChatPanel({
     transport,
   });
   const busy = status === "submitted" || status === "streaming";
+  const hiddenMessageCount = Math.max(0, messages.length - visibleMessageCount);
+  const visibleMessages =
+    hiddenMessageCount > 0 ? messages.slice(hiddenMessageCount) : messages;
+
   const handleDocumentActionApplied = useCallback(
     (action: AiChatDocumentAction, messageId: string) => {
       setAppliedNotices((current) => ({
@@ -126,6 +134,7 @@ export function EditorAiChatPanel({
     setMessages,
     stop,
   });
+
   function handleSubmit({ text }: { text: string }) {
     const trimmed = text.trim();
 
@@ -234,11 +243,13 @@ export function EditorAiChatPanel({
         onModelChange={handleModelChange}
         onNewThread={() => {
           setEditingQuestion(null);
+          setVisibleMessageCount(initialVisibleMessageCount);
           handleNewThread();
         }}
         onResizeStart={onResizeStart}
         onSelectThread={(threadId) => {
           setEditingQuestion(null);
+          setVisibleMessageCount(initialVisibleMessageCount);
           handleSelectThread(threadId);
         }}
         threads={threads}
@@ -249,7 +260,18 @@ export function EditorAiChatPanel({
             <ConversationEmptyState>{t("aiChatEmpty")}</ConversationEmptyState>
           ) : (
             <div className="flex flex-col gap-4">
-              {messages.map((message) => (
+              {hiddenMessageCount > 0 ? (
+                <button
+                  className="mx-auto border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-1.5 text-xs text-[var(--color-muted-foreground)] shadow-[var(--shadow-whisper)] transition hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
+                  onClick={() =>
+                    setVisibleMessageCount((current) => current + visibleMessageStep)
+                  }
+                  type="button"
+                >
+                  {t("aiShowEarlierMessages")}
+                </button>
+              ) : null}
+              {visibleMessages.map((message) => (
                 <ChatMessage
                   appliedNotice={appliedNotices[message.id]}
                   busy={busy}

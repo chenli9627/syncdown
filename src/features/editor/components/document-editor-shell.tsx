@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { DocumentShellGate } from "@/features/editor/components/document-shell-gate";
 import { EditorSurface } from "@/features/editor/components/editor-surface";
 import { useDocumentShellState } from "@/features/editor/hooks/use-document-shell-state";
@@ -11,6 +12,7 @@ type DocumentEditorShellProps = {
 
 export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
   const searchParams = useSearchParams();
+  const titleFocusRequested = searchParams.get("focus") === "title";
   const {
     currentUser,
     currentWorkspace,
@@ -20,6 +22,17 @@ export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
     ready,
     saveDocument,
   } = useDocumentShellState(documentId);
+  const initialFocusTitle = titleFocusRequested && !isReloadNavigation();
+
+  useEffect(() => {
+    if (!titleFocusRequested) {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("focus");
+    window.history.replaceState(window.history.state, "", url);
+  }, [titleFocusRequested]);
 
   if (!ready || !currentUser) {
     return null;
@@ -37,11 +50,6 @@ export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
     return null;
   }
 
-  const initialFocusTitle =
-    searchParams.get("focus") === "title" ||
-    (typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).get("focus") === "title");
-
   return (
     <EditorSurface
       document={document}
@@ -51,4 +59,14 @@ export function DocumentEditorShell({ documentId }: DocumentEditorShellProps) {
       saveDocument={saveDocument}
     />
   );
+}
+
+function isReloadNavigation() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const navigation = window.performance.getEntriesByType("navigation")[0];
+
+  return navigation instanceof PerformanceNavigationTiming && navigation.type === "reload";
 }
