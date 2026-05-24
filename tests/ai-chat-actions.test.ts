@@ -46,8 +46,14 @@ test("infers replace-selection action from broad edit prompts when text is selec
 
 test("infers replace-document action from whole document edit requests", () => {
   assert.equal(inferAiChatDocumentAction("把当前文档整理成会议纪要"), "replace_document");
-  assert.equal(inferAiChatDocumentAction("删除这篇文档里重复的内容"), "replace_document");
   assert.equal(inferAiChatDocumentAction("Rewrite this document in a more formal tone"), "replace_document");
+});
+
+test("infers block-edit action from document-scoped local deletions", () => {
+  assert.equal(inferAiChatDocumentAction("删除这篇文档里重复的内容"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("删除北京简介里的引用标注"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("删除当前文档中的最后一段"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("Remove duplicate paragraphs from this document"), "edit_blocks");
 });
 
 test("infers block-edit action from special placement requests", () => {

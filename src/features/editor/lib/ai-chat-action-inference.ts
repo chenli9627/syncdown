@@ -42,7 +42,14 @@ export function inferAiChatDocumentAction(
     return "replace_selection";
   }
 
-  if (isDocumentEditPrompt(compactPrompt, lowerPrompt)) {
+  if (
+    isDocumentEditPrompt(compactPrompt, lowerPrompt) &&
+    !isWholeDocumentReplacementPrompt(compactPrompt, lowerPrompt)
+  ) {
+    return "edit_blocks";
+  }
+
+  if (isWholeDocumentReplacementPrompt(compactPrompt, lowerPrompt)) {
     return "replace_document";
   }
 
@@ -228,6 +235,23 @@ function isDocumentEditPrompt(compactPrompt: string, lowerPrompt: string) {
       lowerPrompt,
     ) ||
     /\b(?:document|doc|page|article|content|text)\b[\s\S]{0,120}\b(?:edit|change|rewrite|revise|improve|translate|format|reformat|clean|fix|delete|remove|shorten|expand|convert|turn|update|replace)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isWholeDocumentReplacementPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:重写|改写|润色|优化|翻译|整理成|转换成|转成|格式化|重排|改成|改为|变成).{0,24}(?:文档|正文|全文|文章|页面|这篇|当前文档)/.test(
+      compactPrompt,
+    ) ||
+    /(?:文档|正文|全文|文章|页面|这篇|当前文档).{0,24}(?:重写|改写|润色|优化|翻译|整理成|转换成|转成|格式化|重排|改成|改为|变成)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:rewrite|revise|improve|translate|format|reformat|clean|convert|turn|update)\b[\s\S]{0,120}\b(?:document|doc|page|article)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:document|doc|page|article)\b[\s\S]{0,120}\b(?:rewrite|revise|improve|translate|format|reformat|clean|convert|turn|update)\b/.test(
       lowerPrompt,
     )
   );
