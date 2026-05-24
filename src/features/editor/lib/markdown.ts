@@ -472,7 +472,7 @@ export function markdownToEditorHtml(markdown: string) {
       }
 
       blocks.push(
-        `<p id="footnote-${escapeHtml(footnoteId)}" data-footnote-definition="${escapeHtml(footnoteId)}">${renderInlineMarkdown(`[^${footnoteId}]`)}: ${renderInlineMarkdown(footnoteLines.join(" "))} <a href="#footnote-ref-${escapeHtml(footnoteId)}-1" data-footnote-backref="${escapeHtml(footnoteId)}" class="footnote-backref">↩</a></p>`,
+        `<p id="footnote-${escapeHtml(footnoteId)}" data-footnote-definition="${escapeHtml(footnoteId)}"><a href="#footnote-${escapeHtml(footnoteId)}" data-footnote-ref="${escapeHtml(footnoteId)}" class="footnote-ref footnote-definition-ref">${formatFootnoteLabel(footnoteId)}</a>: ${renderInlineMarkdown(footnoteLines.join(" "))} <a href="#footnote-ref-${escapeHtml(footnoteId)}-1" data-footnote-backref="${escapeHtml(footnoteId)}" class="footnote-backref">↩</a></p>`,
       );
       continue;
     }

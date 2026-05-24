@@ -182,7 +182,7 @@ button:disabled {
   color: color-mix(in srgb, var(--color-primary) 88%, #0d47a1 12%);
 }
 
-.syntext-editor p:has(> a.footnote-ref:first-child) {
+.syntext-editor p:has(> a.footnote-definition-ref:first-child) {
   margin-top: 0.4rem;
   padding-top: 0.55rem;
   border-top: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
@@ -191,10 +191,31 @@ button:disabled {
   line-height: 1.7;
 }
 
-.syntext-editor p:has(> a.footnote-ref:first-child) > a.footnote-ref:first-child {
+.syntext-editor p:has(> a.footnote-definition-ref:first-child)
+  + p:has(> a.footnote-definition-ref:first-child) {
+  margin-top: 0.15rem;
+  padding-top: 0;
+  border-top: none;
+}
+
+.syntext-editor p:has(> a.footnote-definition-ref:first-child) > a.footnote-definition-ref:first-child {
   margin-left: 0;
   margin-right: 0.35rem;
+  min-width: auto;
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: inherit;
+  text-decoration: none;
   vertical-align: baseline;
+}
+
+.syntext-editor p:has(> a.footnote-definition-ref:first-child)
+  > a.footnote-definition-ref:first-child:hover {
+  background: transparent;
 }
 
 .syntext-editor a.footnote-backref,
