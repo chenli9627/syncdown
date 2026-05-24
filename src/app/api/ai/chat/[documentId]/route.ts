@@ -133,19 +133,32 @@ export async function POST(request: Request, context: RouteContext) {
 
   await writeStoredState(saveUserMessageResult.state);
   const activeThreadId = saveUserMessageResult.thread.id;
+  const documentAction = body.documentAction ?? null;
+  const systemPrompt = buildDocumentChatSystemPrompt(
+    body.documentTitle ?? "",
+    body.documentText ?? "",
+    body.documentBlocks ?? [],
+    body.selection ?? null,
+    modelConfig.name,
+    documentAction,
+  );
 
   const result = streamText({
     messages: await convertToModelMessages(messages),
     model: createAiChatModel(modelConfig),
-    stopWhen: stepCountIs(6),
-    system: buildDocumentChatSystemPrompt(
-      body.documentTitle ?? "",
-      body.documentText ?? "",
-      body.documentBlocks ?? [],
-      body.selection ?? null,
-      modelConfig.name,
-      body.documentAction ?? null,
-    ),
+    prepareStep: ({ stepNumber }) => {
+      if (stepNumber < 5) {
+        return undefined;
+      }
+
+      return {
+        activeTools: [],
+        system: `${systemPrompt}\n\n${getNoMoreToolCallsInstruction(documentAction)}`,
+        toolChoice: "none",
+      };
+    },
+    stopWhen: stepCountIs(8),
+    system: systemPrompt,
     temperature: 0.3,
     tools: aiWebFetchTools,
   });
@@ -215,6 +228,17 @@ export async function DELETE(request: Request, context: RouteContext) {
     },
     threads: result.threads,
   });
+}
+
+function getNoMoreToolCallsInstruction(documentAction: AiChatDocumentAction | null) {
+  const baseInstruction =
+    "You have already attempted the available web fetches. Do not call any more tools in this step. Give the user a visible final answer based only on the available tool results.";
+
+  if (documentAction === "edit_blocks") {
+    return `${baseInstruction} If the requested current web data could not be fetched reliably, return exactly valid JSON with a short Chinese summary and an empty operations array, for example {"summary":"无法获取可靠的实时网页数据，未修改文档。","operations":[]}.`;
+  }
+
+  return `${baseInstruction} If the requested current web data could not be fetched reliably, say so briefly in Chinese and do not invent the data.`;
 }
 
 function withChatMetadata(

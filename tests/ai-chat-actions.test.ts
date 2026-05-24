@@ -54,6 +54,10 @@ test("infers block-edit action from special placement requests", () => {
   assert.equal(inferAiChatDocumentAction("生成一个风险表格，放到方案下面"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("在第二段之前插入一个摘要"), "edit_blocks");
   assert.equal(
+    inferAiChatDocumentAction("看一下今天的微博热搜榜前十，做成表格放到文档中"),
+    "edit_blocks",
+  );
+  assert.equal(
     inferAiChatDocumentAction("Create a comparison table under the Background section"),
     "edit_blocks",
   );
