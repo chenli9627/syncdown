@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
   closedLinkPopover,
+  getPreferredLinkText,
   getLinkRange,
   LinkPopover,
   type LinkPopoverState,
@@ -326,7 +327,7 @@ export function EditorSelectionBubble({
             }
 
             const normalizedHref = normalizeHref(href);
-            const linkText = text || linkPopover.text || normalizedHref;
+            const linkText = getPreferredLinkText(text, linkPopover.text, href);
 
             if (!normalizedHref) {
               return;

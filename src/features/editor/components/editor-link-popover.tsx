@@ -308,6 +308,24 @@ export function normalizeHref(value: string) {
   return `https://${trimmed}`;
 }
 
+export function getPreferredLinkText(
+  draftText: string,
+  existingText: string,
+  draftHref: string,
+) {
+  const trimmedText = draftText.trim();
+
+  if (trimmedText) {
+    return trimmedText;
+  }
+
+  if (existingText) {
+    return existingText;
+  }
+
+  return draftHref.trim();
+}
+
 function getAnchorTextNodes(anchor: HTMLAnchorElement) {
   const walker = document.createTreeWalker(anchor, NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];
