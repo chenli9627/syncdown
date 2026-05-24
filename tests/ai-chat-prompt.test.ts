@@ -54,5 +54,8 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   assert.match(prompt, /where a previous automatic document edit went/);
   assert.match(prompt, /summary must say what changed and where it was placed/);
   assert.match(prompt, /set_heading_level/);
+  assert.match(prompt, /set_text_marks/);
+  assert.match(prompt, /set_link/);
+  assert.match(prompt, /update_table_cell/);
   assert.match(prompt, /never return the full document body/);
 });

@@ -1,0 +1,96 @@
+import type { LocalAiDocumentBlock } from "@/features/editor/lib/ai-chat-document-edit-types";
+
+export function findTargetTextRange(
+  block: LocalAiDocumentBlock,
+  targetText: string | undefined,
+) {
+  return targetText ? findTextRangeInBlock(block, targetText) : null;
+}
+
+export function findTableCellContentRange(
+  block: LocalAiDocumentBlock,
+  row: number | undefined,
+  column: number | undefined,
+): { from: number; to: number } | null {
+  if (block.node.type.name !== "table" || !isPositiveInteger(row) || !isPositiveInteger(column)) {
+    return null;
+  }
+
+  let range: { from: number; to: number } | null = null;
+
+  block.node.forEach((rowNode, rowOffset, rowIndex) => {
+    if (range || rowNode.type.name !== "tableRow" || rowIndex + 1 !== row) {
+      return;
+    }
+
+    rowNode.forEach((cellNode, cellOffset, cellIndex) => {
+      if (
+        range ||
+        (cellNode.type.name !== "tableCell" && cellNode.type.name !== "tableHeader") ||
+        cellIndex + 1 !== column
+      ) {
+        return;
+      }
+
+      const cellPosition = block.pos + 2 + rowOffset + cellOffset;
+      range = {
+        from: cellPosition + 1,
+        to: cellPosition + cellNode.nodeSize - 1,
+      };
+    });
+  });
+
+  return range;
+}
+
+function findTextRangeInBlock(block: LocalAiDocumentBlock, targetText: string) {
+  const segments: Array<{
+    from: number;
+    textEnd: number;
+    textStart: number;
+    to: number;
+  }> = [];
+  let blockText = "";
+
+  block.node.descendants((node, pos) => {
+    if (!node.isText || !node.text) {
+      return;
+    }
+
+    const textStart = blockText.length;
+    blockText += node.text;
+    segments.push({
+      from: block.pos + 1 + pos,
+      textEnd: blockText.length,
+      textStart,
+      to: block.pos + 1 + pos + node.text.length,
+    });
+  });
+
+  const targetStart = blockText.indexOf(targetText);
+
+  if (targetStart < 0) {
+    return null;
+  }
+
+  const targetEnd = targetStart + targetText.length;
+  const startSegment = segments.find(
+    (segment) => segment.textStart <= targetStart && targetStart < segment.textEnd,
+  );
+  const endSegment = segments.find(
+    (segment) => segment.textStart < targetEnd && targetEnd <= segment.textEnd,
+  );
+
+  if (!startSegment || !endSegment) {
+    return null;
+  }
+
+  return {
+    from: startSegment.from + targetStart - startSegment.textStart,
+    to: endSegment.from + targetEnd - endSegment.textStart,
+  };
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) > 0;
+}

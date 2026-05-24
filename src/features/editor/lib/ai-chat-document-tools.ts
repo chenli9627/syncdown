@@ -1,47 +1,32 @@
 import type { Editor } from "@tiptap/react";
-import { DOMSerializer } from "@tiptap/pm/model";
-import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import type { AiChatDocumentBlock } from "@/features/app-state/types";
+import {
+  getLocalAiDocumentBlocks,
+  toAiDocumentBlock,
+} from "@/features/editor/lib/ai-chat-document-blocks";
+import { applyExecutableOperation } from "@/features/editor/lib/ai-chat-document-edit-operations";
+import {
+  canSetBlockType,
+  canSetHeadingLevel,
+  isTextMarkOperation,
+  normalizeBlockType,
+  normalizeHeadingLevel,
+  normalizeInlineMarks,
+} from "@/features/editor/lib/ai-chat-document-edit-schema";
+import type {
+  AiDocumentEditOperation,
+  AiDocumentEditPayload,
+  ExecutableOperation,
+  LocalAiDocumentBlock,
+} from "@/features/editor/lib/ai-chat-document-edit-types";
+import {
+  findTableCellContentRange,
+  findTargetTextRange,
+} from "@/features/editor/lib/ai-chat-document-edit-ranges";
 import { toAiInsertHtml } from "@/features/editor/lib/ai";
-import { editorHtmlToMarkdown } from "@/features/editor/lib/markdown";
-
-type LocalAiDocumentBlock = AiChatDocumentBlock & {
-  node: ProseMirrorNode;
-  nodeSize: number;
-  pos: number;
-};
-
-type AiDocumentEditOperation = {
-  blockId: string;
-  content?: string;
-  level?: HeadingLevel;
-  replacementText?: string;
-  targetText?: string;
-  type:
-    | "delete_block"
-    | "insert_after_block"
-    | "insert_before_block"
-    | "replace_block"
-    | "replace_text_in_block"
-    | "set_heading_level";
-};
-
-type AiDocumentEditPayload = {
-  operations?: AiDocumentEditOperation[];
-  summary?: string;
-};
-
-type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
 export function getAiDocumentBlocks(editor: Editor | null): AiChatDocumentBlock[] {
-  return getLocalAiDocumentBlocks(editor).map(({ html, id, level, markdown, text, type }) => ({
-    html,
-    id,
-    level,
-    markdown,
-    text,
-    type,
-  }));
+  return getLocalAiDocumentBlocks(editor).map(toAiDocumentBlock);
 }
 
 export function applyAiDocumentEditToolResponse(editor: Editor | null, responseText: string) {
@@ -66,32 +51,10 @@ export function applyAiDocumentEditToolResponse(editor: Editor | null, responseT
   operations.forEach((operation) => {
     const before = getEditorDocumentSnapshot(editor);
 
-    if (operation.type === "delete_block") {
-      editor.chain().focus().deleteRange(operation.range).run();
-    } else if (operation.type === "replace_text_in_block") {
-      const transaction = editor.state.tr.insertText(
-        operation.content,
-        operation.range.from,
-        operation.range.to,
-      );
-      editor.view.dispatch(transaction);
-      editor.commands.focus();
-    } else if (operation.type === "replace_block") {
-      editor.chain().focus().insertContentAt(operation.range, operation.content).run();
-    } else if (operation.type === "set_heading_level") {
-      const headingType = editor.state.schema.nodes.heading;
-
-      if (!headingType || !operation.level) {
-        return;
-      }
-
-      const transaction = editor.state.tr.setNodeMarkup(operation.position, headingType, {
-        level: operation.level,
-      });
-      editor.view.dispatch(transaction);
-      editor.commands.focus();
-    } else {
-      editor.chain().focus().insertContentAt(operation.position, operation.content).run();
+    try {
+      applyExecutableOperation(editor, operation);
+    } catch {
+      return;
     }
 
     if (getEditorDocumentSnapshot(editor) !== before) {
@@ -112,43 +75,6 @@ export function getAiDocumentEditToolSummary(responseText: string) {
   return payload.summary?.trim() || "Document edit operations generated.";
 }
 
-function getLocalAiDocumentBlocks(editor: Editor | null): LocalAiDocumentBlock[] {
-  if (!editor) {
-    return [];
-  }
-
-  const blocks: LocalAiDocumentBlock[] = [];
-
-  editor.state.doc.forEach((node, offset, index) => {
-    const text = getNodeText(node);
-    const html = getNodeHtml(editor, node).trim();
-    const markdown = html ? editorHtmlToMarkdown(html).trim() : "";
-
-    blocks.push({
-      html: hasRichMarkup(html) ? html : undefined,
-      id: `block_${index + 1}`,
-      level: typeof node.attrs.level === "number" ? node.attrs.level : undefined,
-      markdown: markdown && markdown !== text ? markdown : undefined,
-      node,
-      nodeSize: node.nodeSize,
-      pos: offset,
-      text,
-      type: node.type.name,
-    });
-  });
-
-  return blocks;
-}
-
-type ExecutableOperation = {
-  content: string;
-  index: number;
-  level?: HeadingLevel;
-  position: number;
-  range: { from: number; to: number };
-  type: AiDocumentEditOperation["type"];
-};
-
 function toExecutableOperation(
   operation: AiDocumentEditOperation,
   blocks: LocalAiDocumentBlock[],
@@ -161,45 +87,30 @@ function toExecutableOperation(
   }
 
   if (operation.type === "replace_text_in_block") {
-    const targetText = operation.targetText;
+    return toTextReplacementOperation(operation, index, block);
+  }
 
-    if (!targetText) {
-      return null;
-    }
+  if (isTextMarkOperation(operation.type)) {
+    return toTextMarkOperation(operation, index, block);
+  }
 
-    const range = findTextRangeInBlock(block, targetText);
-
-    if (!range) {
-      return null;
-    }
-
-    return {
-      content: operation.replacementText ?? "",
-      index,
-      position: range.from,
-      range,
-      type: operation.type,
-    };
+  if (operation.type === "set_link" || operation.type === "unset_link") {
+    return toLinkOperation(operation, index, block);
   }
 
   const range = { from: block.pos, to: block.pos + block.nodeSize };
   const position = operation.type === "insert_after_block" ? range.to : range.from;
 
+  if (operation.type === "set_block_type") {
+    return toSetBlockTypeOperation(operation, index, block, range, position);
+  }
+
   if (operation.type === "set_heading_level") {
-    const level = normalizeHeadingLevel(operation.level);
+    return toSetHeadingLevelOperation(operation, index, block, range, position);
+  }
 
-    if (!level || !canSetHeadingLevel(block)) {
-      return null;
-    }
-
-    return {
-      content: "",
-      index,
-      level,
-      position,
-      range,
-      type: operation.type,
-    };
+  if (operation.type === "update_table_cell") {
+    return toUpdateTableCellOperation(operation, index, block);
   }
 
   const content = operation.content?.trim() ? toAiInsertHtml(operation.content) : "";
@@ -212,6 +123,139 @@ function toExecutableOperation(
     content,
     index,
     position,
+    range,
+    type: operation.type,
+  };
+}
+
+function toTextReplacementOperation(
+  operation: AiDocumentEditOperation,
+  index: number,
+  block: LocalAiDocumentBlock,
+): ExecutableOperation | null {
+  const range = findTargetTextRange(block, operation.targetText);
+
+  if (!range) {
+    return null;
+  }
+
+  return {
+    content: operation.replacementText ?? "",
+    index,
+    position: range.from,
+    range,
+    type: operation.type,
+  };
+}
+
+function toTextMarkOperation(
+  operation: AiDocumentEditOperation,
+  index: number,
+  block: LocalAiDocumentBlock,
+): ExecutableOperation | null {
+  const range = findTargetTextRange(block, operation.targetText);
+  const marks = normalizeInlineMarks(operation.marks ?? operation.mark);
+
+  if (!range || !marks.length) {
+    return null;
+  }
+
+  return {
+    content: "",
+    index,
+    marks,
+    position: range.from,
+    range,
+    type: operation.type,
+  };
+}
+
+function toLinkOperation(
+  operation: AiDocumentEditOperation,
+  index: number,
+  block: LocalAiDocumentBlock,
+): ExecutableOperation | null {
+  const range = findTargetTextRange(block, operation.targetText);
+  const href = operation.href?.trim();
+
+  if (!range || (operation.type === "set_link" && !href)) {
+    return null;
+  }
+
+  return {
+    content: "",
+    href,
+    index,
+    position: range.from,
+    range,
+    type: operation.type,
+  };
+}
+
+function toSetBlockTypeOperation(
+  operation: AiDocumentEditOperation,
+  index: number,
+  block: LocalAiDocumentBlock,
+  range: { from: number; to: number },
+  position: number,
+): ExecutableOperation | null {
+  const blockType = normalizeBlockType(operation.blockType);
+  const level = blockType === "heading" ? normalizeHeadingLevel(operation.level) : undefined;
+
+  if (!blockType || (blockType === "heading" && !level) || !canSetBlockType(block)) {
+    return null;
+  }
+
+  return {
+    blockType,
+    content: block.text,
+    index,
+    level: level ?? undefined,
+    position,
+    range,
+    type: operation.type,
+  };
+}
+
+function toSetHeadingLevelOperation(
+  operation: AiDocumentEditOperation,
+  index: number,
+  block: LocalAiDocumentBlock,
+  range: { from: number; to: number },
+  position: number,
+): ExecutableOperation | null {
+  const level = normalizeHeadingLevel(operation.level);
+
+  if (!level || !canSetHeadingLevel(block)) {
+    return null;
+  }
+
+  return {
+    content: "",
+    index,
+    level,
+    position,
+    range,
+    type: operation.type,
+  };
+}
+
+function toUpdateTableCellOperation(
+  operation: AiDocumentEditOperation,
+  index: number,
+  block: LocalAiDocumentBlock,
+): ExecutableOperation | null {
+  const range = findTableCellContentRange(block, operation.row, operation.column);
+  const content = operation.content?.trim() ? toAiInsertHtml(operation.content) : "";
+
+  if (!range || !content) {
+    return null;
+  }
+
+  return {
+    content,
+    index,
+    position: range.from,
     range,
     type: operation.type,
   };
@@ -240,96 +284,6 @@ function extractJsonObject(responseText: string) {
   const end = candidate.lastIndexOf("}");
 
   return start >= 0 && end > start ? candidate.slice(start, end + 1) : null;
-}
-
-function getNodeText(node: { textContent: string; type: { name: string } }) {
-  const text = node.textContent.trim();
-
-  if (text) {
-    return text;
-  }
-
-  if (node.type.name === "horizontalRule") {
-    return "[horizontal rule]";
-  }
-
-  return "";
-}
-
-function getNodeHtml(editor: Editor, node: ProseMirrorNode) {
-  if (typeof document === "undefined" || typeof DOMParser === "undefined") {
-    return "";
-  }
-
-  const container = document.createElement("div");
-  const serializer = DOMSerializer.fromSchema(editor.schema);
-  container.append(serializer.serializeNode(node, { document }));
-
-  return container.innerHTML;
-}
-
-function findTextRangeInBlock(block: LocalAiDocumentBlock, targetText: string) {
-  const segments: Array<{
-    from: number;
-    textEnd: number;
-    textStart: number;
-    to: number;
-  }> = [];
-  let blockText = "";
-
-  block.node.descendants((node, pos) => {
-    if (!node.isText || !node.text) {
-      return;
-    }
-
-    const textStart = blockText.length;
-    blockText += node.text;
-    segments.push({
-      from: block.pos + 1 + pos,
-      textEnd: blockText.length,
-      textStart,
-      to: block.pos + 1 + pos + node.text.length,
-    });
-  });
-
-  const targetStart = blockText.indexOf(targetText);
-
-  if (targetStart < 0) {
-    return null;
-  }
-
-  const targetEnd = targetStart + targetText.length;
-  const startSegment = segments.find(
-    (segment) => segment.textStart <= targetStart && targetStart < segment.textEnd,
-  );
-  const endSegment = segments.find(
-    (segment) => segment.textStart < targetEnd && targetEnd <= segment.textEnd,
-  );
-
-  if (!startSegment || !endSegment) {
-    return null;
-  }
-
-  return {
-    from: startSegment.from + targetStart - startSegment.textStart,
-    to: endSegment.from + targetEnd - endSegment.textStart,
-  };
-}
-
-function normalizeHeadingLevel(level: unknown): HeadingLevel | null {
-  return level === 1 || level === 2 || level === 3 || level === 4 || level === 5 || level === 6
-    ? level
-    : null;
-}
-
-function canSetHeadingLevel(block: LocalAiDocumentBlock) {
-  return block.node.isTextblock && block.node.type.name !== "codeBlock";
-}
-
-function hasRichMarkup(html: string) {
-  return /<(?:a|blockquote|code|del|em|h[1-6]|li|ol|pre|s|strike|strong|table|ul)\b/i.test(
-    html,
-  );
 }
 
 function getEditorDocumentSnapshot(editor: Editor) {
