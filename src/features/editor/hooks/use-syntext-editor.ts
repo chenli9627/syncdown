@@ -26,6 +26,7 @@ import { syntextLowlight } from "@/features/editor/lib/code-highlighting";
 import { toEditorContent } from "@/features/editor/lib/content";
 import { insertImageFile } from "@/features/editor/lib/image";
 import { insertMarkdownPaste } from "@/features/editor/lib/markdown-paste";
+import { handleMarkdownAnchorClick } from "@/features/editor/lib/markdown-anchor-navigation";
 
 type SaveDocument = (
   documentId: string,
@@ -260,6 +261,11 @@ export function useSyntextEditor({
         }
 
         if (handleFootnoteLinkClick(link)) {
+          event.preventDefault();
+          return true;
+        }
+
+        if (handleMarkdownAnchorClick(link)) {
           event.preventDefault();
           return true;
         }
