@@ -203,6 +203,9 @@ function isHeadingLevelEditPrompt(compactPrompt: string, lowerPrompt: string) {
 
 function isSpecialFormatEditPrompt(compactPrompt: string, lowerPrompt: string) {
   return (
+    /(?:把|将).{0,80}(?:都|全部|所有|设为|设置为|改成|改为|变成|加上|添加|取消|去掉|移除|清除)?.{0,24}(?:粗体|加粗|斜体|删除线|中划线|行内代码|代码格式|链接|超链接)/i.test(
+      compactPrompt,
+    ) ||
     /(?:加|添加|设为|设置|改成|改为|变成|修改|移除|删除|去掉|取消|清除|更新|替换).{0,64}(?:粗体|加粗|斜体|删除线|中划线|行内代码|代码格式|链接|超链接|url|网址|表格单元格|单元格|第[一二三四五六七八九十\d]+行|第[一二三四五六七八九十\d]+列|段落格式|代码块)/i.test(
       compactPrompt,
     ) ||

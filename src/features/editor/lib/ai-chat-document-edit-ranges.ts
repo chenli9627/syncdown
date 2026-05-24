@@ -11,7 +11,14 @@ export function findTargetTextRange(
   block: LocalAiDocumentBlock,
   targetText: string | undefined,
 ) {
-  return targetText ? findTextRangeInBlock(block, targetText) : null;
+  return findTargetTextRanges(block, targetText)[0] ?? null;
+}
+
+export function findTargetTextRanges(
+  block: LocalAiDocumentBlock,
+  targetText: string | undefined,
+) {
+  return targetText ? findTextRangesInBlock(block, targetText) : [];
 }
 
 export function findTableCellContentRange(
@@ -145,7 +152,7 @@ function findDescendantRange(
   return range;
 }
 
-function findTextRangeInBlock(block: LocalAiDocumentBlock, targetText: string) {
+function findTextRangesInBlock(block: LocalAiDocumentBlock, targetText: string) {
   const segments: Array<{
     from: number;
     textEnd: number;
@@ -169,28 +176,29 @@ function findTextRangeInBlock(block: LocalAiDocumentBlock, targetText: string) {
     });
   });
 
-  const targetStart = blockText.indexOf(targetText);
+  const ranges: Array<{ from: number; to: number }> = [];
+  let targetStart = blockText.indexOf(targetText);
 
-  if (targetStart < 0) {
-    return null;
+  while (targetStart >= 0) {
+    const targetEnd = targetStart + targetText.length;
+    const startSegment = segments.find(
+      (segment) => segment.textStart <= targetStart && targetStart < segment.textEnd,
+    );
+    const endSegment = segments.find(
+      (segment) => segment.textStart < targetEnd && targetEnd <= segment.textEnd,
+    );
+
+    if (startSegment && endSegment) {
+      ranges.push({
+        from: startSegment.from + targetStart - startSegment.textStart,
+        to: endSegment.from + targetEnd - endSegment.textStart,
+      });
+    }
+
+    targetStart = blockText.indexOf(targetText, targetEnd);
   }
 
-  const targetEnd = targetStart + targetText.length;
-  const startSegment = segments.find(
-    (segment) => segment.textStart <= targetStart && targetStart < segment.textEnd,
-  );
-  const endSegment = segments.find(
-    (segment) => segment.textStart < targetEnd && targetEnd <= segment.textEnd,
-  );
-
-  if (!startSegment || !endSegment) {
-    return null;
-  }
-
-  return {
-    from: startSegment.from + targetStart - startSegment.textStart,
-    to: endSegment.from + targetEnd - endSegment.textStart,
-  };
+  return ranges;
 }
 
 function isPositiveInteger(value: unknown): value is number {

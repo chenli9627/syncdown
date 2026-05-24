@@ -111,6 +111,7 @@ test("infers block-edit action from targeted block edit requests", () => {
   assert.equal(inferAiChatDocumentAction("把标题层级调整为二级"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("Change the Background heading level to H3"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("把 Alpha 设为粗体"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把所有的北京都加粗"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("给官网两个字加上链接"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("把表格第二行第三列改成 Done"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("Make Alpha bold and update its link"), "edit_blocks");

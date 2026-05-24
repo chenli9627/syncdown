@@ -16,6 +16,7 @@ import { toSetListTypeOperation, toTaskItemCheckedOperation } from "@/features/e
 import {
   findTableCellContentRange,
   findTargetTextRange,
+  findTargetTextRanges,
 } from "@/features/editor/lib/ai-chat-document-edit-ranges";
 import { toAiInsertHtml } from "@/features/editor/lib/ai";
 
@@ -34,6 +35,10 @@ export function toExecutableOperations(
     return [];
   }
 
+  if (isTextMarkOperation(operation.type)) {
+    return toTextMarkOperations(operation, index, block);
+  }
+
   const executable = toExecutableOperation(operation, blocks, index, block);
   return executable ? [executable] : [];
 }
@@ -50,10 +55,6 @@ function toExecutableOperation(
 
   if (operation.type === "replace_text_in_block") {
     return toTextReplacementOperation(operation, index, block);
-  }
-
-  if (isTextMarkOperation(operation.type)) {
-    return toTextMarkOperation(operation, index, block);
   }
 
   if (operation.type === "set_link" || operation.type === "unset_link") {
@@ -162,45 +163,43 @@ function toReplaceAllTextOperations(
   const operations: ExecutableOperation[] = [];
 
   blocks.forEach((block, blockIndex) => {
-    const range = findTargetTextRange(block, targetText);
+    const ranges = findTargetTextRanges(block, targetText);
 
-    if (!range) {
-      return;
-    }
-
-    operations.push({
-      content: operation.replacementText ?? "",
-      index: index + blockIndex / 1000,
-      position: range.from,
-      range,
-      targetText,
-      type: "replace_all_text",
+    ranges.forEach((range, rangeIndex) => {
+      operations.push({
+        content: operation.replacementText ?? "",
+        index: index + blockIndex / 1000 + rangeIndex / 1000000,
+        position: range.from,
+        range,
+        targetText,
+        type: "replace_all_text",
+      });
     });
   });
 
   return operations;
 }
 
-function toTextMarkOperation(
+function toTextMarkOperations(
   operation: AiDocumentEditOperation,
   index: number,
   block: LocalAiDocumentBlock,
-): ExecutableOperation | null {
-  const range = findTargetTextRange(block, operation.targetText);
+): ExecutableOperation[] {
+  const ranges = findTargetTextRanges(block, operation.targetText);
   const marks = normalizeInlineMarks(operation.marks ?? operation.mark);
 
-  if (!range || !marks.length) {
-    return null;
+  if (!ranges.length || !marks.length) {
+    return [];
   }
 
-  return {
+  return ranges.map((range, rangeIndex) => ({
     content: "",
-    index,
+    index: index + rangeIndex / 1000000,
     marks,
     position: range.from,
     range,
     type: operation.type,
-  };
+  }));
 }
 
 function toLinkOperation(
