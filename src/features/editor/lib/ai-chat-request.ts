@@ -26,6 +26,7 @@ export function getAiChatRequestBody(
   documentAction: AiChatDocumentAction | null = null,
   threadId: string | null = null,
   applicationStatusNotices: string[] = [],
+  resolvedPrompt?: string,
 ) {
   return {
     applicationStatusNotices: applicationStatusNotices.slice(-8),
@@ -37,6 +38,7 @@ export function getAiChatRequestBody(
     selection: getCurrentSelection(editor),
     threadId,
     userId,
+    resolvedPrompt,
   };
 }
 

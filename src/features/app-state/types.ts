@@ -26,6 +26,7 @@ export type AiChatDocumentBlock = {
 };
 
 export type AiChatMessageMetadata = {
+  clarificationKind?: string;
   createdAt: string;
   documentAction?: AiChatDocumentAction | null;
   modelKey?: AiChatModelKey;

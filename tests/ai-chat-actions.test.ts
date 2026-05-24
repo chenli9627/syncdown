@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { inferAiChatDocumentAction } from "../src/features/editor/lib/ai-chat-actions";
+import {
+  inferAiChatClarification,
+  inferAiChatDocumentAction,
+  isAiChatClarificationCancelPrompt,
+  resolveAiChatClarifiedPrompt,
+} from "../src/features/editor/lib/ai-chat-actions";
 
 test("infers insert-end action from Chinese document placement requests", () => {
   assert.equal(
@@ -176,4 +181,60 @@ test("does not infer document actions from negative edit instructions", () => {
 
 test("does not allow whole-document replacement actions", () => {
   assert.equal(inferAiChatDocumentAction("Update the current document in a formal tone"), "edit_blocks");
+});
+
+test("asks for clarification when insertion source is missing", () => {
+  assert.deepEqual(inferAiChatClarification("整理为列表，放到文档中"), {
+    kind: "missing_insert_source",
+    originalPrompt: "整理为列表，放到文档中",
+  });
+  assert.deepEqual(inferAiChatClarification("把景点表格添加到文档中"), {
+    kind: "missing_insert_source",
+    originalPrompt: "把景点表格添加到文档中",
+  });
+});
+
+test("does not ask for clarification when insertion source is available", () => {
+  assert.equal(
+    inferAiChatClarification("整理为列表，放到文档中", {
+      hasRecentAssistantAnswer: true,
+    }),
+    null,
+  );
+  assert.equal(
+    inferAiChatClarification("看一下今天的微博热搜榜前十，做成表格放到文档中"),
+    null,
+  );
+});
+
+test("asks for clarification when document edit target is ambiguous", () => {
+  assert.deepEqual(inferAiChatClarification("删掉这个东西"), {
+    kind: "ambiguous_document_target",
+    originalPrompt: "删掉这个东西",
+  });
+  assert.deepEqual(inferAiChatClarification("Delete it"), {
+    kind: "ambiguous_document_target",
+    originalPrompt: "Delete it",
+  });
+});
+
+test("does not ask for clarification when ambiguous target can use selection or recent edit", () => {
+  assert.equal(inferAiChatClarification("删掉这个东西", { hasSelection: true }), null);
+  assert.equal(
+    inferAiChatClarification("删掉这个东西", { hasRecentDocumentAction: true }),
+    null,
+  );
+  assert.equal(inferAiChatClarification("把所有的北京都加粗"), null);
+});
+
+test("resolves and cancels clarification follow-ups", () => {
+  const clarification = inferAiChatClarification("删掉这个东西");
+
+  assert.ok(clarification);
+  assert.equal(
+    resolveAiChatClarifiedPrompt(clarification, "删除当前光标所在块"),
+    "删掉这个东西\n\n用户补充：删除当前光标所在块",
+  );
+  assert.equal(isAiChatClarificationCancelPrompt("取消"), true);
+  assert.equal(isAiChatClarificationCancelPrompt("继续"), false);
 });

@@ -7,6 +7,15 @@ import { toAiInlineInsertHtml, toAiInsertHtml } from "@/features/editor/lib/ai";
 import { sanitizeAiAssistantText } from "@/features/editor/lib/ai-chat-output-guard";
 
 export { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-action-inference";
+export {
+  inferAiChatClarification,
+  isAiChatClarificationCancelPrompt,
+  resolveAiChatClarifiedPrompt,
+} from "@/features/editor/lib/ai-chat-intent-clarification";
+export type {
+  AiChatClarification,
+  AiChatClarificationKind,
+} from "@/features/editor/lib/ai-chat-intent-clarification";
 
 export function getAiChatMessageText(
   message: AiChatMessage,

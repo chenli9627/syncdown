@@ -45,7 +45,7 @@ function verifyAiDocumentEditOperation(
   const afterBlock = getBlockAtOriginalIndex(operation.blockId, afterBlocks);
 
   if (operation.type === "delete_block") {
-    return Boolean(beforeBlock) && !hasSameBlockAtOriginalIndex(beforeBlock, afterBlock);
+    return beforeBlock ? !hasSameBlockAtOriginalIndex(beforeBlock, afterBlock) : false;
   }
 
   if (operation.type === "replace_block") {
@@ -57,9 +57,11 @@ function verifyAiDocumentEditOperation(
   }
 
   if (operation.type === "replace_text_in_block") {
+    const targetText = operation.targetText;
+
     return (
-      Boolean(operation.targetText) &&
-      !blockContainsText(afterBlock, operation.targetText) &&
+      Boolean(targetText) &&
+      !blockContainsText(afterBlock, targetText ?? "") &&
       blockContainsText(afterBlock, operation.replacementText ?? "")
     );
   }
@@ -67,10 +69,11 @@ function verifyAiDocumentEditOperation(
   if (operation.type === "replace_all_text") {
     const documentText = afterBlocks.map((block) => block.text).join("\n");
     const replacementText = operation.replacementText ?? "";
+    const targetText = operation.targetText;
 
     return (
-      Boolean(operation.targetText) &&
-      !documentText.includes(operation.targetText ?? "") &&
+      Boolean(targetText) &&
+      !documentText.includes(targetText ?? "") &&
       (!replacementText || documentText.includes(replacementText))
     );
   }
@@ -80,10 +83,12 @@ function verifyAiDocumentEditOperation(
   }
 
   if (operation.type === "set_block_type") {
+    if (!operation.blockType || !afterBlock || afterBlock.type !== operation.blockType) {
+      return false;
+    }
+
     return (
-      Boolean(operation.blockType) &&
-      afterBlock?.type === operation.blockType &&
-      (operation.blockType !== "heading" || afterBlock.level === operation.level)
+      operation.blockType !== "heading" || afterBlock.level === operation.level
     );
   }
 

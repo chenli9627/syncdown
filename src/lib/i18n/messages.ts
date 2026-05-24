@@ -222,6 +222,10 @@ export const messages = {
     aiNotChangedPrefix: "未修改文档：",
     aiApplyFailed: "未修改文档：没有找到可应用的位置或返回内容无法应用。",
     aiApplyVerificationFailed: "未修改文档：修改后校验未通过。",
+    aiClarifyDocumentTarget:
+      "我不确定你要修改文档里的哪一处。请说明目标文字、当前光标所在块、选区，或具体标题/段落。",
+    aiClarifyInsertSource:
+      "我不确定要把哪段内容放进文档。请说明来源内容，以及要放到末尾、光标处，还是某个标题下面。",
     aiUntitledChat: "新会话",
     aiCursor: "光标",
     aiEnd: "末尾",
@@ -550,6 +554,10 @@ export const messages = {
     aiNotChangedPrefix: "Document was not changed: ",
     aiApplyFailed: "Document was not changed: no applicable location was found or the response could not be applied.",
     aiApplyVerificationFailed: "Document was not changed: the post-edit verification failed.",
+    aiClarifyDocumentTarget:
+      "I am not sure which part of the document to edit. Please name the target text, current cursor block, selection, or a specific heading/paragraph.",
+    aiClarifyInsertSource:
+      "I am not sure what content to put into the document. Please name the source and whether it should go at the end, cursor, or under a heading.",
     aiUntitledChat: "New chat",
     aiCursor: "Cursor",
     aiEnd: "End",

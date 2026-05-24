@@ -44,6 +44,7 @@ type ChatBody = {
   documentTitle?: string;
   messages?: AiChatMessage[];
   modelKey?: AiChatModelKey;
+  resolvedPrompt?: string;
   selection?: AiChatSelection | null;
   threadId?: string | null;
   userId?: string;
@@ -122,6 +123,12 @@ export async function POST(request: Request, context: RouteContext) {
     threadId: threadId ?? undefined,
   });
   const messages = [...requestMessages.slice(0, -1), incomingMessage];
+  const modelMessages = body.resolvedPrompt?.trim()
+    ? [
+        ...messages.slice(0, -1),
+        replaceMessageText(incomingMessage, body.resolvedPrompt.trim()),
+      ]
+    : messages;
   const saveUserMessageResult = saveAiChatThreadMessages(
     state,
     body.userId,
@@ -148,7 +155,7 @@ export async function POST(request: Request, context: RouteContext) {
   );
 
   const result = streamText({
-    messages: await convertToModelMessages(messages),
+    messages: await convertToModelMessages(modelMessages),
     model: createAiChatModel(modelConfig),
     prepareStep: ({ stepNumber }) => {
       if (stepNumber < 5) {
@@ -280,5 +287,17 @@ function withChatMetadata(
       ...metadata,
       createdAt: message.metadata?.createdAt ?? new Date().toISOString(),
     },
+  };
+}
+
+function replaceMessageText(message: AiChatMessage, text: string): AiChatMessage {
+  return {
+    ...message,
+    parts: [
+      {
+        text,
+        type: "text",
+      },
+    ],
   };
 }

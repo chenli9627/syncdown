@@ -36,7 +36,14 @@ import {
   useAiChatAutoDocumentAction,
 } from "@/features/editor/hooks/use-ai-chat-auto-document-action";
 import { useAiChatThreads } from "@/features/editor/hooks/use-ai-chat-threads";
-import { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-actions";
+import {
+  type AiChatClarification,
+  type AiChatClarificationKind,
+  inferAiChatClarification,
+  inferAiChatDocumentAction,
+  isAiChatClarificationCancelPrompt,
+  resolveAiChatClarifiedPrompt,
+} from "@/features/editor/lib/ai-chat-actions";
 import {
   AI_CHAT_MODEL_STORAGE_KEY,
   getAiChatRequestBody,
@@ -79,6 +86,8 @@ export function EditorAiChatPanel({
   const [appliedNotices, setAppliedNotices] = useState<Record<string, string>>({});
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredAiChatModelKey());
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
+  const [pendingClarification, setPendingClarification] =
+    useState<AiChatClarification | null>(null);
   const [visibleMessageCount, setVisibleMessageCount] = useState(initialVisibleMessageCount);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const transport = useMemo(
@@ -156,12 +165,55 @@ export function EditorAiChatPanel({
       return;
     }
 
-    const documentAction = inferAiChatDocumentAction(trimmed, {
-      hasSelection: hasEditorSelection(editor),
-      hasRecentDocumentAction: hasRecentAiDocumentAction(messages),
+    const selected = hasEditorSelection(editor);
+    const hasRecentDocumentAction = hasRecentAiDocumentAction(messages);
+    const resolvedPrompt =
+      pendingClarification && !isAiChatClarificationCancelPrompt(trimmed)
+        ? resolveAiChatClarifiedPrompt(pendingClarification, trimmed)
+        : trimmed;
+
+    if (pendingClarification && isAiChatClarificationCancelPrompt(trimmed)) {
+      setPendingClarification(null);
+      setInput("");
+      focusPromptInput(inputRef);
+      return;
+    }
+
+    if (!pendingClarification) {
+      const clarification = inferAiChatClarification(trimmed, {
+        hasRecentAssistantAnswer: hasRecentSubstantiveAssistantAnswer(messages),
+        hasRecentDocumentAction,
+        hasSelection: selected,
+      });
+
+      if (clarification) {
+        const threadId = createThreadForSend();
+        const nextMessages = [
+          ...messages,
+          createLocalAiChatTextMessage("user", trimmed, threadId),
+          createLocalAiChatTextMessage(
+            "assistant",
+            getClarificationQuestion(clarification.kind, t),
+            threadId,
+            clarification.kind,
+          ),
+        ];
+
+        setPendingClarification(clarification);
+        setMessages(nextMessages);
+        setInput("");
+        focusPromptInput(inputRef);
+        return;
+      }
+    }
+
+    const documentAction = inferAiChatDocumentAction(resolvedPrompt, {
+      hasSelection: selected,
+      hasRecentDocumentAction,
     });
     const threadId = createThreadForSend();
 
+    setPendingClarification(null);
     setPendingAction(documentAction, messages.length);
     setInput("");
     focusPromptInput(inputRef);
@@ -176,6 +228,7 @@ export function EditorAiChatPanel({
           documentAction,
           threadId,
           getOrderedApplicationStatusNotices(messages, appliedNotices),
+          resolvedPrompt === trimmed ? undefined : resolvedPrompt,
         ),
       },
     );
@@ -262,6 +315,7 @@ export function EditorAiChatPanel({
         onNewThread={() => {
           setAppliedNotices({});
           setEditingQuestion(null);
+          setPendingClarification(null);
           setVisibleMessageCount(initialVisibleMessageCount);
           handleNewThread();
         }}
@@ -269,6 +323,7 @@ export function EditorAiChatPanel({
         onSelectThread={(threadId) => {
           setAppliedNotices({});
           setEditingQuestion(null);
+          setPendingClarification(null);
           setVisibleMessageCount(initialVisibleMessageCount);
           handleSelectThread(threadId);
         }}
@@ -376,6 +431,59 @@ function hasRecentAiDocumentAction(messages: AiChatMessage[]) {
   }
 
   return false;
+}
+
+function hasRecentSubstantiveAssistantAnswer(messages: AiChatMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+
+    if (message?.role !== "assistant") {
+      continue;
+    }
+
+    if (message.metadata?.documentAction || message.metadata?.clarificationKind) {
+      continue;
+    }
+
+    return getPlainTextFromAiChatMessage(message).trim().length > 0;
+  }
+
+  return false;
+}
+
+function createLocalAiChatTextMessage(
+  role: "assistant" | "user",
+  text: string,
+  threadId: string,
+  clarificationKind?: AiChatClarificationKind,
+): AiChatMessage {
+  return {
+    id: `ai_local_${crypto.randomUUID()}`,
+    metadata: {
+      clarificationKind,
+      createdAt: new Date().toISOString(),
+      threadId,
+    },
+    parts: [{ text, type: "text" }],
+    role,
+  };
+}
+
+function getPlainTextFromAiChatMessage(message: AiChatMessage) {
+  return message.parts
+    .map((part) => (part.type === "text" ? part.text : ""))
+    .join("");
+}
+
+function getClarificationQuestion(
+  kind: AiChatClarificationKind,
+  t: (key: MessageKey) => string,
+) {
+  if (kind === "missing_insert_source") {
+    return t("aiClarifyInsertSource");
+  }
+
+  return t("aiClarifyDocumentTarget");
 }
 
 function focusPromptInput(inputRef: RefObject<HTMLTextAreaElement | null>) {
