@@ -132,16 +132,28 @@ function isSpecificPlacementPrompt(compactPrompt: string, lowerPrompt: string) {
 
 function isTargetedBlockEditPrompt(compactPrompt: string, lowerPrompt: string) {
   return (
-    /(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新).{0,48}(?:包含|含有|这段|这一段|该段|段落|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|删除线|链接|代码块|引用|五级标题|六级标题)/.test(
+    /(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新).{0,48}(?:包含|含有|这段|这一段|该段|段落|表格|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|删除线|链接|代码块|引用|五级标题|六级标题)/.test(
       compactPrompt,
     ) ||
-    /(?:包含|含有|这段|这一段|该段|段落|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|删除线|链接|代码块|引用|五级标题|六级标题).{0,48}(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新)/.test(
+    /(?:包含|含有|这段|这一段|该段|段落|表格|块|小节|章节|部分|第[一二三四五六七八九十\d]+段|背景|方案|风险|结论|摘要|列表|列表项|列表项目|粗体|斜体|删除线|链接|代码块|引用|五级标题|六级标题).{0,48}(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新)/.test(
       compactPrompt,
     ) ||
-    /\b(?:delete|remove|replace|change|update|edit|rewrite)\b[\s\S]{0,160}\b(?:containing|contains|paragraph|block|heading|section|part|background|plan|risk|conclusion|summary)\b/.test(
+    /(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新).{0,48}(?:原文|已有|现有|原有|当前|这个|这张|该).{0,24}(?:段落|表格|列表|清单|小节|章节|标题|部分)/.test(
+      compactPrompt,
+    ) ||
+    /(?:原文|已有|现有|原有|当前|这个|这张|该).{0,24}(?:段落|表格|列表|清单|小节|章节|标题|部分).{0,48}(?:删除|移除|删掉|去掉|替换|修改|改写|改成|变成|更新)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:delete|remove|replace|change|update|edit|rewrite)\b[\s\S]{0,160}\b(?:containing|contains|paragraph|table|block|heading|section|part|background|plan|risk|conclusion|summary)\b/.test(
       lowerPrompt,
     ) ||
-    /\b(?:containing|contains|paragraph|block|heading|section|part|background|plan|risk|conclusion|summary)\b[\s\S]{0,160}\b(?:delete|remove|replace|change|update|edit|rewrite)\b/.test(
+    /\b(?:containing|contains|paragraph|table|block|heading|section|part|background|plan|risk|conclusion|summary)\b[\s\S]{0,160}\b(?:delete|remove|replace|change|update|edit|rewrite)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:delete|remove|replace|change|update|edit|rewrite)\b[\s\S]{0,160}\b(?:original|existing|current|this|that)\b[\s\S]{0,80}\b(?:paragraph|table|block|heading|section|list)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:original|existing|current|this|that)\b[\s\S]{0,80}\b(?:paragraph|table|block|heading|section|list)\b[\s\S]{0,160}\b(?:delete|remove|replace|change|update|edit|rewrite)\b/.test(
       lowerPrompt,
     )
   );
@@ -194,21 +206,22 @@ export function replaceSelectionWithAiResponse(
   text: string,
 ) {
   if (!editor) {
-    return;
+    return false;
   }
 
   const currentSelection = editor.state.selection;
 
   if (!currentSelection.empty) {
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(
-        { from: currentSelection.from, to: currentSelection.to },
-        getAiInsertContentForRange(editor, currentSelection.from, currentSelection.to, text),
-      )
-      .run();
-    return;
+    return runEditorDocumentMutation(editor, () =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(
+          { from: currentSelection.from, to: currentSelection.to },
+          getAiInsertContentForRange(editor, currentSelection.from, currentSelection.to, text),
+        )
+        .run(),
+    );
   }
 
   const originalSelection = message.metadata?.selection;
@@ -217,71 +230,85 @@ export function replaceSelectionWithAiResponse(
     const from = Math.max(0, Math.min(originalSelection.from, editor.state.doc.content.size));
     const to = Math.max(from, Math.min(originalSelection.to, editor.state.doc.content.size));
 
-    editor
-      .chain()
-      .focus()
-      .insertContentAt({ from, to }, getAiInsertContentForRange(editor, from, to, text))
-      .run();
+    return runEditorDocumentMutation(editor, () =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt({ from, to }, getAiInsertContentForRange(editor, from, to, text))
+        .run(),
+    );
   }
+
+  return false;
 }
 
 export function insertAiResponseAtCursor(editor: Editor | null, text: string) {
   if (!editor) {
-    return;
+    return false;
   }
 
   const { from, to } = editor.state.selection;
 
-  editor
-    .chain()
-    .focus()
-    .insertContent(getAiInsertContentForRange(editor, from, to, text))
-    .run();
+  return runEditorDocumentMutation(editor, () =>
+    editor
+      .chain()
+      .focus()
+      .insertContent(getAiInsertContentForRange(editor, from, to, text))
+      .run(),
+  );
 }
 
 export function insertAiResponseAtEnd(editor: Editor | null, text: string) {
   if (!editor) {
-    return;
+    return false;
   }
 
   const inlineContent = toAiInlineInsertHtml(text);
   const lastTextblockEnd = getLastTextblockEndPosition(editor);
 
   if (lastTextblockEnd != null && !isBlockInsertContent(inlineContent)) {
+    return runEditorDocumentMutation(editor, () =>
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(lastTextblockEnd, inlineContent)
+        .run(),
+    );
+  }
+
+  return runEditorDocumentMutation(editor, () =>
     editor
       .chain()
       .focus()
-      .insertContentAt(lastTextblockEnd, inlineContent)
-      .run();
-    return;
-  }
-
-  editor
-    .chain()
-    .focus()
-    .insertContentAt(editor.state.doc.content.size, toAiInsertHtml(text))
-    .run();
+      .insertContentAt(editor.state.doc.content.size, toAiInsertHtml(text))
+      .run(),
+  );
 }
 
 export function appendAiResponseAsDocumentEndBlocks(editor: Editor | null, text: string) {
   if (!editor) {
-    return;
+    return false;
   }
 
-  editor
-    .chain()
-    .focus()
-    .insertContentAt(editor.state.doc.content.size, toAiInsertHtml(text))
-    .run();
+  return runEditorDocumentMutation(editor, () =>
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(editor.state.doc.content.size, toAiInsertHtml(text))
+      .run(),
+  );
 }
 
 export function replaceDocumentWithAiResponse(editor: Editor | null, text: string) {
   if (!editor) {
-    return;
+    return false;
   }
 
-  editor.commands.setContent(toAiInsertHtml(text));
-  editor.commands.focus("end");
+  return runEditorDocumentMutation(editor, () => {
+    const didSetContent = editor.commands.setContent(toAiInsertHtml(text));
+    editor.commands.focus("end");
+    return didSetContent;
+  });
 }
 
 function getAiInsertContentForRange(
@@ -319,4 +346,16 @@ function getLastTextblockEndPosition(editor: Editor) {
 
 function isBlockInsertContent(content: string) {
   return /^<(?:blockquote|h[1-6]|hr|img|ol|p|pre|table|ul)(?:\s|>)/i.test(content.trim());
+}
+
+function runEditorDocumentMutation(editor: Editor, mutation: () => boolean) {
+  const before = getEditorDocumentSnapshot(editor);
+  const commandApplied = mutation();
+  const after = getEditorDocumentSnapshot(editor);
+
+  return commandApplied && before !== after;
+}
+
+function getEditorDocumentSnapshot(editor: Editor) {
+  return JSON.stringify(editor.state.doc.toJSON());
 }

@@ -57,13 +57,14 @@ export function applyAiDocumentEditToolResponse(editor: Editor | null, responseT
     .filter((operation): operation is ExecutableOperation => Boolean(operation))
     .sort((a, b) => b.position - a.position || b.index - a.index);
 
+  let appliedCount = 0;
+
   operations.forEach((operation) => {
+    const before = getEditorDocumentSnapshot(editor);
+
     if (operation.type === "delete_block") {
       editor.chain().focus().deleteRange(operation.range).run();
-      return;
-    }
-
-    if (operation.type === "replace_text_in_block") {
+    } else if (operation.type === "replace_text_in_block") {
       const transaction = editor.state.tr.insertText(
         operation.content,
         operation.range.from,
@@ -71,18 +72,18 @@ export function applyAiDocumentEditToolResponse(editor: Editor | null, responseT
       );
       editor.view.dispatch(transaction);
       editor.commands.focus();
-      return;
-    }
-
-    if (operation.type === "replace_block") {
+    } else if (operation.type === "replace_block") {
       editor.chain().focus().insertContentAt(operation.range, operation.content).run();
-      return;
+    } else {
+      editor.chain().focus().insertContentAt(operation.position, operation.content).run();
     }
 
-    editor.chain().focus().insertContentAt(operation.position, operation.content).run();
+    if (getEditorDocumentSnapshot(editor) !== before) {
+      appliedCount += 1;
+    }
   });
 
-  return operations.length;
+  return appliedCount;
 }
 
 export function getAiDocumentEditToolSummary(responseText: string) {
@@ -284,4 +285,8 @@ function hasRichMarkup(html: string) {
   return /<(?:a|blockquote|code|del|em|h[1-6]|li|ol|pre|s|strike|strong|table|ul)\b/i.test(
     html,
   );
+}
+
+function getEditorDocumentSnapshot(editor: Editor) {
+  return JSON.stringify(editor.state.doc.toJSON());
 }

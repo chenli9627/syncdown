@@ -112,12 +112,23 @@ export function EditorAiChatPanel({
     },
     [t],
   );
+  const handleDocumentActionApplyFailed = useCallback(
+    (messageId: string) => {
+      setAppliedNotices((current) => ({
+        ...current,
+        [messageId]: t("aiApplyFailed"),
+      }));
+      focusPromptInput(inputRef);
+    },
+    [t],
+  );
   const { setPendingAction } = useAiChatAutoDocumentAction({
     busy,
     editor,
     error,
     messages,
     onApplied: handleDocumentActionApplied,
+    onApplyFailed: handleDocumentActionApplyFailed,
   });
   const {
     activeThreadId,

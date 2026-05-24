@@ -29,6 +29,7 @@ type UseAiChatAutoDocumentActionArgs = {
   error: Error | undefined;
   messages: AiChatMessage[];
   onApplied?: (action: AiChatDocumentAction, messageId: string, summary?: string) => void;
+  onApplyFailed?: (messageId: string) => void;
 };
 
 export function useAiChatAutoDocumentAction({
@@ -37,6 +38,7 @@ export function useAiChatAutoDocumentAction({
   error,
   messages,
   onApplied,
+  onApplyFailed,
 }: UseAiChatAutoDocumentActionArgs) {
   const pendingActionRef = useRef<PendingDocumentAction | null>(null);
 
@@ -78,33 +80,51 @@ export function useAiChatAutoDocumentAction({
           lastMessage.id,
           getAiDocumentEditToolSummary(responseText) ?? undefined,
         );
+      } else {
+        onApplyFailed?.(lastMessage.id);
       }
       return;
     }
 
     if (documentAction.action === "insert_end") {
-      appendAiResponseAsDocumentEndBlocks(editor, responseText);
-      onApplied?.(documentAction.action, lastMessage.id);
+      const didApply = appendAiResponseAsDocumentEndBlocks(editor, responseText);
+      if (didApply) {
+        onApplied?.(documentAction.action, lastMessage.id);
+      } else {
+        onApplyFailed?.(lastMessage.id);
+      }
       return;
     }
 
     if (documentAction.action === "insert_cursor") {
-      insertAiResponseAtCursor(editor, responseText);
-      onApplied?.(documentAction.action, lastMessage.id);
+      const didApply = insertAiResponseAtCursor(editor, responseText);
+      if (didApply) {
+        onApplied?.(documentAction.action, lastMessage.id);
+      } else {
+        onApplyFailed?.(lastMessage.id);
+      }
       return;
     }
 
     if (documentAction.action === "replace_document") {
-      replaceDocumentWithAiResponse(editor, responseText);
-      onApplied?.(documentAction.action, lastMessage.id);
+      const didApply = replaceDocumentWithAiResponse(editor, responseText);
+      if (didApply) {
+        onApplied?.(documentAction.action, lastMessage.id);
+      } else {
+        onApplyFailed?.(lastMessage.id);
+      }
       return;
     }
 
     if (documentAction.action === "replace_selection") {
-      replaceSelectionWithAiResponse(editor, lastMessage, responseText);
-      onApplied?.(documentAction.action, lastMessage.id);
+      const didApply = replaceSelectionWithAiResponse(editor, lastMessage, responseText);
+      if (didApply) {
+        onApplied?.(documentAction.action, lastMessage.id);
+      } else {
+        onApplyFailed?.(lastMessage.id);
+      }
     }
-  }, [busy, editor, messages, onApplied]);
+  }, [busy, editor, messages, onApplied, onApplyFailed]);
 
   useEffect(() => {
     if (error) {

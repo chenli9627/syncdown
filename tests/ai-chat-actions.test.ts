@@ -81,6 +81,18 @@ test("infers block-edit action from targeted block edit requests", () => {
     inferAiChatDocumentAction("把链接里的 Alpha 改成 Alpha-1，保留链接。"),
     "edit_blocks",
   );
+  assert.equal(
+    inferAiChatDocumentAction("把原文里的表格改成三列表格，保留原来的数据。"),
+    "edit_blocks",
+  );
+  assert.equal(
+    inferAiChatDocumentAction("修改当前段落，语气更正式。"),
+    "edit_blocks",
+  );
+  assert.equal(
+    inferAiChatDocumentAction("Update the original table to include sources"),
+    "edit_blocks",
+  );
   assert.equal(inferAiChatDocumentAction("Delete the paragraph containing Gamma"), "edit_blocks");
 });
 
@@ -94,4 +106,8 @@ test("does not infer document actions from negative edit instructions", () => {
   assert.equal(inferAiChatDocumentAction("只回答当前文档包含哪些部分，不要修改文档。"), null);
   assert.equal(inferAiChatDocumentAction("总结一下当前内容，不改动文档"), null);
   assert.equal(inferAiChatDocumentAction("Only answer what sections exist. Do not edit the document."), null);
+});
+
+test("keeps whole-document edits as replace-document actions", () => {
+  assert.equal(inferAiChatDocumentAction("Update the current document in a formal tone"), "replace_document");
 });
