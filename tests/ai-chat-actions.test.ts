@@ -121,6 +121,9 @@ test("infers block-edit action from targeted block edit requests", () => {
   assert.equal(inferAiChatDocumentAction("勾选包含发布的任务项"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("给表格新增一列"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("Delete the paragraph containing Gamma"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("给文档添加小标题"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("把文档加上小标题"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("Add subheadings to this document"), "edit_blocks");
 });
 
 test("does not infer document actions for ordinary chat prompts", () => {

@@ -27,6 +27,7 @@ export function inferAiChatDocumentAction(
     isHeadingLevelEditPrompt(compactPrompt, lowerPrompt) ||
     isSpecialFormatEditPrompt(compactPrompt, lowerPrompt) ||
     isDocumentStructureEditPrompt(compactPrompt, lowerPrompt) ||
+    isSectionHeadingEditPrompt(compactPrompt, lowerPrompt) ||
     isSpecificPlacementPrompt(compactPrompt, lowerPrompt) ||
     isTargetedBlockEditPrompt(compactPrompt, lowerPrompt) ||
     isImplicitDocumentMutationPrompt(compactPrompt, lowerPrompt)
@@ -233,6 +234,23 @@ function isDocumentStructureEditPrompt(compactPrompt: string, lowerPrompt: strin
       lowerPrompt,
     ) ||
     /\b(?:block|paragraph|heading|list|task|table|row|column|header row|document|content)\b[\s\S]{0,180}\b(?:move|copy|duplicate|replace all|replace every|check|uncheck|toggle|convert|turn|insert|add|delete|remove)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isSectionHeadingEditPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:添加|新增|加入|加上|补充|生成|插入|加|补).{0,48}(?:小标题|子标题|章节标题|分段标题|段落标题|sectionheading|subheading)/i.test(
+      compactPrompt,
+    ) ||
+    /(?:小标题|子标题|章节标题|分段标题|段落标题|sectionheading|subheading).{0,48}(?:添加|新增|加入|加上|补充|生成|插入|加|补)/i.test(
+      compactPrompt,
+    ) ||
+    /\b(?:add|insert|create|generate)\b[\s\S]{0,160}\b(?:subheadings?|section headings?|paragraph headings?)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:subheadings?|section headings?|paragraph headings?)\b[\s\S]{0,160}\b(?:add|insert|create|generate)\b/.test(
       lowerPrompt,
     )
   );

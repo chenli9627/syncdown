@@ -92,6 +92,7 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "For list conversion, use set_list_type with listType bulletList, orderedList, or taskList.",
       "For task checkbox changes, use set_task_item_checked with exact targetText and checked true or false.",
       "For moving or copying blocks, use move_block or copy_block with targetBlockId and placement before or after.",
+      "For adding subheadings or section headings to an existing document, use insert_before_block or insert_after_block with heading Markdown such as ## Heading. Do not return the full rewritten document.",
       "For bold, italic, strikethrough, or inline code changes, use set_text_marks or unset_text_marks with exact targetText and marks.",
       "For all/every occurrences of a text mark or text replacement request, include one operation for each matching block. One set_text_marks, unset_text_marks, or replace_all_text operation applies to every occurrence of targetText inside its target block.",
       "For link changes, use set_link with exact targetText and href, or unset_link with exact targetText.",

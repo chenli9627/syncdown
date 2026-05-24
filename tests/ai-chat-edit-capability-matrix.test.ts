@@ -21,6 +21,9 @@ const editBlockPrompts = [
   ["table column", "给表格新增一列"],
   ["move block", "把风险表格移动到方案下面"],
   ["insert near heading", "在背景下面插入一个摘要"],
+  ["add subheadings", "给文档添加小标题"],
+  ["add subheadings with compact wording", "把文档加上小标题"],
+  ["add section headings", "Add section headings to this document"],
 ] as const;
 
 test("AI chat routes supported current-document edits to block operations", () => {
