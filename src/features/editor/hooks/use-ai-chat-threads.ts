@@ -4,8 +4,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  type Dispatch,
-  type SetStateAction,
 } from "react";
 import type {
   AiChatMessage,
@@ -46,15 +44,17 @@ export function useAiChatThreads({
   const [threads, setThreads] = useState<AiChatThread[]>([]);
   const visibleThreads = useMemo(() => {
     if (!currentUserId || !activeThreadId) {
-      return threads;
+      return pruneEmptyAiChatThreads(threads);
     }
 
-    return syncAiChatThreadMessages(
-      threads,
-      activeThreadId,
-      currentUserId,
-      documentId,
-      messages,
+    return pruneEmptyAiChatThreads(
+      syncAiChatThreadMessages(
+        threads,
+        activeThreadId,
+        currentUserId,
+        documentId,
+        messages,
+      ),
     );
   }, [activeThreadId, currentUserId, documentId, messages, threads]);
 
@@ -92,7 +92,6 @@ export function useAiChatThreads({
     const threadId = activeThreadId ?? createAiChatThreadId();
 
     setActiveThreadId(threadId);
-    ensureThreadVisible(threadId, currentUserId ?? "", documentId, setThreads);
 
     return threadId;
   }
@@ -184,31 +183,6 @@ function createAiChatThreadId() {
   return `ai_chat_${crypto.randomUUID()}`;
 }
 
-function ensureThreadVisible(
-  threadId: string,
-  userId: string,
-  documentId: string,
-  setThreads: Dispatch<SetStateAction<AiChatThread[]>>,
-) {
-  setThreads((currentThreads) => {
-    if (currentThreads.some((thread) => thread.id === threadId)) {
-      return currentThreads;
-    }
-
-    return [
-      {
-        createdAt: new Date().toISOString(),
-        documentId,
-        id: threadId,
-        messages: [],
-        updatedAt: new Date().toISOString(),
-        userId,
-      },
-      ...currentThreads,
-    ];
-  });
-}
-
 export function syncAiChatThreadMessages(
   currentThreads: AiChatThread[],
   threadId: string,
@@ -246,4 +220,8 @@ export function syncAiChatThreadMessages(
     nextThread,
     ...currentThreads.filter((thread) => thread.id !== threadId),
   ].sort((first, second) => second.updatedAt.localeCompare(first.updatedAt));
+}
+
+function pruneEmptyAiChatThreads(threads: AiChatThread[]) {
+  return threads.filter((thread) => thread.messages.length > 0);
 }
