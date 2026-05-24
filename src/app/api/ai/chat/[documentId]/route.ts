@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   convertToModelMessages,
   createIdGenerator,
+  stepCountIs,
   streamText,
 } from "ai";
 import type {
@@ -10,6 +11,7 @@ import type {
   AiChatMessage,
   AiChatModelKey,
   AiChatSelection,
+  AiChatThread,
 } from "@/features/app-state/types";
 import {
   deleteAiChatThreadForUser,
@@ -23,6 +25,7 @@ import {
   getConfiguredAiChatModels,
 } from "@/lib/server/ai-models";
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
+import { aiWebFetchTools } from "@/lib/server/ai-web-fetch";
 import { buildDocumentChatSystemPrompt } from "./prompt";
 
 export const maxDuration = 60;
@@ -61,7 +64,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const activeThread = threadId
-    ? result.threads.find((thread) => thread.id === threadId) ?? null
+    ? result.threads.find((thread: AiChatThread) => thread.id === threadId) ?? null
     : result.threads[0] ?? null;
 
   return NextResponse.json({
@@ -134,6 +137,7 @@ export async function POST(request: Request, context: RouteContext) {
   const result = streamText({
     messages: await convertToModelMessages(messages),
     model: createAiChatModel(modelConfig),
+    stopWhen: stepCountIs(3),
     system: buildDocumentChatSystemPrompt(
       body.documentTitle ?? "",
       body.documentText ?? "",
@@ -143,6 +147,7 @@ export async function POST(request: Request, context: RouteContext) {
       body.documentAction ?? null,
     ),
     temperature: 0.3,
+    tools: aiWebFetchTools,
   });
 
   result.consumeStream();

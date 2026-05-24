@@ -24,6 +24,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { useLocale } from "@/components/providers/locale-provider";
 import type {
+  AiChatDocumentAction,
   AiChatMessage,
   AiChatModelKey,
   User,

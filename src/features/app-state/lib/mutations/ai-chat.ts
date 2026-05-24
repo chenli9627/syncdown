@@ -1,5 +1,6 @@
 import type {
   AiChatMessage,
+  AiChatThread,
   StoredSyntextState,
 } from "@/features/app-state/types";
 import {
@@ -149,8 +150,8 @@ function getUserDocumentThreads(
   state: StoredSyntextState,
   userId: string,
   documentId: string,
-) {
+): AiChatThread[] {
   return (state.aiChatThreads ?? [])
     .filter((thread) => thread.userId === userId && thread.documentId === documentId)
-    .toSorted((first, second) => second.updatedAt.localeCompare(first.updatedAt));
+    .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt));
 }

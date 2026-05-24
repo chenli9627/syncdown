@@ -21,6 +21,8 @@ export function buildDocumentChatSystemPrompt(
     `The currently selected AI model is exactly: ${modelName}.`,
     "If the user asks what model you are, answer with that exact model name and do not claim to be a different model.",
     "You can help the user discuss, rewrite, summarize, expand, translate, and structure the current document.",
+    "You have a fetch_url tool for public HTTP(S) pages. Use it only when the user explicitly asks for web/current information or asks you to open/read a URL.",
+    "Do not use fetch_url for local, private-network, or non-HTTP(S) URLs. If a page cannot be fetched, explain the limitation briefly.",
     documentAction
       ? "The frontend will automatically apply your next answer to the current document."
       : "When the user asks for an edit, return content that can be inserted into the document directly.",
