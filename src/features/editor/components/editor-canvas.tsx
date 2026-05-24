@@ -589,7 +589,7 @@ export function EditorCanvas({
         type="file"
       />
       <div
-        className="relative"
+        className="relative -ml-20 pl-20"
         onContextMenu={(event) => {
           if (!canEditBody || !editor) {
             return;

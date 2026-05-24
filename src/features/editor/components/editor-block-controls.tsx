@@ -65,13 +65,15 @@ export function EditorBlockControls({
   }
 
   const avatarLaneWidth = getCollaboratorAvatarStackWidth(collaboratorAvatars.length);
+  const gutterWidth = 80;
+  const controlsOffsetFromEditorLeft = 48;
 
   return (
     <div
-      className="absolute left-[-70px] z-10 flex items-center gap-1"
+      className="absolute z-10 flex items-center gap-1"
       ref={blockControlsRef}
       style={{
-        left: `${-(66 + avatarLaneWidth + (avatarLaneWidth > 0 ? 4 : 0))}px`,
+        left: `${gutterWidth - controlsOffsetFromEditorLeft - avatarLaneWidth - (avatarLaneWidth > 0 ? 4 : 0)}px`,
         top: `${Math.max(0, hoveredBlock.top + hoveredBlock.height / 2 - 14)}px`,
       }}
     >
