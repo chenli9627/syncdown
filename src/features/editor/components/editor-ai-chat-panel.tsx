@@ -113,10 +113,10 @@ export function EditorAiChatPanel({
     [t],
   );
   const handleDocumentActionApplyFailed = useCallback(
-    (messageId: string) => {
+    (messageId: string, summary?: string) => {
       setAppliedNotices((current) => ({
         ...current,
-        [messageId]: t("aiApplyFailed"),
+        [messageId]: getApplyFailedNotice(t, summary),
       }));
       focusPromptInput(inputRef);
     },
@@ -282,47 +282,45 @@ export function EditorAiChatPanel({
                   {t("aiShowEarlierMessages")}
                 </button>
               ) : null}
-              {visibleMessages.map((message) => (
-                <ChatMessage
-                  appliedNotice={appliedNotices[message.id]}
-                  busy={busy}
-                  editingText={
-                    editingQuestion?.id === message.id ? editingQuestion.text : undefined
-                  }
-                  editor={editor}
-                  isEditing={editingQuestion?.id === message.id}
-                  key={message.id}
-                  message={message}
-                  onCancelEdit={handleCancelEditQuestion}
-                  onEdit={handleEditQuestion}
-                  onEditingTextChange={handleEditingQuestionTextChange}
-                  onRegenerate={() =>
-                    void regenerate({
-                      body: getAiChatRequestBody(
-                        editor,
-                        modelKey,
-                        currentUser?.id ?? "",
-                        documentTitle,
-                        null,
-                        activeThreadId,
-                      ),
-                      messageId: message.id,
-                    })
-                  }
-                  onSendEdit={handleSendEditedQuestion}
-                />
-              ))}
-              {busy ? (
-                <div className="flex justify-start">
-                  <button
-                    className="border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
-                    onClick={() => void stop()}
-                    type="button"
-                  >
-                    {t("aiStop")}
-                  </button>
-                </div>
-              ) : null}
+              {visibleMessages.map((message, index) => {
+                const isStreamingAssistant =
+                  busy &&
+                  index === visibleMessages.length - 1 &&
+                  message.role === "assistant";
+
+                return (
+                  <ChatMessage
+                    appliedNotice={appliedNotices[message.id]}
+                    busy={busy}
+                    editingText={
+                      editingQuestion?.id === message.id ? editingQuestion.text : undefined
+                    }
+                    editor={editor}
+                    isEditing={editingQuestion?.id === message.id}
+                    key={message.id}
+                    message={message}
+                    onCancelEdit={handleCancelEditQuestion}
+                    onEdit={handleEditQuestion}
+                    onEditingTextChange={handleEditingQuestionTextChange}
+                    onRegenerate={() =>
+                      void regenerate({
+                        body: getAiChatRequestBody(
+                          editor,
+                          modelKey,
+                          currentUser?.id ?? "",
+                          documentTitle,
+                          null,
+                          activeThreadId,
+                        ),
+                        messageId: message.id,
+                      })
+                    }
+                    onSendEdit={handleSendEditedQuestion}
+                    onStop={() => void stop()}
+                    showStopAction={isStreamingAssistant}
+                  />
+                );
+              })}
             </div>
           )}
           {error ? (
@@ -383,4 +381,18 @@ function getAppliedNotice(
   }
 
   return t("aiAppliedReplaceDocument");
+}
+
+function getApplyFailedNotice(t: (key: MessageKey) => string, summary?: string) {
+  const trimmedSummary = summary?.trim();
+
+  if (!trimmedSummary) {
+    return t("aiApplyFailed");
+  }
+
+  if (/^(未修改文档|Document was not changed)/i.test(trimmedSummary)) {
+    return trimmedSummary;
+  }
+
+  return `${t("aiNotChangedPrefix")}${trimmedSummary}`;
 }

@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Replace,
   Send,
+  Square,
   TextCursorInput,
   X,
 } from "lucide-react";
@@ -43,6 +44,8 @@ type ChatMessageProps = {
   onEditingTextChange?: (value: string) => void;
   onRegenerate: () => void;
   onSendEdit?: () => void;
+  onStop?: () => void;
+  showStopAction?: boolean;
 };
 
 export function ChatMessage({
@@ -57,6 +60,8 @@ export function ChatMessage({
   onEditingTextChange,
   onRegenerate,
   onSendEdit,
+  onStop,
+  showStopAction = false,
 }: ChatMessageProps) {
   const { t } = useLocale();
   const text = getAiChatMessageText(message, message.metadata?.documentAction ?? null);
@@ -110,45 +115,58 @@ export function ChatMessage({
         ) : null}
       </MessageContent>
       {isAssistant && text.trim() ? (
-        <MessageActions>
-          <MessageAction onClick={handleCopy} tooltip={t("aiCopyAnswer")}>
-            {copied ? (
-              <Check aria-hidden="true" size={13} />
-            ) : (
-              <Copy aria-hidden="true" size={13} />
-            )}
-            <ActionLabel>{copied ? t("aiCopied") : t("copy")}</ActionLabel>
-          </MessageAction>
-          {!toolSummary ? (
-            <>
-              <MessageAction
-                onClick={() => replaceSelectionWithAiResponse(editor, message, text)}
-                tooltip={t("aiReplaceSelection")}
-              >
-                <Replace aria-hidden="true" size={13} />
-                <ActionLabel>{t("apply")}</ActionLabel>
-              </MessageAction>
-              <MessageAction
-                onClick={() => insertAiResponseAtCursor(editor, text)}
-                tooltip={t("aiInsertAtCursor")}
-              >
-                <TextCursorInput aria-hidden="true" size={13} />
-                <ActionLabel>{t("aiInsertAtCursor")}</ActionLabel>
-              </MessageAction>
-              <MessageAction
-                onClick={() => insertAiResponseAtEnd(editor, text)}
-                tooltip={t("aiInsertAtEnd")}
-              >
-                <ListEnd aria-hidden="true" size={13} />
-                <ActionLabel>{t("aiInsertAtEnd")}</ActionLabel>
-              </MessageAction>
-            </>
-          ) : null}
-          <MessageAction onClick={onRegenerate} tooltip={t("aiRetry")}>
-            <RefreshCw aria-hidden="true" size={13} />
-            <ActionLabel>{t("aiRetry")}</ActionLabel>
-          </MessageAction>
-        </MessageActions>
+        showStopAction ? (
+          <MessageActions className="opacity-100">
+            <button
+              className="inline-flex h-7 items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[11px] font-medium text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
+              onClick={onStop}
+              type="button"
+            >
+              <Square aria-hidden="true" size={11} />
+              <span>{t("aiStop")}</span>
+            </button>
+          </MessageActions>
+        ) : (
+          <MessageActions>
+            <MessageAction onClick={handleCopy} tooltip={t("aiCopyAnswer")}>
+              {copied ? (
+                <Check aria-hidden="true" size={13} />
+              ) : (
+                <Copy aria-hidden="true" size={13} />
+              )}
+              <ActionLabel>{copied ? t("aiCopied") : t("copy")}</ActionLabel>
+            </MessageAction>
+            {!toolSummary ? (
+              <>
+                <MessageAction
+                  onClick={() => replaceSelectionWithAiResponse(editor, message, text)}
+                  tooltip={t("aiReplaceSelection")}
+                >
+                  <Replace aria-hidden="true" size={13} />
+                  <ActionLabel>{t("apply")}</ActionLabel>
+                </MessageAction>
+                <MessageAction
+                  onClick={() => insertAiResponseAtCursor(editor, text)}
+                  tooltip={t("aiInsertAtCursor")}
+                >
+                  <TextCursorInput aria-hidden="true" size={13} />
+                  <ActionLabel>{t("aiInsertAtCursor")}</ActionLabel>
+                </MessageAction>
+                <MessageAction
+                  onClick={() => insertAiResponseAtEnd(editor, text)}
+                  tooltip={t("aiInsertAtEnd")}
+                >
+                  <ListEnd aria-hidden="true" size={13} />
+                  <ActionLabel>{t("aiInsertAtEnd")}</ActionLabel>
+                </MessageAction>
+              </>
+            ) : null}
+            <MessageAction onClick={onRegenerate} tooltip={t("aiRetry")}>
+              <RefreshCw aria-hidden="true" size={13} />
+              <ActionLabel>{t("aiRetry")}</ActionLabel>
+            </MessageAction>
+          </MessageActions>
+        )
       ) : null}
       {!isAssistant && isEditing ? (
         <form

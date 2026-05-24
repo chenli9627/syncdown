@@ -30,7 +30,7 @@ type UseAiChatAutoDocumentActionArgs = {
   error: Error | undefined;
   messages: AiChatMessage[];
   onApplied?: (action: AiChatDocumentAction, messageId: string, summary?: string) => void;
-  onApplyFailed?: (messageId: string) => void;
+  onApplyFailed?: (messageId: string, summary?: string) => void;
 };
 
 export function useAiChatAutoDocumentAction({
@@ -72,25 +72,28 @@ export function useAiChatAutoDocumentAction({
       return;
     }
 
+    const beforeSnapshot = getEditorDocumentSnapshot(editor);
+
     if (documentAction.action === "edit_blocks") {
       const appliedCount = applyAiDocumentEditToolResponse(editor, responseText);
       const requestedCount = getAiDocumentEditToolOperationCount(responseText);
+      const summary = getAiDocumentEditToolSummary(responseText) ?? undefined;
 
-      if (appliedCount > 0 && appliedCount >= requestedCount) {
-        onApplied?.(
-          documentAction.action,
-          lastMessage.id,
-          getAiDocumentEditToolSummary(responseText) ?? undefined,
-        );
+      if (
+        appliedCount > 0 &&
+        appliedCount >= requestedCount &&
+        getEditorDocumentSnapshot(editor) !== beforeSnapshot
+      ) {
+        onApplied?.(documentAction.action, lastMessage.id, summary);
       } else {
-        onApplyFailed?.(lastMessage.id);
+        onApplyFailed?.(lastMessage.id, summary);
       }
       return;
     }
 
     if (documentAction.action === "insert_end") {
       const didApply = appendAiResponseAsDocumentEndBlocks(editor, responseText);
-      if (didApply) {
+      if (didApply && getEditorDocumentSnapshot(editor) !== beforeSnapshot) {
         onApplied?.(documentAction.action, lastMessage.id);
       } else {
         onApplyFailed?.(lastMessage.id);
@@ -100,7 +103,7 @@ export function useAiChatAutoDocumentAction({
 
     if (documentAction.action === "insert_cursor") {
       const didApply = insertAiResponseAtCursor(editor, responseText);
-      if (didApply) {
+      if (didApply && getEditorDocumentSnapshot(editor) !== beforeSnapshot) {
         onApplied?.(documentAction.action, lastMessage.id);
       } else {
         onApplyFailed?.(lastMessage.id);
@@ -110,7 +113,7 @@ export function useAiChatAutoDocumentAction({
 
     if (documentAction.action === "replace_document") {
       const didApply = replaceDocumentWithAiResponse(editor, responseText);
-      if (didApply) {
+      if (didApply && getEditorDocumentSnapshot(editor) !== beforeSnapshot) {
         onApplied?.(documentAction.action, lastMessage.id);
       } else {
         onApplyFailed?.(lastMessage.id);
@@ -120,7 +123,7 @@ export function useAiChatAutoDocumentAction({
 
     if (documentAction.action === "replace_selection") {
       const didApply = replaceSelectionWithAiResponse(editor, lastMessage, responseText);
-      if (didApply) {
+      if (didApply && getEditorDocumentSnapshot(editor) !== beforeSnapshot) {
         onApplied?.(documentAction.action, lastMessage.id);
       } else {
         onApplyFailed?.(lastMessage.id);
@@ -146,4 +149,8 @@ export function useAiChatAutoDocumentAction({
   return {
     setPendingAction,
   };
+}
+
+function getEditorDocumentSnapshot(editor: Editor) {
+  return JSON.stringify(editor.state.doc.toJSON());
 }
