@@ -79,7 +79,9 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
       "For small changes inside an existing formatted block, prefer replace_text_in_block so the original heading, list, link, and inline formatting are preserved.",
       "For whole-block content changes, prefer replace_block or delete_block over replacing the whole document.",
       "For one table, paragraph, heading, list, or section change, never return the full document body.",
-      "If you cannot find a matching blockId, return {\"summary\":\"No matching block found.\",\"operations\":[]} instead of returning prose or a full document.",
+      "If the requested edit is unsupported, too complex, ambiguous, or cannot be represented by the listed operation types, return {\"summary\":\"I cannot do that edit yet.\",\"operations\":[]} and do not pretend it was applied.",
+      "If you cannot find a matching blockId or exact targetText, return {\"summary\":\"No matching document target found.\",\"operations\":[]} instead of returning prose or a full document.",
+      "Never return a rewritten full document as a workaround for an unsupported, too complex, ambiguous, or unlocatable edit.",
       "Operation content can be Markdown or minimal HTML when HTML is necessary to preserve links or strikethrough.",
       "When replacing a formatted block, preserve the original block's Markdown structure unless the user explicitly asks to remove or change that formatting.",
     ].join(" ");
