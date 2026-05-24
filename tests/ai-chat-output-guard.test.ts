@@ -28,6 +28,33 @@ test("leaves ordinary assistant text unchanged", () => {
   assert.equal(sanitizeAiAssistantText("普通回答", null), "普通回答");
 });
 
+test("strips inserted-content preambles before document-end insertion", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "好的，已将整理后的列表内容插入到文档末尾。\n\n### 概况\n\n- 西湖",
+      "insert_end",
+    ),
+    "### 概况\n\n- 西湖",
+  );
+});
+
+test("strips revised-text preambles before selection replacement", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "Here is the revised text:\n\nA cleaner replacement paragraph.",
+      "replace_selection",
+    ),
+    "A cleaner replacement paragraph.",
+  );
+});
+
+test("keeps the preamble when there is no actual document content after it", () => {
+  assert.equal(
+    sanitizeAiAssistantText("好的，已将内容插入到文档末尾。", "insert_end"),
+    "好的，已将内容插入到文档末尾。",
+  );
+});
+
 test("sanitizes invalid edit-block prose into an empty operation payload", () => {
   assert.equal(
     sanitizeAiAssistantText("很抱歉，接口返回 403，无法获取微博热搜。", "edit_blocks"),
