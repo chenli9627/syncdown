@@ -87,7 +87,7 @@ function buildHeadingLevelPayload(
   documentBlocks: AiChatDocumentBlock[],
 ): AiDocumentEditPayload | null {
   const chineseMatch = prompt.match(
-    /(?:\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*(?:\u6539\u6210|\u6539\u4e3a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a|\u53d8\u6210)\s*(?:h\s*)?([1-6\u4e00\u4e8c\u4e09\u56db\u4e94\u516d])(?:\u7ea7)?\u6807\u9898/iu,
+    /(?:\u628a|\u5c06)\s*([^\n\uff0c\u3002\uff01\uff1f]{1,96}?)\s*(?:\u90fd)?(?:\u6539\u6210|\u6539\u4e3a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a|\u53d8\u6210)\s*(?:h\s*)?([1-6\u4e00\u4e8c\u4e09\u56db\u4e94\u516d])(?:\u7ea7)?\u6807\u9898/iu,
   );
   const englishMatch = prompt.match(
     /change\s+["'`]?([^"'`\n]{1,48})["'`]?\s+heading\s+level\s+to\s+h?([1-6])/i,
@@ -98,20 +98,38 @@ function buildHeadingLevelPayload(
     return null;
   }
 
-  const block = findSingleBlockContaining(documentBlocks, target, ["heading"]);
-  if (!block) {
+  const targets =
+    chineseMatch != null
+      ? target
+          .split(/(?:和|以及|及|、)/u)
+          .map((value) => cleanTarget(value))
+          .filter(Boolean)
+      : [target];
+  const operations = targets
+    .map((headingTarget) => {
+      const block = findSingleBlockContaining(documentBlocks, headingTarget, ["heading"]);
+      if (!block) {
+        return null;
+      }
+
+      return {
+        blockId: block.id,
+        level,
+        type: "set_heading_level" as const,
+      };
+    })
+    .filter((operation): operation is NonNullable<typeof operation> => Boolean(operation));
+
+  if (!operations.length) {
     return null;
   }
 
   return {
-    operations: [
-      {
-        blockId: block.id,
-        level,
-        type: "set_heading_level",
-      },
-    ],
-    summary: `已将“${target}”调整为 ${level} 级标题。`,
+    operations,
+    summary:
+      operations.length === 1
+        ? `已将“${targets[0]}”调整为 ${level} 级标题。`
+        : `已将${targets.map((value) => `“${value}”`).join("、")}调整为 ${level} 级标题。`,
   };
 }
 

@@ -131,6 +131,19 @@ test("builds deterministic heading level operations", () => {
   );
 });
 
+test("builds deterministic heading level operations for multiple headings", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("把北京旅行计划和景点都改成三级标题。", documentBlocks),
+    {
+      operations: [
+        { blockId: "block_1", level: 3, type: "set_heading_level" },
+        { blockId: "block_7", level: 3, type: "set_heading_level" },
+      ],
+      summary: "已将“北京旅行计划”、“景点”调整为 3 级标题。",
+    },
+  );
+});
+
 test("builds deterministic text mark operations", () => {
   assert.deepEqual(
     buildDeterministicAiDocumentEditPayload("把所有北京都加粗。", documentBlocks),
