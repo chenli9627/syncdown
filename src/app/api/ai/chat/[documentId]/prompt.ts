@@ -1,6 +1,7 @@
 import type {
   AiChatDocumentAction,
   AiChatDocumentBlock,
+  AiChatResponseMode,
   AiChatSelection,
 } from "@/features/app-state/types";
 
@@ -11,6 +12,7 @@ export function buildDocumentChatSystemPrompt(
   selection: AiChatSelection | null,
   modelName: string,
   documentAction: AiChatDocumentAction | null,
+  responseMode: AiChatResponseMode | null,
   applicationStatusNotices: string[] = [],
 ) {
   const cleanDocumentTitle = documentTitle.trim() || "(untitled document)";
@@ -57,6 +59,7 @@ export function buildDocumentChatSystemPrompt(
     "If the user asks for a list, return a real Markdown list with list markers instead of another heading outline.",
     "If the user asks for key points, return a concise Markdown bullet list of those points.",
     "If the user asks for a table, return a real Markdown table instead of prose that only looks tabular.",
+    getResponseModeInstruction(responseMode),
     documentAction
       ? "Do not claim that the document has already changed while you are generating the answer."
       : "Do not invent a new document change for this turn. Treat previous document edits as successful only when explicit Syncdown status notices or the current document snapshot show the change.",
@@ -131,6 +134,22 @@ function getAutomaticActionInstruction(documentAction: AiChatDocumentAction | nu
 
   if (documentAction === "replace_selection") {
     return "The requested automatic action is: replace the selected text with your answer. Return only the exact replacement content. Do not quote the original text, do not explain the change, and do not say you replaced it.";
+  }
+
+  return "";
+}
+
+function getResponseModeInstruction(responseMode: AiChatResponseMode | null) {
+  if (responseMode === "list") {
+    return "This turn is a list-format transform. Return only the final Markdown list itself. Do not add any lead-in sentence such as 好的，下面是..., 以下是..., Here is..., or Below is....";
+  }
+
+  if (responseMode === "table") {
+    return "This turn is a table-format transform. Return only the final Markdown table itself, optionally with a short table title line if the user asked for one. Do not add any lead-in sentence such as 好的，下面是..., 以下是..., Here is..., or Below is....";
+  }
+
+  if (responseMode === "key_points") {
+    return "This turn is a key-points transform. Return only the final Markdown bullet list of key points. Do not add any lead-in sentence such as 好的，下面是..., 以下是..., Here is..., or Below is....";
   }
 
   return "";

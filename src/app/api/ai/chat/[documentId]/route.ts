@@ -10,6 +10,7 @@ import type {
   AiChatDocumentAction,
   AiChatMessage,
   AiChatModelKey,
+  AiChatResponseMode,
   AiChatSelection,
   AiChatThread,
 } from "@/features/app-state/types";
@@ -44,6 +45,7 @@ type ChatBody = {
   documentTitle?: string;
   messages?: AiChatMessage[];
   modelKey?: AiChatModelKey;
+  responseMode?: AiChatResponseMode | null;
   resolvedPrompt?: string;
   selection?: AiChatSelection | null;
   threadId?: string | null;
@@ -144,6 +146,7 @@ export async function POST(request: Request, context: RouteContext) {
   await writeStoredState(saveUserMessageResult.state);
   const activeThreadId = saveUserMessageResult.thread.id;
   const documentAction = body.documentAction ?? null;
+  const responseMode = body.responseMode ?? null;
   const systemPrompt = buildDocumentChatSystemPrompt(
     body.documentTitle ?? "",
     body.documentText ?? "",
@@ -151,6 +154,7 @@ export async function POST(request: Request, context: RouteContext) {
     body.selection ?? null,
     modelConfig.name,
     documentAction,
+    responseMode,
     body.applicationStatusNotices ?? [],
   );
 
@@ -168,7 +172,7 @@ export async function POST(request: Request, context: RouteContext) {
         toolChoice: "none",
       };
     },
-    experimental_transform: guardPseudoToolCallText(documentAction),
+    experimental_transform: guardPseudoToolCallText(documentAction, responseMode),
     stopWhen: stepCountIs(8),
     system: systemPrompt,
     temperature: 0.3,
@@ -186,13 +190,18 @@ export async function POST(request: Request, context: RouteContext) {
             documentAction,
             modelKey,
             modelName: modelConfig.name,
+            responseMode,
             selection: body.selection ?? null,
             threadId: activeThreadId,
           }
         : undefined,
     onFinish: async ({ messages: finishedMessages }) => {
       const latestState = await readStoredState();
-      const sanitizedMessages = sanitizeFinishedMessages(finishedMessages, documentAction);
+      const sanitizedMessages = sanitizeFinishedMessages(
+        finishedMessages,
+        documentAction,
+        responseMode,
+      );
       const saveResult = saveAiChatThreadMessages(
         latestState,
         body.userId ?? "",
@@ -213,11 +222,16 @@ export async function POST(request: Request, context: RouteContext) {
 function sanitizeFinishedMessages(
   messages: AiChatMessage[],
   documentAction: AiChatDocumentAction | null,
+  responseMode: AiChatResponseMode | null,
 ) {
   const lastAssistantIndex = findLastAssistantMessageIndex(messages);
 
   return messages.map((message, index) =>
-    sanitizeAiChatMessage(message, index === lastAssistantIndex ? documentAction : null),
+    sanitizeAiChatMessage(
+      message,
+      index === lastAssistantIndex ? documentAction : null,
+      index === lastAssistantIndex ? responseMode : null,
+    ),
   );
 }
 

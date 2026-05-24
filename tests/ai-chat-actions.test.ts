@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   inferAiChatClarification,
   inferAiChatDocumentAction,
+  inferAiChatResponseMode,
   isAiChatClarificationCancelPrompt,
   resolveAiChatClarifiedPrompt,
 } from "../src/features/editor/lib/ai-chat-actions";
@@ -181,6 +182,13 @@ test("does not infer document actions from negative edit instructions", () => {
 
 test("does not allow whole-document replacement actions", () => {
   assert.equal(inferAiChatDocumentAction("Update the current document in a formal tone"), "edit_blocks");
+});
+
+test("infers response modes for transform-only chat prompts", () => {
+  assert.equal(inferAiChatResponseMode("整理为列表"), "list");
+  assert.equal(inferAiChatResponseMode("整理成表格"), "table");
+  assert.equal(inferAiChatResponseMode("提炼为要点"), "key_points");
+  assert.equal(inferAiChatResponseMode("Explain Hangzhou"), null);
 });
 
 test("asks for clarification when insertion source is missing", () => {

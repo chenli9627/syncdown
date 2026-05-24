@@ -2,6 +2,7 @@ import type { Editor } from "@tiptap/react";
 import type {
   AiChatDocumentAction,
   AiChatModelKey,
+  AiChatResponseMode,
   AiChatSelection,
 } from "@/features/app-state/types";
 import { getAiDocumentBlocks } from "@/features/editor/lib/ai-chat-document-tools";
@@ -24,6 +25,7 @@ export function getAiChatRequestBody(
   userId: string,
   documentTitle: string,
   documentAction: AiChatDocumentAction | null = null,
+  responseMode: AiChatResponseMode | null = null,
   threadId: string | null = null,
   applicationStatusNotices: string[] = [],
   resolvedPrompt?: string,
@@ -35,6 +37,7 @@ export function getAiChatRequestBody(
     documentText: editor?.getText() ?? "",
     documentTitle,
     modelKey,
+    responseMode,
     selection: getCurrentSelection(editor),
     threadId,
     userId,

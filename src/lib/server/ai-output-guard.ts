@@ -1,5 +1,8 @@
 import type { TextStreamPart, ToolSet } from "ai";
-import type { AiChatDocumentAction } from "@/features/app-state/types";
+import type {
+  AiChatDocumentAction,
+  AiChatResponseMode,
+} from "@/features/app-state/types";
 import {
   containsPseudoToolCallText,
   sanitizeAiAssistantText,
@@ -7,6 +10,7 @@ import {
 
 export function guardPseudoToolCallText<TOOLS extends ToolSet>(
   documentAction: AiChatDocumentAction | null,
+  responseMode: AiChatResponseMode | null,
 ) {
   return () => {
     let blocked = false;
@@ -19,7 +23,7 @@ export function guardPseudoToolCallText<TOOLS extends ToolSet>(
         if (!fallbackEmitted && textId) {
           controller.enqueue({
             id: textId,
-            text: sanitizeAiAssistantText(textBuffer, documentAction),
+            text: sanitizeAiAssistantText(textBuffer, documentAction, responseMode),
             type: "text-delta",
           });
           fallbackEmitted = true;
@@ -31,7 +35,7 @@ export function guardPseudoToolCallText<TOOLS extends ToolSet>(
       if (textBuffer && textId) {
         controller.enqueue({
           id: textId,
-          text: sanitizeAiAssistantText(textBuffer, documentAction),
+          text: sanitizeAiAssistantText(textBuffer, documentAction, responseMode),
           type: "text-delta",
         });
         textBuffer = "";

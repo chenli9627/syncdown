@@ -10,6 +10,7 @@ test("AI chat prompt hides web fetch implementation details from final answers",
     null,
     "deepseek-v4-flash",
     null,
+    null,
   );
 
   assert.match(prompt, /Do not describe internal tool calls/);
@@ -31,6 +32,7 @@ test("AI chat prompt does not tell the model to invent UI apply instructions", (
     null,
     "deepseek-v4-flash",
     null,
+    "list",
   );
 
   assert.match(prompt, /Never add UI instructions/);
@@ -43,6 +45,8 @@ test("AI chat prompt does not tell the model to invent UI apply instructions", (
   assert.match(prompt, /most recent substantive assistant answer as the source/);
   assert.match(prompt, /real Markdown list with list markers/);
   assert.match(prompt, /real Markdown table instead of prose/);
+  assert.match(prompt, /Return only the final Markdown list itself/);
+  assert.match(prompt, /Do not add any lead-in sentence/);
   assert.doesNotMatch(prompt, /explicit buttons/);
   assert.doesNotMatch(prompt, /user applies your response/);
 });
@@ -63,6 +67,7 @@ test("AI chat prompt includes rich-text blocks for ordinary document questions",
     null,
     "deepseek-v4-flash",
     null,
+    null,
   );
 
   assert.match(prompt, /Current document blocks with rich-text structure/);
@@ -79,6 +84,7 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
     null,
     "deepseek-v4-flash",
     "edit_blocks",
+    null,
     [
       "已修改文档：已删除文档中的表格。",
       "未修改文档：No matching document target found.",

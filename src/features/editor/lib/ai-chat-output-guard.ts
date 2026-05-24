@@ -1,6 +1,7 @@
 import type {
   AiChatDocumentAction,
   AiChatMessage,
+  AiChatResponseMode,
 } from "@/features/app-state/types";
 
 const pseudoToolCallPattern =
@@ -24,6 +25,7 @@ export function getPseudoToolCallFallbackText(documentAction: AiChatDocumentActi
 export function sanitizeAiAssistantText(
   text: string,
   documentAction: AiChatDocumentAction | null = null,
+  responseMode: AiChatResponseMode | null = null,
 ) {
   if (containsPseudoToolCallText(text)) {
     return getPseudoToolCallFallbackText(documentAction);
@@ -36,12 +38,13 @@ export function sanitizeAiAssistantText(
     });
   }
 
-  return stripLeadingDocumentActionPreamble(text, documentAction);
+  return stripLeadingAssistantPreamble(text, documentAction, responseMode);
 }
 
 export function sanitizeAiChatMessage(
   message: AiChatMessage,
   documentAction: AiChatDocumentAction | null = null,
+  responseMode: AiChatResponseMode | null = null,
 ): AiChatMessage {
   if (message.role !== "assistant") {
     return message;
@@ -63,6 +66,11 @@ export function sanitizeAiChatMessage(
         type: "text",
       },
     ],
+    metadata: {
+      ...message.metadata,
+      createdAt: message.metadata?.createdAt ?? new Date().toISOString(),
+      responseMode,
+    },
   };
 }
 
@@ -87,34 +95,45 @@ function getInvalidEditBlocksSummary(text: string) {
   return "模型没有返回可应用的文档操作，未修改文档。";
 }
 
-function stripLeadingDocumentActionPreamble(
+function stripLeadingAssistantPreamble(
   text: string,
   documentAction: AiChatDocumentAction | null,
+  responseMode: AiChatResponseMode | null,
 ) {
-  if (
-    documentAction !== "insert_end" &&
-    documentAction !== "insert_cursor" &&
-    documentAction !== "replace_selection"
-  ) {
-    return text;
-  }
-
   let remaining = text.trim();
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const next = stripOneLeadingPreambleBlock(remaining, documentAction);
+  if (
+    documentAction === "insert_end" ||
+    documentAction === "insert_cursor" ||
+    documentAction === "replace_selection"
+  ) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const next = stripOneLeadingDocumentActionPreambleBlock(remaining, documentAction);
 
-    if (next === remaining) {
-      break;
+      if (next === remaining) {
+        break;
+      }
+
+      remaining = next;
     }
+  }
 
-    remaining = next;
+  if (responseMode) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const next = stripOneLeadingTransformPreambleBlock(remaining, responseMode);
+
+      if (next === remaining) {
+        break;
+      }
+
+      remaining = next;
+    }
   }
 
   return remaining;
 }
 
-function stripOneLeadingPreambleBlock(
+function stripOneLeadingDocumentActionPreambleBlock(
   text: string,
   documentAction: "insert_end" | "insert_cursor" | "replace_selection",
 ) {
@@ -133,6 +152,35 @@ function stripOneLeadingPreambleBlock(
   }
 
   return isDisposableDocumentActionPreamble(firstBlock, documentAction) ? rest : normalized;
+}
+
+function stripOneLeadingTransformPreambleBlock(
+  text: string,
+  responseMode: AiChatResponseMode,
+) {
+  const normalized = text.replace(/\r\n?/g, "\n").trim();
+  const separatorMatches = [
+    normalized.match(/\n\s*\n/),
+    normalized.match(/\n/),
+  ].filter((match): match is RegExpMatchArray & { index: number } => match?.index != null);
+
+  for (const separatorMatch of separatorMatches) {
+    const firstBlock = normalized.slice(0, separatorMatch.index).trim();
+    const rest = normalized.slice(separatorMatch.index + separatorMatch[0].length).trim();
+
+    if (!firstBlock || !rest) {
+      continue;
+    }
+
+    if (
+      isDisposableTransformPreamble(firstBlock, responseMode) &&
+      looksLikeStructuredTransformContent(rest, responseMode)
+    ) {
+      return rest;
+    }
+  }
+
+  return normalized;
 }
 
 function isDisposableDocumentActionPreamble(
@@ -156,5 +204,50 @@ function isDisposableDocumentActionPreamble(
     /^(?:好的?[，, ]*|当然[，, ]*|可以[，, ]*|没问题[，, ]*|行[，, ]*|我已|我已经|已|已经|现已|Here(?:'s| is)|Below(?: is| are)|I(?: have|'ve)|I(?: will|'ll)|Sure[, ]*|Okay[, ]*).{0,120}(?:插入|加入|添加|放到|放入|写入|insert|add|append|place|put).{0,120}(?:文档|末尾|末端|光标|当前位置|此处|document|doc|end|bottom|cursor|here|below|following|如下|以下).*[：:。.!！]?$/iu.test(
       compact,
     ) || genericIntroPattern.test(compact)
+  );
+}
+
+function isDisposableTransformPreamble(
+  block: string,
+  responseMode: AiChatResponseMode,
+) {
+  const compact = block.replace(/\s+/g, " ").trim();
+  const modeToken =
+    responseMode === "table"
+      ? "(?:表格|表|table)"
+      : responseMode === "key_points"
+        ? "(?:要点|重点|关键点|关键要点|key points?|bullet points?|highlights?)"
+        : "(?:列表|清单|条目|list|bullet list|bullets?)";
+
+  return new RegExp(
+    String.raw`^(?:好的?[，, ]*|当然[，, ]*|可以[，, ]*|没问题[，, ]*|行[，, ]*|下面|以下|如下|这是|这里是|Here(?:'s| is)|Below(?: is| are)|As requested[, ]*|Sure[, ]*|Okay[, ]*|Ok[, ]*).{0,140}(?:(?:整理|改成|改为|转成|转换成|做成|写成|变成|提炼|总结|概括|归纳|format|rewrite|convert|turn).{0,60})?${modeToken}.{0,80}[：:。.!！]?$`,
+    "iu",
+  ).test(compact);
+}
+
+function looksLikeStructuredTransformContent(
+  text: string,
+  responseMode: AiChatResponseMode,
+) {
+  const trimmed = text.trim();
+  const nonEmptyLines = trimmed
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!nonEmptyLines.length) {
+    return false;
+  }
+
+  if (responseMode === "table") {
+    return (
+      /^\|.+\|(?:\n\|[-:| ]+\|)?/m.test(trimmed) ||
+      /<table(?:\s|>)/i.test(trimmed)
+    );
+  }
+
+  return (
+    /^(?:[-*+]\s+|\d+\.\s+|#{1,6}\s+)/m.test(trimmed) ||
+    nonEmptyLines.length >= 3
   );
 }

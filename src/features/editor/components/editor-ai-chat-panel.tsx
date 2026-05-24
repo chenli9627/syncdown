@@ -41,6 +41,7 @@ import {
   type AiChatClarificationKind,
   inferAiChatClarification,
   inferAiChatDocumentAction,
+  inferAiChatResponseMode,
   isAiChatClarificationCancelPrompt,
   resolveAiChatClarifiedPrompt,
 } from "@/features/editor/lib/ai-chat-actions";
@@ -227,6 +228,7 @@ export function EditorAiChatPanel({
       hasSelection: selected,
       hasRecentDocumentAction,
     });
+    const responseMode = inferAiChatResponseMode(resolvedPrompt);
     const threadId = createThreadForSend();
 
     setPendingClarification(null);
@@ -242,6 +244,7 @@ export function EditorAiChatPanel({
           currentUser.id,
           documentTitle,
           documentAction,
+          responseMode,
           threadId,
           getOrderedApplicationStatusNotices(messages, appliedNotices),
           resolvedPrompt === trimmed ? undefined : resolvedPrompt,
@@ -278,6 +281,7 @@ export function EditorAiChatPanel({
       hasSelection: hasEditorSelection(editor),
       hasRecentDocumentAction: hasRecentAiDocumentAction(nextMessages),
     });
+    const responseMode = inferAiChatResponseMode(trimmed);
 
     setPendingAction(documentAction, nextMessages.length);
     flushSync(() => {
@@ -294,6 +298,7 @@ export function EditorAiChatPanel({
           currentUser.id,
           documentTitle,
           documentAction,
+          responseMode,
           threadId,
           getOrderedApplicationStatusNotices(nextMessages, appliedNotices),
         ),
@@ -391,6 +396,7 @@ export function EditorAiChatPanel({
                           currentUser?.id ?? "",
                           documentTitle,
                           null,
+                          message.metadata?.responseMode ?? null,
                           activeThreadId,
                           getOrderedApplicationStatusNotices(messages, appliedNotices),
                         ),

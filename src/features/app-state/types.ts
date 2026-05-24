@@ -4,6 +4,8 @@ export type Permission = "can_edit" | "can_view";
 
 export type AiChatModelKey = "primary" | "secondary";
 
+export type AiChatResponseMode = "key_points" | "list" | "table";
+
 export type AiChatDocumentAction =
   | "edit_blocks"
   | "insert_cursor"
@@ -31,6 +33,7 @@ export type AiChatMessageMetadata = {
   documentAction?: AiChatDocumentAction | null;
   modelKey?: AiChatModelKey;
   modelName?: string;
+  responseMode?: AiChatResponseMode | null;
   selection?: AiChatSelection | null;
   threadId?: string;
 };

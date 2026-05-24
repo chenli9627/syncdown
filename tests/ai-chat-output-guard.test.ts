@@ -28,6 +28,28 @@ test("leaves ordinary assistant text unchanged", () => {
   assert.equal(sanitizeAiAssistantText("普通回答", null), "普通回答");
 });
 
+test("strips transform preambles before list-format chat answers", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "好的，将上面的杭州介绍整理为列表形式：\n- 西湖\n- 灵隐寺",
+      null,
+      "list",
+    ),
+    "- 西湖\n- 灵隐寺",
+  );
+});
+
+test("strips transform preambles before table-format chat answers", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "Below is the Markdown table:\n| 景点 | 说明 |\n| --- | --- |\n| 西湖 | 世界遗产 |",
+      null,
+      "table",
+    ),
+    "| 景点 | 说明 |\n| --- | --- |\n| 西湖 | 世界遗产 |",
+  );
+});
+
 test("strips inserted-content preambles before document-end insertion", () => {
   assert.equal(
     sanitizeAiAssistantText(

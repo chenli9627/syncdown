@@ -7,6 +7,7 @@ import { toAiInlineInsertHtml, toAiInsertHtml } from "@/features/editor/lib/ai";
 import { sanitizeAiAssistantText } from "@/features/editor/lib/ai-chat-output-guard";
 
 export { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-action-inference";
+export { inferAiChatResponseMode } from "@/features/editor/lib/ai-chat-response-mode-inference";
 export {
   inferAiChatClarification,
   isAiChatClarificationCancelPrompt,
@@ -26,7 +27,9 @@ export function getAiChatMessageText(
     .join("")
     .trim();
 
-  return message.role === "assistant" ? sanitizeAiAssistantText(text, documentAction) : text;
+  return message.role === "assistant"
+    ? sanitizeAiAssistantText(text, documentAction, message.metadata?.responseMode ?? null)
+    : text;
 }
 
 export function replaceSelectionWithAiResponse(
