@@ -134,12 +134,28 @@ export function EditorAiChatPanel({
     },
     [t],
   );
-  const { setPendingAction } = useAiChatAutoDocumentAction({
+  const handleDocumentActionCancelled = useCallback(
+    (messageId: string) => {
+      setAppliedNotices((current) => ({
+        ...current,
+        [messageId]: t("aiApplyCancelled"),
+      }));
+      focusPromptInput(inputRef);
+    },
+    [t],
+  );
+  const {
+    cancelPendingAction,
+    confirmPendingAction,
+    pendingConfirmation,
+    setPendingAction,
+  } = useAiChatAutoDocumentAction({
     busy,
     editor,
     error,
     messages,
     onApplied: handleDocumentActionApplied,
+    onCancelled: handleDocumentActionCancelled,
     onApplyFailed: handleDocumentActionApplyFailed,
   });
   const {
@@ -363,6 +379,8 @@ export function EditorAiChatPanel({
                     key={message.id}
                     message={message}
                     onCancelEdit={handleCancelEditQuestion}
+                    onCancelDocumentAction={() => cancelPendingAction(message.id)}
+                    onConfirmDocumentAction={() => confirmPendingAction(message.id)}
                     onEdit={handleEditQuestion}
                     onEditingTextChange={handleEditingQuestionTextChange}
                     onRegenerate={() =>
@@ -381,6 +399,11 @@ export function EditorAiChatPanel({
                     }
                     onSendEdit={handleSendEditedQuestion}
                     onStop={() => void stop()}
+                    pendingDocumentAction={
+                      pendingConfirmation?.messageId === message.id
+                        ? pendingConfirmation
+                        : null
+                    }
                     showStopAction={isStreamingAssistant}
                   />
                 );

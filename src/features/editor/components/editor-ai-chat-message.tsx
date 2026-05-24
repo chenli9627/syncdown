@@ -19,8 +19,10 @@ import {
 } from "@/components/ai-elements/message";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { AiChatMessage } from "@/features/app-state/types";
+import type { PendingDocumentActionConfirmation } from "@/features/editor/hooks/use-ai-chat-auto-document-action";
 import { getAiChatMessageText } from "@/features/editor/lib/ai-chat-actions";
 import { getAiDocumentEditToolSummary } from "@/features/editor/lib/ai-chat-document-tools";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
 type ChatMessageProps = {
@@ -30,11 +32,14 @@ type ChatMessageProps = {
   isEditing?: boolean;
   message: AiChatMessage;
   onCancelEdit?: () => void;
+  onCancelDocumentAction?: () => void;
+  onConfirmDocumentAction?: () => void;
   onEdit?: (messageId: string, text: string) => void;
   onEditingTextChange?: (value: string) => void;
   onRegenerate: () => void;
   onSendEdit?: () => void;
   onStop?: () => void;
+  pendingDocumentAction?: PendingDocumentActionConfirmation | null;
   showStopAction?: boolean;
 };
 
@@ -45,11 +50,14 @@ export function ChatMessage({
   isEditing = false,
   message,
   onCancelEdit,
+  onCancelDocumentAction,
+  onConfirmDocumentAction,
   onEdit,
   onEditingTextChange,
   onRegenerate,
   onSendEdit,
   onStop,
+  pendingDocumentAction = null,
   showStopAction = false,
 }: ChatMessageProps) {
   const { t } = useLocale();
@@ -64,6 +72,9 @@ export function ChatMessage({
     fallbackNotice: t("aiApplyingDocumentAction"),
     isAutomaticDocumentAction,
     isNotChangedNotice,
+    pendingNotice: pendingDocumentAction
+      ? getPendingDocumentActionText(pendingDocumentAction, t)
+      : null,
     text,
     toolSummary,
   });
@@ -113,6 +124,28 @@ export function ChatMessage({
           <p className="mt-2 border-t border-[var(--color-border)] pt-2 text-xs text-[var(--color-muted-foreground)]">
             {appliedNotice}
           </p>
+        ) : null}
+        {pendingDocumentAction ? (
+          <div className="mt-3 flex items-center justify-end gap-2 border-t border-[var(--color-border)] pt-2">
+            <button
+              className="inline-flex h-7 items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-card)] px-2 text-[11px] font-medium text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
+              disabled={busy}
+              onClick={onCancelDocumentAction}
+              type="button"
+            >
+              <X aria-hidden="true" size={12} />
+              <span>{t("cancel")}</span>
+            </button>
+            <button
+              className="inline-flex h-7 items-center gap-1.5 border border-[var(--color-primary)] bg-[var(--color-primary)] px-2 text-[11px] font-medium text-[var(--color-primary-foreground)] transition hover:brightness-95 disabled:opacity-50"
+              disabled={busy}
+              onClick={onConfirmDocumentAction}
+              type="button"
+            >
+              <Check aria-hidden="true" size={12} />
+              <span>{t("aiConfirmApply")}</span>
+            </button>
+          </div>
         ) : null}
       </MessageContent>
       {isAssistant && text.trim() ? (
@@ -226,6 +259,7 @@ function getDisplayText({
   fallbackNotice,
   isAutomaticDocumentAction,
   isNotChangedNotice,
+  pendingNotice,
   text,
   toolSummary,
 }: {
@@ -233,12 +267,30 @@ function getDisplayText({
   fallbackNotice: string;
   isAutomaticDocumentAction: boolean;
   isNotChangedNotice: boolean;
+  pendingNotice: string | null;
   text: string;
   toolSummary: string | null;
 }) {
+  if (pendingNotice) {
+    return pendingNotice;
+  }
+
   if (isAutomaticDocumentAction) {
     return appliedNotice ?? fallbackNotice;
   }
 
   return isNotChangedNotice ? (appliedNotice ?? "") : (toolSummary ?? text);
+}
+
+function getPendingDocumentActionText(
+  pendingDocumentAction: PendingDocumentActionConfirmation,
+  t: (key: MessageKey) => string,
+) {
+  if (pendingDocumentAction.action === "edit_blocks") {
+    return `${t("aiPendingDocumentAction")}${
+      pendingDocumentAction.summary ? `\n\n${pendingDocumentAction.summary}` : ""
+    }`;
+  }
+
+  return `${t("aiPendingGeneratedContent")}\n\n${pendingDocumentAction.responseText}`;
 }

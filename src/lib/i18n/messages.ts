@@ -213,6 +213,9 @@ export const messages = {
     aiInsertAtEnd: "插入到末尾处",
     aiShowEarlierMessages: "显示更早消息",
     aiApplyingDocumentAction: "正在确认文档修改结果…",
+    aiPendingDocumentAction: "待确认修改：确认后才会写入文档。",
+    aiPendingGeneratedContent: "待确认修改：确认后会把下面内容写入文档。",
+    aiConfirmApply: "确认修改",
     aiAppliedPrefix: "已修改文档：",
     aiAppliedBlockEdit: "已修改文档：块级操作已应用。",
     aiAppliedInsertEnd: "已修改文档：内容已插入到末尾。",
@@ -222,6 +225,7 @@ export const messages = {
     aiNotChangedPrefix: "未修改文档：",
     aiApplyFailed: "未修改文档：没有找到可应用的位置或返回内容无法应用。",
     aiApplyVerificationFailed: "未修改文档：修改后校验未通过。",
+    aiApplyCancelled: "未修改文档：你取消了这次修改。",
     aiClarifyDocumentTarget:
       "我不确定你要修改文档里的哪一处。请说明目标文字、当前光标所在块、选区，或具体标题/段落。",
     aiClarifyInsertSource:
@@ -545,6 +549,9 @@ export const messages = {
     aiInsertAtEnd: "Insert at end position",
     aiShowEarlierMessages: "Show earlier messages",
     aiApplyingDocumentAction: "Checking the document edit result…",
+    aiPendingDocumentAction: "Edit pending: it will only be written after you confirm.",
+    aiPendingGeneratedContent: "Edit pending: the content below will be written after you confirm.",
+    aiConfirmApply: "Confirm edit",
     aiAppliedPrefix: "Document updated: ",
     aiAppliedBlockEdit: "Document updated: block edits were applied.",
     aiAppliedInsertEnd: "Document updated: content was inserted at the end.",
@@ -554,6 +561,7 @@ export const messages = {
     aiNotChangedPrefix: "Document was not changed: ",
     aiApplyFailed: "Document was not changed: no applicable location was found or the response could not be applied.",
     aiApplyVerificationFailed: "Document was not changed: the post-edit verification failed.",
+    aiApplyCancelled: "Document was not changed: you cancelled this edit.",
     aiClarifyDocumentTarget:
       "I am not sure which part of the document to edit. Please name the target text, current cursor block, selection, or a specific heading/paragraph.",
     aiClarifyInsertSource:
