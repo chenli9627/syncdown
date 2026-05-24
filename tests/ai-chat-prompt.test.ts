@@ -38,8 +38,8 @@ test("AI chat prompt does not tell the model to invent UI apply instructions", (
   assert.match(prompt, /Never add UI instructions/);
   assert.match(prompt, /Never tell the user to copy, paste, manually insert/);
   assert.match(prompt, /not marked as an automatic document action/);
-  assert.match(prompt, /do not say you changed it, fixed it, applied it, or updated it/);
-  assert.match(prompt, /no document change was applied/);
+  assert.match(prompt, /Answer the user's actual request normally/);
+  assert.match(prompt, /Do not add boilerplate explaining that no document change was applied/);
   assert.match(prompt, /Do not invent a new document change/);
   assert.match(prompt, /current document snapshot show the change/);
   assert.match(prompt, /most recent substantive assistant answer as the source/);

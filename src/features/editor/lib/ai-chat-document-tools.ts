@@ -5,6 +5,7 @@ import {
   toAiDocumentBlock,
 } from "@/features/editor/lib/ai-chat-document-blocks";
 import { toExecutableOperations } from "@/features/editor/lib/ai-chat-document-edit-converter";
+import { sanitizeAiInsertedContent } from "@/features/editor/lib/ai-chat-output-guard";
 import { applyExecutableOperation } from "@/features/editor/lib/ai-chat-document-edit-operations";
 import type {
   AiDocumentEditOperation,
@@ -128,7 +129,12 @@ function parseAiDocumentEditPayload(responseText: string): AiDocumentEditPayload
 
   try {
     const parsed = JSON.parse(jsonText) as AiDocumentEditPayload;
-    return Array.isArray(parsed.operations) ? parsed : null;
+    return Array.isArray(parsed.operations)
+      ? {
+          ...parsed,
+          operations: parsed.operations.map(sanitizeAiDocumentEditOperation),
+        }
+      : null;
   } catch {
     return null;
   }
@@ -182,6 +188,17 @@ function normalizeDependentTableInsertOperations(operations: AiDocumentEditOpera
       },
     ];
   });
+}
+
+function sanitizeAiDocumentEditOperation(operation: AiDocumentEditOperation): AiDocumentEditOperation {
+  if (!("content" in operation) || typeof operation.content !== "string") {
+    return operation;
+  }
+
+  return {
+    ...operation,
+    content: sanitizeAiInsertedContent(operation.content),
+  };
 }
 
 function findDependentTableCellUpdateIndex(

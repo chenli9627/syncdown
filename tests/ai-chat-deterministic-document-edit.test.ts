@@ -192,3 +192,23 @@ test("builds deterministic link operations", () => {
     },
   );
 });
+
+test("builds deterministic link operations for raw domains and link address phrasing", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload(
+      "把北京文旅的链接地址改成 google.com",
+      documentBlocks,
+    ),
+    {
+      operations: [
+        {
+          blockId: "block_6",
+          href: "google.com",
+          targetText: "北京文旅",
+          type: "set_link",
+        },
+      ],
+      summary: "已更新“北京文旅”的链接。",
+    },
+  );
+});

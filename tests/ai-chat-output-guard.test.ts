@@ -78,6 +78,13 @@ test("strips inserted-content preambles before document-end insertion", () => {
   );
 });
 
+test("strips single-line inserted-content preambles before document-end insertion", () => {
+  assert.equal(
+    sanitizeAiAssistantText("好的，已将内容插入到文档末尾。\n### 概况\n- 西湖", "insert_end"),
+    "### 概况\n- 西湖",
+  );
+});
+
 test("strips revised-text preambles before selection replacement", () => {
   assert.equal(
     sanitizeAiAssistantText(
@@ -92,6 +99,16 @@ test("keeps the preamble when there is no actual document content after it", () 
   assert.equal(
     sanitizeAiAssistantText("好的，已将内容插入到文档末尾。", "insert_end"),
     "好的，已将内容插入到文档末尾。",
+  );
+});
+
+test("strips trailing non-action boilerplate from ordinary chat answers", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "这是杭州简介。\n\n由于当前对话未标记为自动文档操作，因此上述翻译未实际写入文档。如需将翻译添加到文档中，请重新发起文档编辑请求。",
+      null,
+    ),
+    "这是杭州简介。",
   );
 });
 

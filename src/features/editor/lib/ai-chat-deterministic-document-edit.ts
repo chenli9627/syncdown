@@ -167,10 +167,13 @@ function buildLinkPayload(
 ): AiDocumentEditPayload | null {
   const setMatch =
     prompt.match(
-      /(?:\u7ed9|\u4e3a|\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*(?:\u52a0\u4e0a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a|\u6539\u6210|\u6539\u4e3a|\u66f4\u65b0\u4e3a)?\u94fe\u63a5\s*(https?:\/\/\S+)/iu,
+      /(?:\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*\u7684(?:\u94fe\u63a5|\u94fe\u63a5\u5730\u5740)\s*(?:\u6539\u6210|\u6539\u4e3a|\u66f4\u65b0\u4e3a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a)\s*([^\s\u3002\uff01\uff1f,，]+)\s*/iu,
     ) ??
     prompt.match(
-      /(?:\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*\u7684\u94fe\u63a5\s*(?:\u6539\u6210|\u6539\u4e3a|\u66f4\u65b0\u4e3a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a)\s*(https?:\/\/\S+)/iu,
+      /(?:\u7ed9|\u4e3a|\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*(?:\u7684)?\s*(?:\u52a0\u4e0a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a|\u6539\u6210|\u6539\u4e3a|\u66f4\u65b0\u4e3a)?(?:\u94fe\u63a5|\u94fe\u63a5\u5730\u5740|\u94fe\u63a5 url)\s*([^\s\u3002\uff01\uff1f,，]+)\s*/iu,
+    ) ??
+    prompt.match(
+      /(?:update|change|set)\s+(?:the\s+)?link(?:\s+url)?\s+(?:for\s+)?["'`]?([^"'`\n]{1,48})["'`]?\s+(?:to|as)\s+([^\s]+)\s*/i,
     );
   if (setMatch) {
     const target = cleanTarget(setMatch[1]);

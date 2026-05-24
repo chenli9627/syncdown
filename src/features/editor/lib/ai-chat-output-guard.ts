@@ -43,9 +43,16 @@ export function sanitizeAiAssistantText(
   }
 
   return normalizeStructuredTransformContent(
-    stripLeadingAssistantPreamble(text, documentAction, responseMode),
+    stripTrailingNonActionBoilerplate(
+      stripLeadingAssistantPreamble(text, documentAction, responseMode),
+      documentAction,
+    ),
     responseMode,
   );
+}
+
+export function sanitizeAiInsertedContent(text: string) {
+  return stripLeadingAssistantPreamble(text, "insert_end", null);
 }
 
 export function sanitizeAiChatMessage(
@@ -137,7 +144,21 @@ function stripLeadingAssistantPreamble(
     }
   }
 
-  return remaining;
+  return stripSingleLeadingPreambleLine(remaining, documentAction, responseMode);
+}
+
+function stripTrailingNonActionBoilerplate(
+  text: string,
+  documentAction: AiChatDocumentAction | null,
+) {
+  if (documentAction) {
+    return text.trim();
+  }
+
+  return text
+    .replace(/\n{2,}由于当前对话(?:回合)?未标记为自动文档操作[\s\S]*$/u, "")
+    .replace(/\n{2,}This turn is not marked as an automatic document action[\s\S]*$/iu, "")
+    .trim();
 }
 
 function stripOneLeadingDocumentActionPreambleBlock(
@@ -185,6 +206,45 @@ function stripOneLeadingTransformPreambleBlock(
     ) {
       return rest;
     }
+  }
+
+  return normalized;
+}
+
+function stripSingleLeadingPreambleLine(
+  text: string,
+  documentAction: AiChatDocumentAction | null,
+  responseMode: AiChatResponseMode | null,
+) {
+  const normalized = text.replace(/\r\n?/g, "\n").trim();
+  const lines = normalized.split("\n");
+
+  if (lines.length < 2) {
+    return normalized;
+  }
+
+  const firstLine = lines[0]?.trim() ?? "";
+  const rest = lines.slice(1).join("\n").trim();
+
+  if (!firstLine || !rest) {
+    return normalized;
+  }
+
+  if (
+    documentAction &&
+    documentAction !== "edit_blocks" &&
+    isDisposableDocumentActionPreamble(firstLine, documentAction) &&
+    looksLikeInsertableContent(rest)
+  ) {
+    return rest;
+  }
+
+  if (
+    responseMode &&
+    isDisposableTransformPreamble(firstLine, responseMode) &&
+    looksLikeStructuredTransformContent(rest, responseMode)
+  ) {
+    return rest;
   }
 
   return normalized;
@@ -256,6 +316,20 @@ function looksLikeStructuredTransformContent(
   return (
     /^(?:[-*+]\s+|\d+\.\s+|#{1,6}\s+)/m.test(trimmed) ||
     nonEmptyLines.length >= 3
+  );
+}
+
+function looksLikeInsertableContent(text: string) {
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  return (
+    /^(?:[-*+]\s+|\d+\.\s+|#{1,6}\s+|>|```|``|\|.+\|)/m.test(trimmed) ||
+    /^[^\n]{1,160}$/.test(trimmed) ||
+    trimmed.split("\n").filter((line) => line.trim()).length >= 2
   );
 }
 
