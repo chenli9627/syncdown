@@ -168,6 +168,47 @@ test("infers block-edit action from targeted block edit requests", () => {
   assert.equal(inferAiChatDocumentAction("Add subheadings to this document"), "edit_blocks");
 });
 
+test("infers block-edit action from exact replacements that match current document text", () => {
+  assert.equal(
+    inferAiChatDocumentAction("把烤鸭改成北京烤鸭。", {
+      documentBlocks: [
+        {
+          id: "block_food",
+          markdown: "- 烤鸭\n- 炸酱面",
+          text: "烤鸭炸酱面",
+          type: "bulletList",
+        },
+      ],
+      documentText: "北京旅行计划\n美食\n烤鸭\n炸酱面",
+    }),
+    "edit_blocks",
+  );
+  assert.equal(
+    inferAiChatDocumentAction("把 qwen 模型改成 deepseek。", {
+      documentText: "北京旅行计划\n美食\n烤鸭\n炸酱面",
+    }),
+    null,
+  );
+});
+
+test("infers block-edit action from table-context replacements in the current document", () => {
+  assert.equal(
+    inferAiChatDocumentAction("把 Day 2 的备注改成午后出发。", {
+      documentBlocks: [
+        {
+          html: "<table><tr><th>日期</th><th>地点</th><th>备注</th></tr><tr><td>Day 2</td><td>天坛</td><td>早点出发</td></tr></table>",
+          id: "block_table",
+          markdown: "| 日期 | 地点 | 备注 |\n| --- | --- | --- |\n| Day 2 | 天坛 | 早点出发 |",
+          text: "日期地点备注Day 2天坛早点出发",
+          type: "table",
+        },
+      ],
+      documentText: "行程表\nDay 2\n天坛\n早点出发",
+    }),
+    "edit_blocks",
+  );
+});
+
 test("does not infer document actions for ordinary chat prompts", () => {
   assert.equal(inferAiChatDocumentAction("解释一下这篇文档"), null);
   assert.equal(inferAiChatDocumentAction("What are the differences between these models?"), null);

@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useMemo,
   useState,
   type Dispatch,
   type SetStateAction,
@@ -27,6 +28,7 @@ type UseAiChatThreadsArgs = {
   busy: boolean;
   currentUserId: string | null | undefined;
   documentId: string;
+  messages: AiChatMessage[];
   setMessages: (messages: AiChatMessage[]) => void;
   stop: () => void;
 };
@@ -35,12 +37,26 @@ export function useAiChatThreads({
   busy,
   currentUserId,
   documentId,
+  messages,
   setMessages,
   stop,
 }: UseAiChatThreadsArgs) {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [models, setModels] = useState<AiModelOption[]>([]);
   const [threads, setThreads] = useState<AiChatThread[]>([]);
+  const visibleThreads = useMemo(() => {
+    if (!currentUserId || !activeThreadId) {
+      return threads;
+    }
+
+    return syncAiChatThreadMessages(
+      threads,
+      activeThreadId,
+      currentUserId,
+      documentId,
+      messages,
+    );
+  }, [activeThreadId, currentUserId, documentId, messages, threads]);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -92,7 +108,7 @@ export function useAiChatThreads({
       return;
     }
 
-    const localThread = threads.find((thread) => thread.id === threadId);
+    const localThread = visibleThreads.find((thread) => thread.id === threadId);
 
     setActiveThreadId(threadId);
     setMessages(localThread?.messages ?? []);
@@ -118,11 +134,11 @@ export function useAiChatThreads({
       return;
     }
 
-    const nextLocalThreads = threads.filter((thread) => thread.id !== threadId);
+    const nextLocalThreads = visibleThreads.filter((thread) => thread.id !== threadId);
     const nextActiveThread =
       threadId === activeThreadId
         ? nextLocalThreads[0] ?? null
-        : threads.find((thread) => thread.id === activeThreadId) ?? null;
+        : visibleThreads.find((thread) => thread.id === activeThreadId) ?? null;
 
     setThreads(nextLocalThreads);
     setActiveThreadId(nextActiveThread?.id ?? null);
@@ -160,7 +176,7 @@ export function useAiChatThreads({
     handleNewThread,
     handleSelectThread,
     models,
-    threads,
+    threads: visibleThreads,
   };
 }
 
@@ -191,4 +207,43 @@ function ensureThreadVisible(
       ...currentThreads,
     ];
   });
+}
+
+export function syncAiChatThreadMessages(
+  currentThreads: AiChatThread[],
+  threadId: string,
+  userId: string,
+  documentId: string,
+  messages: AiChatMessage[],
+) {
+  const existingThread =
+    currentThreads.find(
+      (thread) =>
+        thread.id === threadId &&
+        thread.userId === userId &&
+        thread.documentId === documentId,
+    ) ?? null;
+
+  if (!existingThread && messages.length === 0) {
+    return currentThreads;
+  }
+
+  if (existingThread && JSON.stringify(existingThread.messages) === JSON.stringify(messages)) {
+    return currentThreads;
+  }
+
+  const editedAt = new Date().toISOString();
+  const nextThread: AiChatThread = {
+    id: threadId,
+    documentId,
+    userId,
+    messages,
+    createdAt: existingThread?.createdAt ?? editedAt,
+    updatedAt: editedAt,
+  };
+
+  return [
+    nextThread,
+    ...currentThreads.filter((thread) => thread.id !== threadId),
+  ].sort((first, second) => second.updatedAt.localeCompare(first.updatedAt));
 }

@@ -1,0 +1,215 @@
+import type { AiChatDocumentBlock } from "@/features/app-state/types";
+import type {
+  AiDocumentEditPayload,
+} from "@/features/editor/lib/ai-chat-document-edit-types";
+import { buildTableCellUpdatePayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit-table";
+import {
+  cleanTarget,
+  cleanValue,
+  findBlocksContaining,
+  findSingleBlockContaining,
+  getFirstMatchGroup,
+  resolveTextMarkInstruction,
+  toHeadingLevel,
+} from "@/features/editor/lib/ai-chat-deterministic-document-edit-utils";
+
+export function buildDeterministicAiDocumentEditPayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  return (
+    buildTableCellUpdatePayload(prompt, documentBlocks) ??
+    buildTaskItemCheckedPayload(prompt, documentBlocks) ??
+    buildHeadingLevelPayload(prompt, documentBlocks) ??
+    buildTextMarkPayload(prompt, documentBlocks) ??
+    buildLinkPayload(prompt, documentBlocks) ??
+    buildExactTextReplacementPayload(prompt, documentBlocks)
+  );
+}
+
+function buildTaskItemCheckedPayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  const checked = !/(?:\u53d6\u6d88\u52fe\u9009|\u53d6\u6d88\u9009\u4e2d|\u53d6\u6d88\u5b8c\u6210|\buncheck\b)/i.test(
+    prompt,
+  );
+  const match =
+    prompt.match(
+      /^(?:\u52fe\u9009|\u9009\u4e2d|\u5b8c\u6210|\u53d6\u6d88\u52fe\u9009|\u53d6\u6d88\u9009\u4e2d|\u53d6\u6d88\u5b8c\u6210)\s*(?:\u4efb\u52a1\u91cc\u7684|\u4efb\u52a1\u4e2d\u7684|\u5f85\u529e\u91cc\u7684|\u5f85\u529e\u4e2d\u7684)?([^\n,\uff0c\u3002\uff01\uff1f]{1,48})/u,
+    ) ??
+    prompt.match(
+      /(?:\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*(?:\u8fd9\u4e2a)?(?:\u4efb\u52a1|\u5f85\u529e)?\s*(?:\u52fe\u9009|\u9009\u4e2d|\u5b8c\u6210|\u53d6\u6d88\u52fe\u9009|\u53d6\u6d88\u9009\u4e2d|\u53d6\u6d88\u5b8c\u6210)/u,
+    );
+  const target = cleanTarget(match?.[1]);
+  if (!target) {
+    return null;
+  }
+
+  const block = findSingleBlockContaining(documentBlocks, target, ["taskList"]);
+  if (!block) {
+    return null;
+  }
+
+  return {
+    operations: [
+      {
+        blockId: block.id,
+        checked,
+        targetText: target,
+        type: "set_task_item_checked",
+      },
+    ],
+    summary: checked ? `已勾选任务“${target}”。` : `已取消勾选任务“${target}”。`,
+  };
+}
+
+function buildHeadingLevelPayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  const chineseMatch = prompt.match(
+    /(?:\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*(?:\u6539\u6210|\u6539\u4e3a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a|\u53d8\u6210)\s*(?:h\s*)?([1-6\u4e00\u4e8c\u4e09\u56db\u4e94\u516d])(?:\u7ea7)?\u6807\u9898/iu,
+  );
+  const englishMatch = prompt.match(
+    /change\s+["'`]?([^"'`\n]{1,48})["'`]?\s+heading\s+level\s+to\s+h?([1-6])/i,
+  );
+  const target = cleanTarget(chineseMatch?.[1] ?? englishMatch?.[1]);
+  const level = toHeadingLevel(chineseMatch?.[2] ?? englishMatch?.[2]);
+  if (!target || !level) {
+    return null;
+  }
+
+  const block = findSingleBlockContaining(documentBlocks, target, ["heading"]);
+  if (!block) {
+    return null;
+  }
+
+  return {
+    operations: [
+      {
+        blockId: block.id,
+        level,
+        type: "set_heading_level",
+      },
+    ],
+    summary: `已将“${target}”调整为 ${level} 级标题。`,
+  };
+}
+
+function buildTextMarkPayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  const instruction = resolveTextMarkInstruction(prompt);
+  const target = cleanTarget(getFirstMatchGroup(prompt, instruction?.patterns ?? []));
+  if (!instruction || !target) {
+    return null;
+  }
+
+  const matchingBlocks = findBlocksContaining(documentBlocks, target);
+  if (!matchingBlocks.length || (matchingBlocks.length > 1 && !instruction.applyAll)) {
+    return null;
+  }
+
+  return {
+    operations: matchingBlocks.map((block) => ({
+      blockId: block.id,
+      marks: [instruction.mark],
+      targetText: target,
+      type: instruction.set ? "set_text_marks" : "unset_text_marks",
+    })),
+    summary: instruction.set
+      ? `已将“${target}”设为${instruction.label}。`
+      : `已移除“${target}”的${instruction.label}。`,
+  };
+}
+
+function buildLinkPayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  const setMatch =
+    prompt.match(
+      /(?:\u7ed9|\u4e3a|\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*(?:\u52a0\u4e0a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a|\u6539\u6210|\u6539\u4e3a|\u66f4\u65b0\u4e3a)?\u94fe\u63a5\s*(https?:\/\/\S+)/iu,
+    ) ??
+    prompt.match(
+      /(?:\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*\u7684\u94fe\u63a5\s*(?:\u6539\u6210|\u6539\u4e3a|\u66f4\u65b0\u4e3a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a)\s*(https?:\/\/\S+)/iu,
+    );
+  if (setMatch) {
+    const target = cleanTarget(setMatch[1]);
+    const href = cleanValue(setMatch[2]);
+    const block = findSingleBlockContaining(documentBlocks, target);
+    if (!target || !href || !block) {
+      return null;
+    }
+    return {
+      operations: [{ blockId: block.id, href, targetText: target, type: "set_link" }],
+      summary: `已更新“${target}”的链接。`,
+    };
+  }
+
+  const unsetMatch = prompt.match(
+    /(?:\u5220\u9664|\u79fb\u9664|\u53bb\u6389|\u53d6\u6d88)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*\u7684\u94fe\u63a5/iu,
+  );
+  const target = cleanTarget(unsetMatch?.[1]);
+  const block = target ? findSingleBlockContaining(documentBlocks, target) : null;
+  return target && block
+    ? {
+        operations: [{ blockId: block.id, targetText: target, type: "unset_link" }],
+        summary: `已移除“${target}”的链接。`,
+      }
+    : null;
+}
+
+function buildExactTextReplacementPayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  const chineseMatch = prompt.match(
+    /(?:\u628a|\u5c06)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,48}?)\s*(?:\u6539\u6210|\u6539\u4e3a|\u66ff\u6362\u6210|\u66ff\u6362\u4e3a|\u66ff\u6362\u6389|\u66ff\u6362)\s*([^\n]{1,120})/u,
+  );
+  const englishMatch = prompt.match(
+    /\b(?:replace|change|update|rename)\s+["'`]?([^"'`\n]{1,48})["'`]?\s+(?:with|to)\s+["'`]?([^"'`\n]{1,120})["'`]?/i,
+  );
+  const target = cleanTarget(chineseMatch?.[1] ?? englishMatch?.[1]);
+  const replacementText = cleanValue(chineseMatch?.[2] ?? englishMatch?.[2]);
+  if (!target || !replacementText || target === replacementText) {
+    return null;
+  }
+
+  const matchingBlocks = findBlocksContaining(documentBlocks, target);
+  if (!matchingBlocks.length) {
+    return null;
+  }
+
+  if (/(?:\u6240\u6709|\u5168\u90e8|\u6bcf\u4e2a|\ball\b|\bevery\b)/i.test(prompt)) {
+    return {
+      operations: [
+        {
+          blockId: matchingBlocks[0]?.id ?? "block_1",
+          replacementText,
+          targetText: target,
+          type: "replace_all_text",
+        },
+      ],
+      summary: `已将所有“${target}”替换为“${replacementText}”。`,
+    };
+  }
+
+  if (matchingBlocks.length !== 1) {
+    return null;
+  }
+
+  return {
+    operations: [
+      {
+        blockId: matchingBlocks[0].id,
+        replacementText,
+        targetText: target,
+        type: "replace_text_in_block",
+      },
+    ],
+    summary: `已将“${target}”改为“${replacementText}”。`,
+  };
+}

@@ -58,22 +58,32 @@ function verifyAiDocumentEditOperation(
 
   if (operation.type === "replace_text_in_block") {
     const targetText = operation.targetText;
+    const replacementText = operation.replacementText ?? "";
+    const replacementContainsTarget =
+      Boolean(targetText) && Boolean(replacementText) && replacementText.includes(targetText ?? "");
 
     return (
       Boolean(targetText) &&
-      !blockContainsText(afterBlock, targetText ?? "") &&
-      blockContainsText(afterBlock, operation.replacementText ?? "")
+      blockContainsText(afterBlock, replacementText) &&
+      (replacementContainsTarget
+        ? beforeBlock?.text !== afterBlock?.text
+        : !blockContainsText(afterBlock, targetText ?? ""))
     );
   }
 
   if (operation.type === "replace_all_text") {
+    const beforeDocumentText = beforeBlocks.map((block) => block.text).join("\n");
     const documentText = afterBlocks.map((block) => block.text).join("\n");
     const replacementText = operation.replacementText ?? "";
     const targetText = operation.targetText;
+    const replacementContainsTarget =
+      Boolean(targetText) && Boolean(replacementText) && replacementText.includes(targetText ?? "");
 
     return (
       Boolean(targetText) &&
-      !documentText.includes(targetText ?? "") &&
+      (replacementContainsTarget
+        ? beforeDocumentText !== documentText
+        : !documentText.includes(targetText ?? "")) &&
       (!replacementText || documentText.includes(replacementText))
     );
   }

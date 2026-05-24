@@ -1,6 +1,12 @@
-import type { AiChatDocumentAction } from "@/features/app-state/types";
+import type {
+  AiChatDocumentAction,
+  AiChatDocumentBlock,
+} from "@/features/app-state/types";
+import { matchesCurrentDocumentMutationContext } from "@/features/editor/lib/ai-chat-document-action-context";
 
 type InferAiChatDocumentActionOptions = {
+  documentBlocks?: AiChatDocumentBlock[];
+  documentText?: string;
   hasSelection?: boolean;
   hasRecentDocumentAction?: boolean;
 };
@@ -46,7 +52,11 @@ export function inferAiChatDocumentAction(
     isSectionHeadingEditPrompt(compactPrompt, lowerPrompt) ||
     isSpecificPlacementPrompt(compactPrompt, lowerPrompt) ||
     isTargetedBlockEditPrompt(compactPrompt, lowerPrompt) ||
-    isImplicitDocumentMutationPrompt(compactPrompt, lowerPrompt)
+    isImplicitDocumentMutationPrompt(compactPrompt, lowerPrompt) ||
+    matchesCurrentDocumentMutationContext(prompt, {
+      documentBlocks: options.documentBlocks,
+      documentText: options.documentText,
+    })
   ) {
     return "edit_blocks";
   }

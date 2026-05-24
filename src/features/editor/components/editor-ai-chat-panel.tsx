@@ -50,6 +50,7 @@ import {
   getAiChatRequestBody,
   readStoredAiChatModelKey,
 } from "@/features/editor/lib/ai-chat-request";
+import { getAiDocumentBlocks } from "@/features/editor/lib/ai-chat-document-tools";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
@@ -171,6 +172,7 @@ export function EditorAiChatPanel({
     busy,
     currentUserId: currentUser?.id,
     documentId,
+    messages,
     setMessages,
     stop,
   });
@@ -225,6 +227,8 @@ export function EditorAiChatPanel({
     }
 
     const documentAction = inferAiChatDocumentAction(resolvedPrompt, {
+      documentBlocks: getAiDocumentBlocks(editor),
+      documentText: editor?.getText() ?? "",
       hasSelection: selected,
       hasRecentDocumentAction,
     });
@@ -278,6 +282,8 @@ export function EditorAiChatPanel({
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
     const documentAction = inferAiChatDocumentAction(trimmed, {
+      documentBlocks: getAiDocumentBlocks(editor),
+      documentText: editor?.getText() ?? "",
       hasSelection: hasEditorSelection(editor),
       hasRecentDocumentAction: hasRecentAiDocumentAction(nextMessages),
     });

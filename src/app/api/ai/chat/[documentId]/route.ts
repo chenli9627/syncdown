@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   convertToModelMessages,
   createIdGenerator,
   stepCountIs,
@@ -21,6 +23,7 @@ import {
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations";
 import { sanitizeAiChatMessage } from "@/features/editor/lib/ai-chat-output-guard";
+import { buildDeterministicAiDocumentEditPayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit";
 import {
   createAiChatModel,
   getAiChatModelConfig,
@@ -147,6 +150,7 @@ export async function POST(request: Request, context: RouteContext) {
   const activeThreadId = saveUserMessageResult.thread.id;
   const documentAction = body.documentAction ?? null;
   const responseMode = body.responseMode ?? null;
+  const effectivePrompt = body.resolvedPrompt?.trim() || getMessageText(incomingMessage);
   const systemPrompt = buildDocumentChatSystemPrompt(
     body.documentTitle ?? "",
     body.documentText ?? "",
@@ -157,6 +161,29 @@ export async function POST(request: Request, context: RouteContext) {
     responseMode,
     body.applicationStatusNotices ?? [],
   );
+  const deterministicPayload =
+    documentAction === "edit_blocks"
+      ? buildDeterministicAiDocumentEditPayload(
+          effectivePrompt,
+          body.documentBlocks ?? [],
+        )
+      : null;
+
+  if (deterministicPayload) {
+    return respondWithDeterministicEditPayload({
+      documentAction,
+      documentId,
+      messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
+      modelKey,
+      modelName: modelConfig.name,
+      payloadText: JSON.stringify(deterministicPayload),
+      responseMode,
+      selection: body.selection ?? null,
+      threadId: activeThreadId,
+      userId: body.userId,
+      userMessages: messages,
+    });
+  }
 
   const result = streamText({
     messages: await convertToModelMessages(modelMessages),
@@ -314,4 +341,90 @@ function replaceMessageText(message: AiChatMessage, text: string): AiChatMessage
       },
     ],
   };
+}
+
+function getMessageText(message: AiChatMessage) {
+  return message.parts
+    .map((part) => (part.type === "text" ? part.text : ""))
+    .join("")
+    .trim();
+}
+
+async function respondWithDeterministicEditPayload({
+  documentAction,
+  documentId,
+  messageId,
+  modelKey,
+  modelName,
+  payloadText,
+  responseMode,
+  selection,
+  threadId,
+  userId,
+  userMessages,
+}: {
+  documentAction: AiChatDocumentAction | null;
+  documentId: string;
+  messageId: string;
+  modelKey: AiChatModelKey;
+  modelName: string;
+  payloadText: string;
+  responseMode: AiChatResponseMode | null;
+  selection: AiChatSelection | null;
+  threadId: string;
+  userId: string;
+  userMessages: AiChatMessage[];
+}) {
+  const assistantMessage = withChatMetadata(
+    {
+      id: messageId,
+      parts: [{ text: payloadText, type: "text" }],
+      role: "assistant",
+    },
+    {
+      documentAction,
+      modelKey,
+      modelName,
+      responseMode,
+      selection,
+      threadId,
+    },
+  );
+  const latestState = await readStoredState();
+  const saveResult = saveAiChatThreadMessages(
+    latestState,
+    userId,
+    documentId,
+    [...userMessages, assistantMessage],
+    { threadId },
+  );
+
+  if (!saveResult.ok) {
+    return NextResponse.json({ error: saveResult.error }, { status: 403 });
+  }
+
+  await writeStoredState(saveResult.state);
+
+  return createUIMessageStreamResponse({
+    stream: createUIMessageStream<AiChatMessage>({
+      originalMessages: userMessages,
+      execute: ({ writer }) => {
+        writer.write({
+          messageId,
+          messageMetadata: assistantMessage.metadata,
+          type: "start",
+        });
+        writer.write({ type: "start-step" });
+        writer.write({ id: "txt-0", type: "text-start" });
+        writer.write({ delta: payloadText, id: "txt-0", type: "text-delta" });
+        writer.write({ id: "txt-0", type: "text-end" });
+        writer.write({ type: "finish-step" });
+        writer.write({
+          finishReason: "stop",
+          messageMetadata: assistantMessage.metadata,
+          type: "finish",
+        });
+      },
+    }),
+  });
 }

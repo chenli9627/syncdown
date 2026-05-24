@@ -71,6 +71,24 @@ test("rejects text replacement results that did not reach the target state", () 
   assert.equal(result.failedCount, 1);
 });
 
+test("verifies text replacements when the replacement still contains the target text", () => {
+  const result = verifyAiDocumentEditOperations(
+    [
+      {
+        blockId: "block_1",
+        replacementText: "北京烤鸭",
+        targetText: "烤鸭",
+        type: "replace_text_in_block",
+      },
+    ],
+    [paragraphBlock("block_1", "烤鸭", 0)],
+    [paragraphBlock("block_1", "北京烤鸭", 0)],
+  );
+
+  assert.equal(result.verified, true);
+  assert.equal(result.failedCount, 0);
+});
+
 test("verifies heading level and text mark results", () => {
   const result = verifyAiDocumentEditOperations(
     [
