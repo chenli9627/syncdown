@@ -21,7 +21,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import type { AiChatMessage } from "@/features/app-state/types";
 import type { PendingDocumentActionConfirmation } from "@/features/editor/hooks/use-ai-chat-auto-document-action";
 import { getAiChatMessageText } from "@/features/editor/lib/ai-chat-actions";
-import { getAiDocumentEditToolSummary } from "@/features/editor/lib/ai-chat-document-tools";
+import { parseAiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-plan";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +64,7 @@ export function ChatMessage({
   const text = getAiChatMessageText(message, message.metadata?.documentAction ?? null);
   const isAssistant = message.role === "assistant";
   const isAutomaticDocumentAction = isAssistant && Boolean(message.metadata?.documentAction);
-  const toolSummary = isAssistant ? getAiDocumentEditToolSummary(text) : null;
+  const toolSummary = isAssistant ? parseAiDocumentEditPlan(text)?.summary ?? null : null;
   const isNotChangedNotice = isDocumentNotChangedNotice(appliedNotice);
   const canRetry = !isAutomaticDocumentAction;
   const displayText = getDisplayText({
@@ -289,18 +289,18 @@ function getPendingDocumentActionText(
   if (pendingDocumentAction.action === "edit_blocks") {
     const parts = [t("aiPendingDocumentAction")];
 
-    if (pendingDocumentAction.summary) {
-      parts.push(toPendingDocumentActionSummary(pendingDocumentAction.summary));
+    if (pendingDocumentAction.plan.summary) {
+      parts.push(toPendingDocumentActionSummary(pendingDocumentAction.plan.summary));
     }
 
-    if (pendingDocumentAction.previewLines.length) {
-      parts.push(pendingDocumentAction.previewLines.map((line) => `- ${line}`).join("\n"));
+    if (pendingDocumentAction.plan.previewLines.length) {
+      parts.push(pendingDocumentAction.plan.previewLines.map((line) => `- ${line}`).join("\n"));
     }
 
     return parts.join("\n\n");
   }
 
-  return `${t("aiPendingGeneratedContent")}\n\n${pendingDocumentAction.responseText}`;
+  return `${t("aiPendingGeneratedContent")}\n\n${pendingDocumentAction.plan.responseText}`;
 }
 
 function toPendingDocumentActionSummary(summary: string) {

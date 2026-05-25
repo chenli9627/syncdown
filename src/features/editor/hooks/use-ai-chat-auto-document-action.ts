@@ -9,10 +9,9 @@ import type {
 import { getAiChatMessageText } from "@/features/editor/lib/ai-chat-actions";
 import {
   applyAiDocumentEditToolResponseWithVerification,
-  getAiDocumentEditToolPreviewLines,
-  getAiDocumentEditToolOperationCount,
-  getAiDocumentEditToolSummary,
 } from "@/features/editor/lib/ai-chat-document-tools";
+import { parseAiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-plan";
+import type { AiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-types";
 
 type PendingDocumentAction = {
   action: AiChatDocumentAction;
@@ -21,11 +20,9 @@ type PendingDocumentAction = {
 
 export type PendingDocumentActionConfirmation = {
   action: AiChatDocumentAction;
+  plan: AiDocumentEditPlan;
   message: AiChatMessage;
   messageId: string;
-  previewLines: string[];
-  responseText: string;
-  summary?: string;
 };
 
 type UseAiChatAutoDocumentActionArgs = {
@@ -82,28 +79,21 @@ export function useAiChatAutoDocumentAction({
       return;
     }
 
-    const summary =
-      documentAction.action === "edit_blocks"
-        ? (getAiDocumentEditToolSummary(responseText) ?? undefined)
-        : undefined;
+    const plan =
+      documentAction.action === "edit_blocks" ? parseAiDocumentEditPlan(responseText) : null;
 
-    if (!shouldRequestDocumentActionConfirmation(documentAction.action, responseText)) {
+    if (!shouldRequestDocumentActionConfirmation(documentAction.action, plan)) {
       if (documentAction.action === "edit_blocks") {
-        onApplyFailed?.(lastMessage.id, summary, "application_failed");
+        onApplyFailed?.(lastMessage.id, plan?.summary, "application_failed");
       }
       return;
     }
 
     setPendingConfirmation({
       action: documentAction.action,
+      plan: plan!,
       message: lastMessage,
       messageId: lastMessage.id,
-      previewLines:
-        documentAction.action === "edit_blocks"
-          ? getAiDocumentEditToolPreviewLines(responseText)
-          : [],
-      responseText,
-      summary,
     });
   }, [busy, editor, messages, onApplied, onApplyFailed]);
 
@@ -160,13 +150,13 @@ function applyConfirmedDocumentAction(
   const beforeSnapshot = getEditorDocumentSnapshot(editor);
 
   if (confirmation.action !== "edit_blocks") {
-    onApplyFailed?.(confirmation.messageId, confirmation.summary, "application_failed");
+    onApplyFailed?.(confirmation.messageId, confirmation.plan.summary, "application_failed");
     return;
   }
 
   const applyResult = applyAiDocumentEditToolResponseWithVerification(
     editor,
-    confirmation.responseText,
+    confirmation.plan.responseText,
   );
   const didApplyAndVerify =
     applyResult.appliedCount > 0 &&
@@ -175,11 +165,11 @@ function applyConfirmedDocumentAction(
     getEditorDocumentSnapshot(editor) !== beforeSnapshot;
 
   if (didApplyAndVerify) {
-    onApplied?.(confirmation.action, confirmation.messageId, confirmation.summary);
+    onApplied?.(confirmation.action, confirmation.messageId, confirmation.plan.summary);
   } else {
     onApplyFailed?.(
       confirmation.messageId,
-      confirmation.summary,
+      confirmation.plan.summary,
       applyResult.appliedCount > 0 && !applyResult.verified
         ? "verification_failed"
         : "application_failed",
@@ -193,7 +183,7 @@ function getEditorDocumentSnapshot(editor: Editor) {
 
 export function shouldRequestDocumentActionConfirmation(
   action: AiChatDocumentAction,
-  responseText: string,
+  plan: AiDocumentEditPlan | null,
 ) {
-  return action === "edit_blocks" && getAiDocumentEditToolOperationCount(responseText) > 0;
+  return action === "edit_blocks" && Boolean(plan && plan.requestedCount > 0);
 }

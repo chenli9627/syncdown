@@ -61,6 +61,14 @@ export type AiDocumentEditPayload = {
   summary?: string;
 };
 
+export type AiDocumentEditPlan = {
+  payload: AiDocumentEditPayload;
+  previewLines: string[];
+  requestedCount: number;
+  responseText: string;
+  summary: string;
+};
+
 export type ExecutableOperation = {
   blockType?: BlockTypeName;
   checked?: boolean;

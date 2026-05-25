@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { parseAiDocumentEditPlan } from "../src/features/editor/lib/ai-chat-document-edit-plan";
 import {
   getAiDocumentEditToolOperationCount,
   getAiDocumentEditToolPreviewLines,
@@ -93,4 +94,53 @@ test("builds preview lines for pending edit confirmation", () => {
     ),
     ["将插入到块后：### 北京概况", "将把“烤鸭”改成“北京烤鸭”"],
   );
+});
+
+test("parses a structured AI document edit plan for pending confirmation", () => {
+  assert.deepEqual(
+    parseAiDocumentEditPlan(
+      JSON.stringify({
+        operations: [
+          { blockId: "block_1", content: "### 北京概况", type: "insert_after_block" },
+          { blockId: "block_2", replacementText: "北京烤鸭", targetText: "烤鸭", type: "replace_text_in_block" },
+        ],
+        summary: "已在文档末尾插入北京概况，并更新烤鸭。",
+      }),
+    ),
+    {
+      payload: {
+        operations: [
+          { blockId: "block_1", content: "### 北京概况", type: "insert_after_block" },
+          { blockId: "block_2", replacementText: "北京烤鸭", targetText: "烤鸭", type: "replace_text_in_block" },
+        ],
+        summary: "已在文档末尾插入北京概况，并更新烤鸭。",
+      },
+      previewLines: ["将插入到块后：### 北京概况", "将把“烤鸭”改成“北京烤鸭”"],
+      requestedCount: 2,
+      responseText: JSON.stringify({
+        operations: [
+          { blockId: "block_1", content: "### 北京概况", type: "insert_after_block" },
+          { blockId: "block_2", replacementText: "北京烤鸭", targetText: "烤鸭", type: "replace_text_in_block" },
+        ],
+        summary: "已在文档末尾插入北京概况，并更新烤鸭。",
+      }),
+      summary: "已在文档末尾插入北京概况，并更新烤鸭。",
+    },
+  );
+});
+
+test("normalizes dependent table insert operations in parsed plans", () => {
+  const plan = parseAiDocumentEditPlan(
+    JSON.stringify({
+      operations: [
+        { blockId: "block_2", column: 2, type: "insert_table_column_after" },
+        { blockId: "block_2", column: 3, content: "Owner", row: 1, type: "update_table_cell" },
+      ],
+      summary: "已新增 Owner 列。",
+    }),
+  );
+
+  assert.equal(plan?.requestedCount, 1);
+  assert.deepEqual(plan?.previewLines, ["将新增表格第 2 列之后的一列"]);
+  assert.equal(plan?.payload.operations?.[0]?.content, "Owner");
 });
