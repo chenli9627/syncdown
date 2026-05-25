@@ -41,6 +41,8 @@
               bun
               bubblewrap
               python3
+              poppler
+              poppler-utils
               self.formatter.${system}
             ];
           };
