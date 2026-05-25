@@ -81,7 +81,9 @@ export function useAiChatAutoDocumentAction({
 
     const plan =
       documentAction.action === "edit_blocks"
-        ? getAiChatMessageEditPlan(lastMessage, documentAction.action)
+        ? getAiChatMessageEditPlan(lastMessage, documentAction.action, {
+            allowTextFallback: false,
+          })
         : null;
 
     if (!shouldRequestDocumentActionConfirmation(documentAction.action, plan)) {

@@ -53,6 +53,28 @@ test("falls back to parsing edit plan from assistant text", () => {
   assert.deepEqual(plan?.previewLines, ["将勾选任务“订酒店”"]);
 });
 
+test("can disable text fallback for current-turn edit plan resolution", () => {
+  const message = {
+    id: "msg_2b",
+    metadata: {
+      createdAt: "2026-05-25T00:00:00.000Z",
+      documentAction: "edit_blocks",
+    },
+    parts: [
+      {
+        text: '{"summary":"已更新任务。","operations":[{"blockId":"block_1","checked":true,"targetText":"订酒店","type":"set_task_item_checked"}]}',
+        type: "text",
+      },
+    ],
+    role: "assistant",
+  } satisfies AiChatMessage;
+
+  assert.equal(
+    getAiChatMessageEditPlan(message, "edit_blocks", { allowTextFallback: false }),
+    null,
+  );
+});
+
 test("adds edit plan metadata to edit-block assistant messages", () => {
   const message = {
     id: "msg_3",

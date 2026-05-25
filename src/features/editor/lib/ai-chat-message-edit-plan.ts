@@ -4,22 +4,35 @@ import type {
 } from "@/features/app-state/types";
 import { parseAiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-plan";
 
+type GetAiChatMessageEditPlanOptions = {
+  allowTextFallback?: boolean;
+};
+
 export function getAiChatMessageEditPlan(
   message: AiChatMessage,
   documentAction: AiChatDocumentAction | null = message.metadata?.documentAction ?? null,
+  options: GetAiChatMessageEditPlanOptions = {},
 ) {
   if (documentAction !== "edit_blocks") {
     return null;
   }
 
-  return message.metadata?.editPlan ?? parseAiDocumentEditPlan(getAiChatMessageText(message));
+  if (message.metadata?.editPlan) {
+    return message.metadata.editPlan;
+  }
+
+  return options.allowTextFallback === false
+    ? null
+    : parseAiDocumentEditPlan(getAiChatMessageText(message));
 }
 
 export function withAiChatMessageEditPlan(
   message: AiChatMessage,
   documentAction: AiChatDocumentAction | null = message.metadata?.documentAction ?? null,
 ): AiChatMessage {
-  const editPlan = getAiChatMessageEditPlan(message, documentAction);
+  const editPlan = getAiChatMessageEditPlan(message, documentAction, {
+    allowTextFallback: true,
+  });
 
   if (!editPlan) {
     return message;
