@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import type { AiChatDocumentBlock } from "../src/features/app-state/types";
 import {
   containsPseudoToolCallText,
   sanitizeAiAssistantText,
 } from "../src/features/editor/lib/ai-chat-output-guard";
+import { getInvalidEditBlocksFallback } from "../src/lib/server/ai-output-guard";
 
 test("detects model-emitted pseudo tool call markup", () => {
   assert.equal(
@@ -164,6 +166,42 @@ test("wraps invalid edit-block prose into a delete-table fallback", () => {
       },
     ),
     '{"summary":"删除了文档中的表格。","operations":[{"blockId":"block_table","type":"delete_block"}]}',
+  );
+});
+
+test("detects current-summary replacement fallbacks on summary sections", () => {
+  const documentBlocks: AiChatDocumentBlock[] = [
+    { id: "block_1", level: 2, text: "总结", type: "heading" },
+    { id: "block_2", text: "北京是中国的首都。", type: "paragraph" },
+  ];
+
+  assert.deepEqual(
+    getInvalidEditBlocksFallback({
+      documentAction: "edit_blocks",
+      documentBlocks,
+      prompt: "把总结加长一点，然后替换现在的总结。",
+    }),
+    {
+      blockId: "block_2",
+      kind: "replace_block",
+      summary: "已更新当前总结。",
+    },
+  );
+});
+
+test("wraps rewritten summary prose into a replace-block fallback", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "以下是加长后的总结：\n\n北京不仅是中国的首都，也是政治、文化、科技与国际交往中心，兼具深厚历史底蕴与现代城市活力。",
+      "edit_blocks",
+      null,
+      {
+        blockId: "block_summary",
+        kind: "replace_block",
+        summary: "已更新当前总结。",
+      },
+    ),
+    '{"summary":"已更新当前总结。","operations":[{"blockId":"block_summary","content":"北京不仅是中国的首都，也是政治、文化、科技与国际交往中心，兼具深厚历史底蕴与现代城市活力。","type":"replace_block"}]}',
   );
 });
 

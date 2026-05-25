@@ -103,6 +103,16 @@ export function getInvalidEditBlocksFallback({
     return null;
   }
 
+  const summaryReplacementBlockId = findSummaryReplacementBlockId(prompt, documentBlocks);
+
+  if (summaryReplacementBlockId) {
+    return {
+      blockId: summaryReplacementBlockId,
+      kind: "replace_block" as const,
+      summary: "已更新当前总结。",
+    };
+  }
+
   if (isDeleteTablePrompt(prompt)) {
     const tableBlock = [...documentBlocks]
       .reverse()
@@ -134,6 +144,82 @@ export function getInvalidEditBlocksFallback({
     kind: "insert_after_block" as const,
     summary: "在文档中插入了模型生成的内容。",
   };
+}
+
+function findSummaryReplacementBlockId(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+) {
+  if (!isSummaryReplacementPrompt(prompt)) {
+    return null;
+  }
+
+  const summaryHeadingIndex = documentBlocks.findIndex(
+    (block) => block.type === "heading" && isSummaryHeadingText(block.text),
+  );
+
+  if (summaryHeadingIndex >= 0) {
+    for (let index = summaryHeadingIndex + 1; index < documentBlocks.length; index += 1) {
+      const block = documentBlocks[index];
+
+      if (!block) {
+        break;
+      }
+
+      if (block.type === "heading") {
+        break;
+      }
+
+      if (block.text.trim()) {
+        return block.id;
+      }
+    }
+  }
+
+  const summaryBlocks = documentBlocks.filter(
+    (block) => block.type !== "heading" && isSummaryContentText(block.text),
+  );
+
+  if (summaryBlocks.length === 1) {
+    return summaryBlocks[0]?.id ?? null;
+  }
+
+  return summaryBlocks[summaryBlocks.length - 1]?.id ?? null;
+}
+
+function isSummaryReplacementPrompt(prompt: string) {
+  const compactPrompt = prompt.toLowerCase().replace(/\s+/g, "");
+  const lowerPrompt = prompt.toLowerCase();
+
+  if (!/(?:总结|摘要|概述|summary)/i.test(prompt)) {
+    return false;
+  }
+
+  return (
+    /(?:总结|摘要|概述).{0,32}(?:加长|扩写|改写|重写|润色|优化|详细|完善|补充|展开|丰富).{0,32}(?:替换|覆盖|改掉|更新|替换掉|替换现在的|替换当前的)?/.test(
+      compactPrompt,
+    ) ||
+    /(?:加长|扩写|改写|重写|润色|优化|详细|完善|补充|展开|丰富).{0,32}(?:总结|摘要|概述).{0,32}(?:替换|覆盖|改掉|更新|替换掉|替换现在的|替换当前的)?/.test(
+      compactPrompt,
+    ) ||
+    /(?:替换|覆盖|改掉|更新).{0,32}(?:当前|现在|现有|已有|原有|原来).{0,16}(?:总结|摘要|概述)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:expand|lengthen|rewrite|revise|polish|improve|update)\b[\s\S]{0,80}\b(?:current|existing)\b[\s\S]{0,40}\bsummary\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:current|existing)\b[\s\S]{0,40}\bsummary\b[\s\S]{0,80}\b(?:expand|lengthen|rewrite|revise|polish|improve|update|replace)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isSummaryHeadingText(text: string) {
+  return /^(?:总结|摘要|概述|summary)$/iu.test(text.trim());
+}
+
+function isSummaryContentText(text: string) {
+  return /^(?:总结|摘要|概述|summary)\s*[:：]/iu.test(text.trim());
 }
 
 function isDeleteTablePrompt(prompt: string) {

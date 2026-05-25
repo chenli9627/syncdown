@@ -7,7 +7,7 @@ import { hasSupportedAiDocumentEditOperationTypes } from "@/features/editor/lib/
 
 export type InvalidEditBlocksFallback = {
   blockId?: string;
-  kind: "delete_block" | "insert_after_block";
+  kind: "delete_block" | "insert_after_block" | "replace_block";
   summary: string;
 };
 
@@ -41,6 +41,7 @@ export function sanitizeAiAssistantText(
 
   if (documentAction === "edit_blocks" && !isValidEditBlocksPayload(text)) {
     const insertableContent = stripLeadingAssistantPreamble(text, "insert_end", responseMode);
+    const replaceableContent = stripReplaceBlockPreamble(text, responseMode);
 
     if (invalidEditBlocksFallback?.kind === "delete_block" && invalidEditBlocksFallback.blockId) {
       return JSON.stringify({
@@ -66,6 +67,23 @@ export function sanitizeAiAssistantText(
             blockId: invalidEditBlocksFallback.blockId,
             content: insertableContent,
             type: "insert_after_block",
+          },
+        ],
+      });
+    }
+
+    if (
+      invalidEditBlocksFallback?.kind === "replace_block" &&
+      invalidEditBlocksFallback.blockId &&
+      looksLikeReplaceableBlockContent(replaceableContent)
+    ) {
+      return JSON.stringify({
+        summary: invalidEditBlocksFallback.summary,
+        operations: [
+          {
+            blockId: invalidEditBlocksFallback.blockId,
+            content: replaceableContent,
+            type: "replace_block",
           },
         ],
       });
@@ -293,6 +311,37 @@ function stripSingleLeadingPreambleLine(
   return normalized;
 }
 
+function stripReplaceBlockPreamble(
+  text: string,
+  responseMode: AiChatResponseMode | null,
+) {
+  const strippedSelectionStyle = stripLeadingAssistantPreamble(
+    text,
+    "replace_selection",
+    responseMode,
+  );
+  const normalized = strippedSelectionStyle.replace(/\r\n?/g, "\n").trim();
+  const separatorMatches = [
+    normalized.match(/\n\s*\n/),
+    normalized.match(/\n/),
+  ].filter((match): match is RegExpMatchArray & { index: number } => match?.index != null);
+
+  for (const separatorMatch of separatorMatches) {
+    const firstBlock = normalized.slice(0, separatorMatch.index).trim();
+    const rest = normalized.slice(separatorMatch.index + separatorMatch[0].length).trim();
+
+    if (!firstBlock || !rest) {
+      continue;
+    }
+
+    if (isDisposableRewritePreamble(firstBlock)) {
+      return rest;
+    }
+  }
+
+  return normalized;
+}
+
 function isDisposableDocumentActionPreamble(
   block: string,
   documentAction: "insert_end" | "insert_cursor" | "replace_selection",
@@ -333,6 +382,14 @@ function isDisposableTransformPreamble(
     String.raw`^(?:好的?[，, ]*|当然[，, ]*|可以[，, ]*|没问题[，, ]*|行[，, ]*|下面|以下|如下|这是|这里是|Here(?:'s| is)|Below(?: is| are)|As requested[, ]*|Sure[, ]*|Okay[, ]*|Ok[, ]*).{0,140}(?:(?:整理|改成|改为|转成|转换成|做成|写成|变成|提炼|总结|概括|归纳|format|rewrite|convert|turn).{0,60})?${modeToken}.{0,80}[：:。.!！]?$`,
     "iu",
   ).test(compact);
+}
+
+function isDisposableRewritePreamble(block: string) {
+  const compact = block.replace(/\s+/g, " ").trim();
+
+  return /^(?:好的?[，, ]*|当然[，, ]*|可以[，, ]*|没问题[，, ]*|行[，, ]*|下面|以下|如下|这是|这里是|Here(?:'s| is)|Below(?: is| are)|As requested[, ]*|Sure[, ]*|Okay[, ]*|Ok[, ]*).{0,140}(?:加长|扩写|改写|重写|润色|优化|完善|补充|expanded|longer|rewritten|revised|polished|improved).{0,80}(?:总结|摘要|概述|summary).*[：:。.!！]?$/iu.test(
+    compact,
+  );
 }
 
 function looksLikeStructuredTransformContent(
@@ -378,6 +435,26 @@ function looksLikeInsertableContent(text: string) {
     /^[^\n]{1,160}$/.test(trimmed) ||
     trimmed.split("\n").filter((line) => line.trim()).length >= 2
   );
+}
+
+function looksLikeReplaceableBlockContent(text: string) {
+  const trimmed = text.trim();
+  const nonEmptyLines = trimmed.split("\n").filter((line) => line.trim());
+  const headingCount = nonEmptyLines.filter((line) => /^#{1,6}\s+/.test(line)).length;
+
+  if (!looksLikeInsertableContent(trimmed)) {
+    return false;
+  }
+
+  if (headingCount > 1) {
+    return false;
+  }
+
+  if (trimmed.length > 1600 && nonEmptyLines.length > 8) {
+    return false;
+  }
+
+  return true;
 }
 
 function looksLikeEditPayloadJson(text: string) {
