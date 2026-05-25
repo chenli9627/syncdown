@@ -176,7 +176,7 @@ export function useEditorHoveredBlock({
     }
 
     const syncCurrentHoveredBlock = () => {
-      syncHoveredBlockFromPos(hoveredBlock.pos);
+      syncHoveredBlockFromSelection();
     };
 
     editor.on("update", syncCurrentHoveredBlock);
@@ -184,7 +184,7 @@ export function useEditorHoveredBlock({
     return () => {
       editor.off("update", syncCurrentHoveredBlock);
     };
-  }, [canEditBody, editor, hoveredBlock, syncHoveredBlockFromPos]);
+  }, [canEditBody, editor, hoveredBlock, syncHoveredBlockFromSelection]);
 
   return {
     hoveredBlock,
