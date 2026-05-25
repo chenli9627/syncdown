@@ -221,3 +221,64 @@ test("supports town-level weather locations through model interpretation", async
   assert.deepEqual(geocodingNames, ["佛堂镇"]);
   assert.match(reply ?? "", /佛堂镇 浙江省/u);
 });
+
+test("falls back from county-level composite locations to narrower geocoding candidates", async () => {
+  const geocodingNames: string[] = [];
+  const fetchImpl = (async (input: URL | RequestInfo) => {
+    const url = new URL(String(input));
+
+    if (url.hostname === "geocoding-api.open-meteo.com") {
+      const name = url.searchParams.get("name") ?? "";
+      geocodingNames.push(name);
+
+      if (name === "信阳市罗山县" || name === "罗山县") {
+        return new Response(
+          JSON.stringify({ results: [] }),
+          { headers: { "Content-Type": "application/json" }, status: 200 },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              admin1: "河南省",
+              latitude: 32.203,
+              longitude: 114.531,
+              name: "罗山",
+            },
+          ],
+        }),
+        { headers: { "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        daily: {
+          precipitation_probability_max: [32],
+          temperature_2m_max: [26.4],
+          temperature_2m_min: [19.1],
+          time: ["2026-05-25"],
+          weather_code: [63],
+          wind_speed_10m_max: [8.6],
+        },
+      }),
+      { headers: { "Content-Type": "application/json" }, status: 200 },
+    );
+  }) as typeof fetch;
+
+  const reply = await getDeterministicAiChatReply("今天信阳市罗山县的天气", {
+    fetchImpl,
+    interpretPromptImpl: async () => ({
+      dayOffset: 0,
+      isSingleLocationReply: true,
+      isWeatherRequest: true,
+      location: "信阳市罗山县",
+    }),
+    now: new Date("2026-05-25T08:00:00+08:00"),
+  });
+
+  assert.deepEqual(geocodingNames, ["信阳市罗山县", "罗山县", "罗山"]);
+  assert.match(reply ?? "", /罗山 河南省/u);
+});

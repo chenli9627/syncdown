@@ -3,6 +3,7 @@ import {
   interpretWeatherPrompt,
   type WeatherPromptInterpretation,
 } from "@/lib/server/ai-weather-prompt-understanding";
+import { getWeatherGeocodingSearchNames } from "@/lib/server/ai-weather-location";
 
 type DeterministicReplyOptions = {
   fetchImpl?: typeof fetch;
@@ -206,20 +207,28 @@ function getWeatherDayLabel(prompt: string, dayOffset: number) {
 }
 
 async function fetchGeocoding(location: string, fetchImpl: typeof fetch) {
-  const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
-  url.searchParams.set("name", location);
-  url.searchParams.set("count", "1");
-  url.searchParams.set("language", /[\u4e00-\u9fff]/u.test(location) ? "zh" : "en");
-  url.searchParams.set("format", "json");
+  for (const searchName of getWeatherGeocodingSearchNames(location)) {
+    const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
+    url.searchParams.set("name", searchName);
+    url.searchParams.set("count", "1");
+    url.searchParams.set("language", /[\u4e00-\u9fff]/u.test(searchName) ? "zh" : "en");
+    url.searchParams.set("format", "json");
 
-  const response = await fetchImpl(url, { headers: { accept: "application/json" } });
+    const response = await fetchImpl(url, { headers: { accept: "application/json" } });
 
-  if (!response.ok) {
-    return null;
+    if (!response.ok) {
+      continue;
+    }
+
+    const payload = (await response.json()) as GeocodingResponse;
+    const result = payload.results?.[0];
+
+    if (result) {
+      return result;
+    }
   }
 
-  const payload = (await response.json()) as GeocodingResponse;
-  return payload.results?.[0] ?? null;
+  return null;
 }
 
 async function fetchForecast(

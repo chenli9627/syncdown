@@ -1,3 +1,5 @@
+import { getWeatherGeocodingSearchNames } from "@/lib/server/ai-weather-location";
+
 type GeocodingResponse = {
   results?: Array<{
     admin1?: string;
@@ -138,23 +140,5 @@ function formatDate(date: Date) {
 }
 
 function getGeocodingSearchNames(location: string) {
-  const trimmed = location.trim();
-  const alias = CHINESE_CITY_ALIAS_MAP[trimmed as keyof typeof CHINESE_CITY_ALIAS_MAP];
-  return alias ? [trimmed, alias] : [trimmed];
+  return getWeatherGeocodingSearchNames(location);
 }
-
-const CHINESE_CITY_ALIAS_MAP = {
-  柏林: "Berlin",
-  曼谷: "Bangkok",
-  东京: "Tokyo",
-  大阪: "Osaka",
-  旧金山: "San Francisco",
-  伦敦: "London",
-  洛杉矶: "Los Angeles",
-  巴黎: "Paris",
-  纽约: "New York",
-  首尔: "Seoul",
-  新加坡: "Singapore",
-  悉尼: "Sydney",
-  雅加达: "Jakarta",
-} as const;
