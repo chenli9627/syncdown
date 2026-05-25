@@ -20,6 +20,10 @@ import {
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations";
 import {
+  mergeNormalizedAiChatThreads,
+  normalizeAiChatThreads,
+} from "@/features/app-state/lib/ai-chat-thread-cleanup";
+import {
   createAiChatModel,
   getAiChatModelConfig,
   getConfiguredAiChatModels,
@@ -77,9 +81,15 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: result.error }, { status: 403 });
   }
 
+  const normalized = normalizeAiChatThreads(result.threads);
+
+  if (normalized.changed) {
+    await writeStoredState(mergeNormalizedAiChatThreads(state, normalized.threads));
+  }
+
   const activeThread = threadId
-    ? result.threads.find((thread: AiChatThread) => thread.id === threadId) ?? null
-    : result.threads[0] ?? null;
+    ? normalized.threads.find((thread: AiChatThread) => thread.id === threadId) ?? null
+    : normalized.threads[0] ?? null;
 
   return NextResponse.json({
     models: getConfiguredAiChatModels().map(({ key, name }) => ({ key, name })),
@@ -89,7 +99,7 @@ export async function GET(request: Request, context: RouteContext) {
       messages: [],
       userId,
     },
-    threads: result.threads,
+    threads: normalized.threads,
   });
 }
 
@@ -257,13 +267,15 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   await writeStoredState(result.state);
 
+  const normalized = normalizeAiChatThreads(result.threads);
+
   return NextResponse.json({
-    thread: result.threads[0] ?? {
+    thread: normalized.threads[0] ?? {
       documentId,
       id: null,
       messages: [],
       userId,
     },
-    threads: result.threads,
+    threads: normalized.threads,
   });
 }
