@@ -1,4 +1,5 @@
 import { sanitizeAiInsertedContent } from "@/features/editor/lib/ai-chat-output-guard";
+import { normalizeAiDocumentEditOperationType } from "@/features/editor/lib/ai-chat-document-edit-operation-normalization";
 import type {
   AiDocumentEditOperation,
   AiDocumentEditPayload,
@@ -40,7 +41,9 @@ function parseAiDocumentEditPayload(responseText: string): AiDocumentEditPayload
     return Array.isArray(parsed.operations)
       ? {
           ...parsed,
-          operations: parsed.operations.map(sanitizeAiDocumentEditOperation),
+          operations: parsed.operations
+            .map(sanitizeAiDocumentEditOperation)
+            .filter((operation): operation is AiDocumentEditOperation => Boolean(operation)),
         }
       : null;
   } catch {
@@ -104,10 +107,17 @@ export function normalizeDependentTableInsertOperations(
   });
 }
 
-function sanitizeAiDocumentEditOperation(operation: AiDocumentEditOperation): AiDocumentEditOperation {
+function sanitizeAiDocumentEditOperation(
+  operation: AiDocumentEditOperation,
+): AiDocumentEditOperation | null {
   const rawOperation = operation as AiDocumentEditOperation & { type?: string };
+  const normalizedType = normalizeAiDocumentEditOperationType(rawOperation.type);
 
-  if (rawOperation.type === "move_before_block") {
+  if (!normalizedType) {
+    return null;
+  }
+
+  if (normalizedType === "move_before_block") {
     return {
       ...rawOperation,
       placement: "before",
@@ -115,7 +125,7 @@ function sanitizeAiDocumentEditOperation(operation: AiDocumentEditOperation): Ai
     };
   }
 
-  if (rawOperation.type === "move_after_block") {
+  if (normalizedType === "move_after_block") {
     return {
       ...rawOperation,
       placement: "after",
@@ -123,15 +133,21 @@ function sanitizeAiDocumentEditOperation(operation: AiDocumentEditOperation): Ai
     };
   }
 
+  const normalizedOperation = {
+    ...rawOperation,
+    type: normalizedType,
+  };
+
   if (!("content" in operation) || typeof operation.content !== "string") {
-    return operation;
+    return normalizedOperation;
   }
 
   return {
-    ...operation,
+    ...normalizedOperation,
     content: sanitizeAiInsertedContent(operation.content),
   };
 }
+
 
 function findDependentTableCellUpdateIndex(
   operations: AiDocumentEditOperation[],

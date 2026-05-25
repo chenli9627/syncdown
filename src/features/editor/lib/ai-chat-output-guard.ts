@@ -3,6 +3,7 @@ import type {
   AiChatMessage,
   AiChatResponseMode,
 } from "@/features/app-state/types";
+import { hasSupportedAiDocumentEditOperationTypes } from "@/features/editor/lib/ai-chat-document-edit-operation-normalization";
 
 export type InvalidEditBlocksFallback = {
   blockId?: string;
@@ -133,7 +134,11 @@ function isValidEditBlocksPayload(text: string) {
       summary?: unknown;
     };
 
-    return typeof parsed.summary === "string" && Array.isArray(parsed.operations);
+    return (
+      typeof parsed.summary === "string" &&
+      Array.isArray(parsed.operations) &&
+      hasSupportedAiDocumentEditOperationTypes(parsed.operations)
+    );
   } catch {
     return false;
   }
@@ -364,11 +369,28 @@ function looksLikeInsertableContent(text: string) {
     return false;
   }
 
+  if (looksLikeEditPayloadJson(trimmed)) {
+    return false;
+  }
+
   return (
     /^(?:[-*+]\s+|\d+\.\s+|#{1,6}\s+|>|```|``|\|.+\|)/m.test(trimmed) ||
     /^[^\n]{1,160}$/.test(trimmed) ||
     trimmed.split("\n").filter((line) => line.trim()).length >= 2
   );
+}
+
+function looksLikeEditPayloadJson(text: string) {
+  if (!/^[{\[]/.test(text) || !/"(?:summary|operations)"\s*:/.test(text)) {
+    return false;
+  }
+
+  try {
+    const parsed = JSON.parse(text) as { operations?: unknown; summary?: unknown };
+    return typeof parsed === "object" && parsed !== null;
+  } catch {
+    return true;
+  }
 }
 
 function normalizeStructuredTransformContent(

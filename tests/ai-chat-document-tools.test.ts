@@ -129,6 +129,36 @@ test("parses a structured AI document edit plan for pending confirmation", () =>
   );
 });
 
+test("normalizes model operation type aliases when parsing plans", () => {
+  const plan = parseAiDocumentEditPlan(
+    JSON.stringify({
+      operations: [
+        { blockId: "block_10", content: "## 百度热搜榜", type: "insertafterblock" },
+      ],
+      summary: "已插入表格。",
+    }),
+  );
+
+  assert.deepEqual(plan?.payload.operations, [
+    { blockId: "block_10", content: "## 百度热搜榜", type: "insert_after_block" },
+  ]);
+  assert.deepEqual(plan?.previewLines, ["将插入到块后：## 百度热搜榜"]);
+});
+
+test("drops unsupported model operation types when parsing plans", () => {
+  const plan = parseAiDocumentEditPlan(
+    JSON.stringify({
+      operations: [
+        { blockId: "block_10", content: "## 百度热搜榜", type: "insertafterblockmaybe" },
+      ],
+      summary: "已插入表格。",
+    }),
+  );
+
+  assert.equal(plan?.requestedCount, 0);
+  assert.equal(plan?.summary, "模型没有返回可应用的文档操作，未修改文档。");
+});
+
 test("normalizes dependent table insert operations in parsed plans", () => {
   const plan = parseAiDocumentEditPlan(
     JSON.stringify({

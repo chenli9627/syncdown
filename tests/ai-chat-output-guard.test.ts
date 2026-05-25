@@ -135,6 +135,22 @@ test("wraps insertable invalid edit-block prose when an insertion fallback is av
   );
 });
 
+test("does not treat malformed edit payload json as insertable content fallback", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      '{"summary":"已将百度热搜榜前十名整理为表格并插入到文档末尾。","operations":[{"type":"insertafterblockmaybe","blockId":"block_10","content":"## 百度热搜榜"}]}',
+      "edit_blocks",
+      null,
+      {
+        blockId: "block_10",
+        kind: "insert_after_block",
+        summary: "在文档中插入了模型生成的内容。",
+      },
+    ),
+    '{"summary":"模型没有返回可应用的文档操作，未修改文档。","operations":[]}',
+  );
+});
+
 test("wraps invalid edit-block prose into a delete-table fallback", () => {
   assert.equal(
     sanitizeAiAssistantText(
