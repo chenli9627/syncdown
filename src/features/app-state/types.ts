@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import type { AiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-types";
 
 export type Permission = "can_edit" | "can_view";
 
@@ -31,6 +32,7 @@ export type AiChatMessageMetadata = {
   clarificationKind?: string;
   createdAt: string;
   documentAction?: AiChatDocumentAction | null;
+  editPlan?: AiDocumentEditPlan | null;
   modelKey?: AiChatModelKey;
   modelName?: string;
   responseMode?: AiChatResponseMode | null;

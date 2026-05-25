@@ -10,7 +10,7 @@ import { getAiChatMessageText } from "@/features/editor/lib/ai-chat-actions";
 import {
   applyAiDocumentEditToolResponseWithVerification,
 } from "@/features/editor/lib/ai-chat-document-tools";
-import { parseAiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-plan";
+import { getAiChatMessageEditPlan } from "@/features/editor/lib/ai-chat-message-edit-plan";
 import type { AiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-types";
 
 type PendingDocumentAction = {
@@ -80,7 +80,9 @@ export function useAiChatAutoDocumentAction({
     }
 
     const plan =
-      documentAction.action === "edit_blocks" ? parseAiDocumentEditPlan(responseText) : null;
+      documentAction.action === "edit_blocks"
+        ? getAiChatMessageEditPlan(lastMessage, documentAction.action)
+        : null;
 
     if (!shouldRequestDocumentActionConfirmation(documentAction.action, plan)) {
       if (documentAction.action === "edit_blocks") {

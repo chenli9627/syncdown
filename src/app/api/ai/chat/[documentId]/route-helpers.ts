@@ -13,6 +13,7 @@ import type {
 import {
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations";
+import { withAiChatMessageEditPlan } from "@/features/editor/lib/ai-chat-message-edit-plan";
 import { sanitizeAiChatMessage } from "@/features/editor/lib/ai-chat-output-guard";
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
 
@@ -24,10 +25,13 @@ export function sanitizeFinishedMessages(
   const lastAssistantIndex = findLastAssistantMessageIndex(messages);
 
   return messages.map((message, index) =>
-    sanitizeAiChatMessage(
-      message,
+    applyEditPlanMetadata(
+      sanitizeAiChatMessage(
+        message,
+        index === lastAssistantIndex ? documentAction : null,
+        index === lastAssistantIndex ? responseMode : null,
+      ),
       index === lastAssistantIndex ? documentAction : null,
-      index === lastAssistantIndex ? responseMode : null,
     ),
   );
 }
@@ -140,12 +144,13 @@ export async function respondWithAssistantText({
       threadId,
     },
   );
+  const finalizedAssistantMessage = applyEditPlanMetadata(assistantMessage, documentAction);
   const latestState = await readStoredState();
   const saveResult = saveAiChatThreadMessages(
     latestState,
     userId,
     documentId,
-    [...userMessages, assistantMessage],
+    [...userMessages, finalizedAssistantMessage],
     { threadId },
   );
 
@@ -162,7 +167,7 @@ export async function respondWithAssistantText({
       execute: ({ writer }) => {
         writer.write({
           messageId,
-          messageMetadata: assistantMessage.metadata,
+          messageMetadata: finalizedAssistantMessage.metadata,
           type: "start",
         });
         writer.write({ type: "start-step" });
@@ -172,7 +177,7 @@ export async function respondWithAssistantText({
         writer.write({ type: "finish-step" });
         writer.write({
           finishReason: "stop",
-          messageMetadata: assistantMessage.metadata,
+          messageMetadata: finalizedAssistantMessage.metadata,
           type: "finish",
         });
       },
@@ -268,4 +273,13 @@ function findLastAssistantMessageIndex(messages: AiChatMessage[]) {
   }
 
   return -1;
+}
+
+function applyEditPlanMetadata(
+  message: AiChatMessage,
+  documentAction: AiChatDocumentAction | null,
+) {
+  return documentAction === "edit_blocks"
+    ? withAiChatMessageEditPlan(message, documentAction)
+    : message;
 }

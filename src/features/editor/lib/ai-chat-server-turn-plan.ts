@@ -2,6 +2,7 @@ import type {
   AiChatDocumentAction,
   AiChatDocumentBlock,
   AiChatMessage,
+  AiChatResponseMode,
   AiChatSelection,
 } from "@/features/app-state/types";
 import {
