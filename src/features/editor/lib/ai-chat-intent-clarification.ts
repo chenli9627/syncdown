@@ -142,7 +142,13 @@ function hasExplicitSource(compactPrompt: string, lowerPrompt: string) {
     /(?:当前文档|这篇文档|文档里|原文|选中|选区|所选|光标|今天|今日|网页|网址|链接|https?:\/\/|微博|热搜|hackernews|新闻|搜索|查找|查询|生成|创建|给我|写一个|写一段|做一个|列一个|推荐|总结).{0,120}/i.test(
       compactPrompt,
     ) ||
+    /(?:[^\s，。！？,.]{1,24}|北上广深|多个城市|多地|几个大城市|各大城市).{0,12}(?:天气|天气预报|气温)/u.test(
+      compactPrompt,
+    ) ||
     /\b(?:current document|selected|selection|cursor|today|web|url|https?:\/\/|hacker news|news|search|fetch|generate|create|write|make|recommend|summarize)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:weather|forecast|temperature)\b[\s\S]{0,80}\b(?:beijing|shanghai|guangzhou|shenzhen|tokyo|london|singapore|new york|cities|city)\b/i.test(
       lowerPrompt,
     )
   );
