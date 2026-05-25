@@ -26,9 +26,9 @@ Product posture:
 Canonical planning documents:
 
 - `/home/chen/code/bs/syncdown/my_plan.md`
-- `/home/chen/code/bs/syncdown/PROJECT_CONTEXT.md`
-- `/home/chen/code/bs/syncdown/ARCHITECTURE_V2.md`
 - `/home/chen/code/bs/syncdown/DESIGN.md`
+- `/home/chen/code/bs/syncdown/status.md`
+- `/home/chen/code/bs/syncdown/docs/current-system-capabilities.md`
 
 ## 3. Confirmed Product Scope
 
@@ -224,8 +224,8 @@ Important:
 High-signal files for Syncdown:
 
 - `/home/chen/code/bs/syncdown/my_plan.md`
-- `/home/chen/code/bs/syncdown/PROJECT_CONTEXT.md`
-- `/home/chen/code/bs/syncdown/ARCHITECTURE_V2.md`
+- `/home/chen/code/bs/syncdown/status.md`
+- `/home/chen/code/bs/syncdown/docs/current-system-capabilities.md`
 - `/home/chen/code/bs/syncdown/src/lib/server/state-store.ts`
 - `/home/chen/code/bs/syncdown/src/lib/server/media-references.ts`
 - `/home/chen/code/bs/syncdown/src/lib/server/media-storage/config.ts`
@@ -289,7 +289,7 @@ Scope assumptions:
 When starting a new session:
 
 1. confirm whether the task is for `syncdown/`
-2. read `my_plan.md` and `syncdown/PROJECT_CONTEXT.md` if the task touches product behavior
+2. read `my_plan.md`, `status.md`, and `docs/current-system-capabilities.md` if the task touches product behavior
 3. inspect current Git status before editing
 4. preserve unrelated user changes
 5. run `pnpm lint` and relevant tests before finishing

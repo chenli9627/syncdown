@@ -402,10 +402,9 @@ Current automated coverage includes:
 ## Important Docs
 
 - `my_plan.md`
-- `PROJECT_CONTEXT.md`
-- `ARCHITECTURE_V2.md`
 - `DESIGN.md`
 - `status.md`
+- `docs/current-system-capabilities.md`
 
 ## Known Non-Product Noise
 
