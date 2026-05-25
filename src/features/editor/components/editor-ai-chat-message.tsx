@@ -63,12 +63,15 @@ export function ChatMessage({
   const { t } = useLocale();
   const text = getAiChatMessageText(message, message.metadata?.documentAction ?? null);
   const isAssistant = message.role === "assistant";
-  const isAutomaticDocumentAction = isAssistant && Boolean(message.metadata?.documentAction);
-  const toolSummary = isAssistant
-    ? getAiChatMessageEditPlan(message, message.metadata?.documentAction ?? null, {
-        allowTextFallback: false,
-      })?.summary ?? null
+  const detectedEditPlan = isAssistant
+    ? getAiChatMessageEditPlan(message, "edit_blocks", {
+        allowTextFallback: true,
+      })
     : null;
+  const isAutomaticDocumentAction =
+    isAssistant &&
+    (Boolean(message.metadata?.documentAction) || Boolean(detectedEditPlan));
+  const toolSummary = detectedEditPlan?.summary ?? null;
   const isNotChangedNotice = isDocumentNotChangedNotice(appliedNotice);
   const canRetry = !isAutomaticDocumentAction;
   const displayText = getDisplayText({

@@ -107,6 +107,29 @@ test("builds deterministic containing-block delete operations", () => {
   );
 });
 
+test("builds deterministic section delete operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("删除“景点”这一节。", documentBlocks),
+    {
+      operations: [
+        { blockId: "block_7", type: "delete_block" },
+        { blockId: "block_8", type: "delete_block" },
+      ],
+      summary: "已删除“景点”这一节。",
+    },
+  );
+});
+
+test("builds deterministic last paragraph delete operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("删除最后一段。", documentBlocks),
+    {
+      operations: [{ blockId: "block_8", type: "delete_block" }],
+      summary: "已删除最后一段。",
+    },
+  );
+});
+
 test("builds deterministic table cell update operations", () => {
   assert.deepEqual(
     buildDeterministicAiDocumentEditPayload("把 Day 2 的备注改成午后出发。", documentBlocks),
@@ -184,6 +207,16 @@ test("builds deterministic heading level operations for multiple headings", () =
         { blockId: "block_7", level: 3, type: "set_heading_level" },
       ],
       summary: "已将“北京旅行计划”、“景点”调整为 3 级标题。",
+    },
+  );
+});
+
+test("builds deterministic structured heading insert operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("在景点下面插入三级标题：美食。", documentBlocks),
+    {
+      operations: [{ blockId: "block_7", content: "### 美食", type: "insert_after_block" }],
+      summary: "已在后面插入 3 级标题“美食”。",
     },
   );
 });
@@ -266,6 +299,35 @@ test("builds deterministic link operations for raw domains and link address phra
         },
       ],
       summary: "已更新“北京文旅”的链接。",
+    },
+  );
+});
+
+test("builds deterministic list transform operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("把包含“天坛”的列表改成任务列表。", documentBlocks),
+    {
+      operations: [{ blockId: "block_2", listType: "taskList", type: "set_list_type" }],
+      summary: "已将包含“天坛”的列表改成任务列表。",
+    },
+  );
+
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload(
+      "把包含“北京是一座历史与现代交融的城市”的段落改成列表。",
+      documentBlocks,
+    ),
+    {
+      operations: [{ blockId: "block_8", listType: "bulletList", type: "set_list_type" }],
+      summary: "已将包含“北京是一座历史与现代交融的城市”的段落改成无序列表。",
+    },
+  );
+
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("把包含“订酒店”的任务列表改成段落。", documentBlocks),
+    {
+      operations: [{ blockId: "block_5", content: "订酒店；买车票", type: "replace_block" }],
+      summary: "已将包含“订酒店”的任务列表改成段落。",
     },
   );
 });

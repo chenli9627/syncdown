@@ -55,6 +55,29 @@ test("falls back to parsing edit plan from assistant text", () => {
   assert.deepEqual(plan?.previewLines, ["将勾选任务“订酒店”"]);
 });
 
+test("can parse edit plan text even when document-action metadata is missing", () => {
+  const message = {
+    id: "msg_2_meta_less",
+    metadata: {
+      createdAt: "2026-05-25T00:00:00.000Z",
+    },
+    parts: [
+      {
+        text: '{"summary":"已删除一个块。","operations":[{"blockId":"block_1","type":"delete_block"}]}',
+        type: "text",
+      },
+    ],
+    role: "assistant",
+  } satisfies AiChatMessage;
+
+  const plan = getAiChatMessageEditPlan(message, "edit_blocks", {
+    allowTextFallback: true,
+  });
+
+  assert.equal(plan?.summary, "已删除一个块。");
+  assert.equal(plan?.requestedCount, 1);
+});
+
 test("normalizes move-before aliases from model output", () => {
   const message = {
     id: "msg_2a",

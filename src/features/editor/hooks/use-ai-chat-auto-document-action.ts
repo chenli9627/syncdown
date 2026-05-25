@@ -68,7 +68,7 @@ export function useAiChatAutoDocumentAction({
     const plan = getAiChatMessageEditPlan(
       lastUnhandledAssistantEdit,
       "edit_blocks",
-      { allowTextFallback: false },
+      { allowTextFallback: true },
     );
 
     if (!shouldRequestDocumentActionConfirmation("edit_blocks", plan)) {
@@ -117,7 +117,7 @@ export function useAiChatAutoDocumentAction({
     const plan =
       documentAction.action === "edit_blocks"
         ? getAiChatMessageEditPlan(lastMessage, documentAction.action, {
-            allowTextFallback: false,
+            allowTextFallback: true,
           })
         : null;
 
@@ -159,7 +159,7 @@ export function useAiChatAutoDocumentAction({
     const plan = getAiChatMessageEditPlan(
       lastUnhandledAssistantEdit,
       "edit_blocks",
-      { allowTextFallback: false },
+      { allowTextFallback: true },
     );
 
     if (!shouldRequestDocumentActionConfirmation("edit_blocks", plan)) {
@@ -227,8 +227,10 @@ function findLastUnhandledAssistantEditMessage(
 
     if (
       message?.role === "assistant" &&
-      message.metadata?.documentAction === "edit_blocks" &&
-      !handledMessageIds?.has(message.id)
+      !handledMessageIds?.has(message.id) &&
+      getAiChatMessageEditPlan(message, "edit_blocks", {
+        allowTextFallback: true,
+      })
     ) {
       return message;
     }

@@ -142,6 +142,23 @@ test("AI edit converter supports heading level changes without replacing the blo
   assert.deepEqual(operations[0]?.range, { from: 0, to: block.nodeSize });
 });
 
+test("AI edit converter supports paragraph to list conversion", () => {
+  const block = paragraphBlock("block_1", "北京是一座历史与现代交融的城市。", 0);
+  const operations = toExecutableOperations(
+    {
+      blockId: "block_1",
+      listType: "bulletList",
+      type: "set_list_type",
+    },
+    [block],
+    0,
+  );
+
+  assert.equal(operations.length, 1);
+  assert.equal(operations[0]?.type, "set_list_type");
+  assert.equal(operations[0]?.listType, "bulletList");
+});
+
 test("AI edit converter rejects operations against missing blocks", () => {
   const operation: AiDocumentEditOperation = {
     blockId: "missing",

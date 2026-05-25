@@ -257,6 +257,16 @@ function getListItemTexts(nodeJson: unknown): string[] {
     return [];
   }
 
+  if (node.type === "paragraph" || node.type === "heading") {
+    const text = getJsonText(node).trim();
+    return text ? [text] : [];
+  }
+
+  if (node.type === "taskItem" || node.type === "listItem") {
+    const text = getJsonText(node).trim();
+    return text ? [text] : [];
+  }
+
   return node.content.map((item) => getJsonText(item));
 }
 

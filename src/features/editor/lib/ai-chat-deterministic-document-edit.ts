@@ -2,7 +2,10 @@ import type { AiChatDocumentBlock } from "@/features/app-state/types";
 import type {
   AiDocumentEditPayload,
 } from "@/features/editor/lib/ai-chat-document-edit-types";
+import { buildDocumentDeletePayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit-delete";
 import { buildHeadingLevelPayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit-heading";
+import { buildExplicitInsertPayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit-insert";
+import { buildListTransformPayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit-list";
 import { buildTableCellUpdatePayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit-table";
 import {
   cleanTarget,
@@ -18,7 +21,9 @@ export function buildDeterministicAiDocumentEditPayload(
   documentBlocks: AiChatDocumentBlock[],
 ): AiDocumentEditPayload | null {
   return (
-    buildContainingBlockDeletePayload(prompt, documentBlocks) ??
+    buildDocumentDeletePayload(prompt, documentBlocks) ??
+    buildExplicitInsertPayload(prompt, documentBlocks) ??
+    buildListTransformPayload(prompt, documentBlocks) ??
     buildContainingBlockReplacementPayload(prompt, documentBlocks) ??
     buildTableCellUpdatePayload(prompt, documentBlocks) ??
     buildTaskItemCheckedPayload(prompt, documentBlocks) ??
@@ -27,37 +32,6 @@ export function buildDeterministicAiDocumentEditPayload(
     buildLinkPayload(prompt, documentBlocks) ??
     buildExactTextReplacementPayload(prompt, documentBlocks)
   );
-}
-
-function buildContainingBlockDeletePayload(
-  prompt: string,
-  documentBlocks: AiChatDocumentBlock[],
-): AiDocumentEditPayload | null {
-  const chineseMatch = prompt.match(
-    /(?:删除|移除|删掉|去掉)\s*(?:包含|含有)\s*[“"'`]?([^“”"'`\n]{1,96})[”"'`]?\s*(?:的)?(段落|标题|小节|列表|表格|块|引用|代码块)?/u,
-  );
-  const englishMatch = prompt.match(
-    /\b(?:delete|remove)\s+(?:the\s+)?(?:(paragraph|heading|section|list|table|block|quote|code block)\s+)?(?:containing|with)\s+["'`]?([^"'`\n]{1,96})["'`]?/i,
-  );
-  const target = cleanTarget(chineseMatch?.[1] ?? englishMatch?.[2]);
-  const kind = cleanTarget(chineseMatch?.[2] ?? englishMatch?.[1]);
-  if (!target) {
-    return null;
-  }
-
-  const block = findSingleBlockContaining(
-    documentBlocks,
-    target,
-    resolveTargetBlockTypes(kind),
-  );
-  if (!block) {
-    return null;
-  }
-
-  return {
-    operations: [{ blockId: block.id, type: "delete_block" }],
-    summary: `已删除包含“${target}”的${describeBlockKind(kind, block.type)}。`,
-  };
 }
 
 function buildContainingBlockReplacementPayload(

@@ -13,7 +13,10 @@ export function toSetListTypeOperation(
 ): ExecutableOperation | null {
   const listType = normalizeListType(operation.listType);
 
-  if (!listType || !["bulletList", "orderedList", "taskList"].includes(block.node.type.name)) {
+  if (
+    !listType ||
+    !["paragraph", "bulletList", "orderedList", "taskList"].includes(block.node.type.name)
+  ) {
     return null;
   }
 
