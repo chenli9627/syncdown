@@ -253,6 +253,12 @@ function isTargetedBlockEditPrompt(compactPrompt: string, lowerPrompt: string) {
     /(?:原文|已有|现有|原有|当前|这个|这张|该).{0,24}(?:段落|表格|列表|清单|小节|章节|标题|部分).{0,48}(?:删除|移除|删掉|去掉|替换|修改|调整|设置|改写|改成|改为|变成|更新)/.test(
       compactPrompt,
     ) ||
+    /(?:删除|移除|删掉|去掉|修改|更新|替换).{0,48}(?:表格?|表|第[一二三四五六七八九十\d]+行|第[一二三四五六七八九十\d]+列|最后一行|末尾一行|所在的行|这一行|这行|单元格)/i.test(
+      compactPrompt,
+    ) ||
+    /(?:表格?|表|第[一二三四五六七八九十\d]+行|第[一二三四五六七八九十\d]+列|最后一行|末尾一行|所在的行|这一行|这行|单元格).{0,48}(?:删除|移除|删掉|去掉|修改|更新|替换)/i.test(
+      compactPrompt,
+    ) ||
     /\b(?:delete|remove|replace|change|update|edit|rewrite)\b[\s\S]{0,160}\b(?:containing|contains|paragraph|table|block|heading|section|part|background|plan|risk|conclusion|summary)\b/.test(
       lowerPrompt,
     ) ||

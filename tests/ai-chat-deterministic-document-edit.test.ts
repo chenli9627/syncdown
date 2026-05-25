@@ -148,6 +148,26 @@ test("builds deterministic table cell update operations", () => {
   );
 });
 
+test("builds deterministic last table row delete operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("删除表格的最后一行。", documentBlocks),
+    {
+      operations: [{ blockId: "block_4", row: 3, type: "delete_table_row" }],
+      summary: "已删除表格最后一行。",
+    },
+  );
+});
+
+test("builds deterministic labeled table row delete operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("删除 Day 2 所在的行。", documentBlocks),
+    {
+      operations: [{ blockId: "block_4", row: 3, type: "delete_table_row" }],
+      summary: "已删除表格中“Day 2”所在的行。",
+    },
+  );
+});
+
 test("builds deterministic task checkbox operations", () => {
   assert.deepEqual(
     buildDeterministicAiDocumentEditPayload("勾选任务里的订酒店。", documentBlocks),

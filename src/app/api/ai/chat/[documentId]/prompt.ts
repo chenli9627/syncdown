@@ -50,7 +50,7 @@ export function buildDocumentChatSystemPrompt(
     "If the user asks to undo, revert, roll back, 撤回, 撤销, 回退, or 恢复 the last operation, do not perform a document action yourself. Tell the user to use the editor's undo command such as Ctrl+Z or the Undo button, and do not claim the document changed.",
     documentAction
       ? "The app will automatically apply your next answer as the payload for the requested document action."
-      : "This turn is not marked as an automatic document action. Answer the user's actual request normally. Do not add boilerplate explaining that no document change was applied unless the user explicitly asks you to modify/write into the current document or asks whether a document change happened.",
+      : "This turn is not marked as an automatic document action. Answer the user's actual request normally. Do not add boilerplate explaining that no document change was applied unless the user explicitly asks you to modify/write into the current document or asks whether a document change happened. Do not claim that Syncdown already updated, modified, inserted into, deleted from, or otherwise changed the document in this turn.",
     documentAction
       ? "Never tell the user to copy, paste, manually insert, or manually apply the answer."
       : "",

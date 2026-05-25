@@ -16,6 +16,11 @@ export function buildTableCellUpdatePayload(
   prompt: string,
   documentBlocks: AiChatDocumentBlock[],
 ): AiDocumentEditPayload | null {
+  const rowDeletePayload = buildTableRowDeletePayload(prompt, documentBlocks);
+  if (rowDeletePayload) {
+    return rowDeletePayload;
+  }
+
   const explicitMatch = prompt.match(
     /(?:表格|行程表)?第([1-6\u4e00\u4e8c\u4e09\u56db\u4e94\u516d])行第([1-6\u4e00\u4e8c\u4e09\u56db\u4e94\u516d])列(?:[^,\uff0c\u3002\uff01\uff1f]{0,24})?(?:\u6539\u6210|\u6539\u4e3a|\u66ff\u6362\u6210|\u66ff\u6362\u4e3a|\u66f4\u65b0\u4e3a|\u8bbe\u4e3a|\u8bbe\u7f6e\u4e3a)\s*([^\n]{1,120})/iu,
   );
@@ -63,6 +68,53 @@ export function buildTableCellUpdatePayload(
           { blockId: table.block.id, column, content, row, type: "update_table_cell" },
         ],
         summary: `已更新表格中“${rowLabel}”这一行的“${columnLabel}”单元格。`,
+      };
+    }
+  }
+
+  return null;
+}
+
+function buildTableRowDeletePayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  const compactPrompt = prompt.replace(/\s+/g, "");
+
+  if (/(?:删除|移除|删掉|去掉)(?:表格?|这个表格?|该表格?)(?:的)?(?:最后|末尾)一行/u.test(compactPrompt)) {
+    const table = getParsedTables(documentBlocks).at(-1);
+    const row = table?.rows.length ?? 0;
+
+    if (!table || row < 2) {
+      return null;
+    }
+
+    return {
+      operations: [{ blockId: table.block.id, row, type: "delete_table_row" }],
+      summary: "已删除表格最后一行。",
+    };
+  }
+
+  const rowLabelMatch =
+    prompt.match(
+      /(?:删除|移除|删掉|去掉)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,40}?)\s*(?:所在的行|这一行|这行)/u,
+    ) ??
+    prompt.match(
+      /(?:把|将)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,40}?)\s*(?:所在的行|这一行|这行)\s*(?:删除|移除|删掉|去掉)/u,
+    );
+  const rowLabel = cleanTarget(rowLabelMatch?.[1]);
+
+  if (!rowLabel) {
+    return null;
+  }
+
+  for (const table of getParsedTables(documentBlocks)) {
+    const row = findTableRowIndex(table.rows, rowLabel);
+
+    if (row > 1) {
+      return {
+        operations: [{ blockId: table.block.id, row, type: "delete_table_row" }],
+        summary: `已删除表格中“${rowLabel}”所在的行。`,
       };
     }
   }

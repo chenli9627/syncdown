@@ -166,6 +166,8 @@ test("infers block-edit action from targeted block edit requests", () => {
   assert.equal(inferAiChatDocumentAction("把所有的北京都加粗"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("给官网两个字加上链接"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("把表格第二行第三列改成 Done"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("删除表的最后一行"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("删除洛杉矶所在的行"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("Make Alpha bold and update its link"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("把风险表格移动到方案下面"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("把所有 Alpha 替换成 Beta"), "edit_blocks");
