@@ -1,5 +1,10 @@
 import type { AiChatDocumentBlock } from "@/features/app-state/types";
 import type { AiDocumentEditPayload } from "@/features/editor/lib/ai-chat-document-edit-types";
+import { buildCountedLastBlockDeletePayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit-delete-counted";
+import {
+  findLastBlockOfTypes,
+  getSectionBlockIds,
+} from "@/features/editor/lib/ai-chat-deterministic-document-edit-delete-helpers";
 import {
   cleanTarget,
   findSingleBlockContaining,
@@ -10,10 +15,51 @@ export function buildDocumentDeletePayload(
   documentBlocks: AiChatDocumentBlock[],
 ): AiDocumentEditPayload | null {
   return (
+    buildMultiSectionDeletePayload(prompt, documentBlocks) ??
     buildSectionDeletePayload(prompt, documentBlocks) ??
+    buildCountedLastBlockDeletePayload(prompt, documentBlocks) ??
     buildLastBlockDeletePayload(prompt, documentBlocks) ??
     buildContainingBlockDeletePayload(prompt, documentBlocks)
   );
+}
+
+function buildMultiSectionDeletePayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  if (
+    !/(?:删除|移除|删掉|去掉)/u.test(prompt) ||
+    !/(?:标题|小节|章节|部分).{0,16}(?:下面的内容|其下面的内容|内容)/u.test(prompt)
+  ) {
+    return null;
+  }
+
+  const targets = [...prompt.matchAll(/[“"'`]([^“”"'`\n]{1,96})[”"'`]/g)]
+    .map((match) => cleanTarget(match[1]))
+    .filter(Boolean);
+
+  if (targets.length < 2) {
+    return null;
+  }
+
+  const headingBlocks = targets
+    .map((target) => findSingleBlockContaining(documentBlocks, target, ["heading"]))
+    .filter((block): block is NonNullable<typeof block> => Boolean(block));
+
+  if (headingBlocks.length !== targets.length) {
+    return null;
+  }
+
+  const blockIds = [...new Set(headingBlocks.flatMap((block) => getSectionBlockIds(documentBlocks, block.id)))];
+
+  if (!blockIds.length) {
+    return null;
+  }
+
+  return {
+    operations: blockIds.map((blockId) => ({ blockId, type: "delete_block" as const })),
+    summary: `已删除${headingBlocks.map((block) => `“${block.text}”`).join("和")}及其下面的内容。`,
+  };
 }
 
 function buildSectionDeletePayload(
@@ -137,46 +183,6 @@ function buildContainingBlockDeletePayload(
     operations: [{ blockId: block.id, type: "delete_block" }],
     summary: `已删除包含“${target}”的${describeBlockKind(kind, block.type)}。`,
   };
-}
-
-function getSectionBlockIds(documentBlocks: AiChatDocumentBlock[], headingBlockId: string) {
-  const headingIndex = documentBlocks.findIndex((block) => block.id === headingBlockId);
-  const headingBlock = documentBlocks[headingIndex];
-
-  if (headingIndex < 0 || headingBlock?.type !== "heading") {
-    return [];
-  }
-
-  const blockIds = [headingBlock.id];
-  const currentLevel = headingBlock.level ?? 1;
-
-  for (let index = headingIndex + 1; index < documentBlocks.length; index += 1) {
-    const block = documentBlocks[index];
-
-    if (!block) {
-      continue;
-    }
-
-    if (block.type === "heading" && (block.level ?? 1) <= currentLevel) {
-      break;
-    }
-
-    blockIds.push(block.id);
-  }
-
-  return blockIds;
-}
-
-function findLastBlockOfTypes(documentBlocks: AiChatDocumentBlock[], types: string[]) {
-  for (let index = documentBlocks.length - 1; index >= 0; index -= 1) {
-    const block = documentBlocks[index];
-
-    if (block && types.includes(block.type)) {
-      return block;
-    }
-  }
-
-  return null;
 }
 
 function resolveTargetBlockTypes(kind: string) {

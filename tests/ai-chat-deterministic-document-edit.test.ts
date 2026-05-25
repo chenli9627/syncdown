@@ -120,12 +120,47 @@ test("builds deterministic section delete operations", () => {
   );
 });
 
+test("builds deterministic multi-section delete operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload(
+      "删除“北京旅行计划”和“景点”这两个标题及其下面的内容。",
+      documentBlocks,
+    ),
+    {
+      operations: [
+        { blockId: "block_1", type: "delete_block" },
+        { blockId: "block_2", type: "delete_block" },
+        { blockId: "block_3", type: "delete_block" },
+        { blockId: "block_4", type: "delete_block" },
+        { blockId: "block_5", type: "delete_block" },
+        { blockId: "block_6", type: "delete_block" },
+        { blockId: "block_7", type: "delete_block" },
+        { blockId: "block_8", type: "delete_block" },
+      ],
+      summary: "已删除“北京旅行计划”和“景点”及其下面的内容。",
+    },
+  );
+});
+
 test("builds deterministic last paragraph delete operations", () => {
   assert.deepEqual(
     buildDeterministicAiDocumentEditPayload("删除最后一段。", documentBlocks),
     {
       operations: [{ blockId: "block_8", type: "delete_block" }],
       summary: "已删除最后一段。",
+    },
+  );
+});
+
+test("builds deterministic counted last paragraph delete operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("删除最后两段。", documentBlocks),
+    {
+      operations: [
+        { blockId: "block_6", type: "delete_block" },
+        { blockId: "block_8", type: "delete_block" },
+      ],
+      summary: "已删除最后2段。",
     },
   );
 });
