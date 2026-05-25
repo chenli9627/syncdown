@@ -57,6 +57,7 @@ export function inferAiChatDocumentAction(
     isHeadingLevelEditPrompt(compactPrompt, lowerPrompt) ||
     isSpecialFormatEditPrompt(compactPrompt, lowerPrompt) ||
     isDocumentStructureEditPrompt(compactPrompt, lowerPrompt) ||
+    isTableAugmentationPrompt(compactPrompt, lowerPrompt) ||
     isSectionHeadingEditPrompt(compactPrompt, lowerPrompt) ||
     isSpecificPlacementPrompt(compactPrompt, lowerPrompt) ||
     isTargetedBlockEditPrompt(compactPrompt, lowerPrompt) ||
@@ -360,6 +361,23 @@ function isDocumentStructureEditPrompt(compactPrompt: string, lowerPrompt: strin
       lowerPrompt,
     ) ||
     /\b(?:position|order|places?)\b[\s\S]{0,120}\b(?:swap|exchange|switch)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isTableAugmentationPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:新增|添加|补充|追加|加入|增添).{0,72}(?:国际|国内|中国|国外|全球|世界|几个|一些|若干|更多)?.{0,24}(?:城市|地区).{0,24}(?:天气|天气预报|气温|数据).{0,32}(?:表格?|天气表|表中|表里|这个表|该表)/i.test(
+      compactPrompt,
+    ) ||
+    /(?:表格?|天气表|表中|表里|这个表|该表).{0,72}(?:新增|添加|补充|追加|加入|增添).{0,72}(?:国际|国内|中国|国外|全球|世界|几个|一些|若干|更多)?.{0,24}(?:城市|地区).{0,24}(?:天气|天气预报|气温|数据)/i.test(
+      compactPrompt,
+    ) ||
+    /\b(?:add|append|insert|include|put)\b[\s\S]{0,140}\b(?:international|global|world|domestic|chinese|major|several|some)\b[\s\S]{0,80}\b(?:cities?|locations?)\b[\s\S]{0,120}\b(?:weather|forecast|temperature|data)\b[\s\S]{0,120}\b(?:table|weather table)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:table|weather table)\b[\s\S]{0,140}\b(?:add|append|insert|include|put)\b[\s\S]{0,140}\b(?:cities?|locations?)\b[\s\S]{0,120}\b(?:weather|forecast|temperature|data)\b/.test(
       lowerPrompt,
     )
   );

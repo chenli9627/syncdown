@@ -43,6 +43,17 @@ test("plans explicit document edits as edit", () => {
       responseMode: null,
     },
   );
+  assert.deepEqual(
+    planAiChatIntent("往文档中的天气表中新增添几个国际城市的天气", {
+      documentBlocks,
+      documentText: "北京旅行计划\n景点\n北京是一座历史与现代交融的城市。",
+    }),
+    {
+      documentAction: "edit_blocks",
+      kind: "edit",
+      responseMode: null,
+    },
+  );
 });
 
 test("plans summary position swaps as document edits", () => {
