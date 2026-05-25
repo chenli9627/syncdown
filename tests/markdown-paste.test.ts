@@ -155,6 +155,19 @@ test("preserves handwritten markdown link labels", () => {
   assert.match(html, /<a href="https:\/\/google\.com">dfk<\/a>/);
 });
 
+test("parses handwritten links with Chinese domains or paths", () => {
+  const html = markdownToEditorHtml(
+    "官网：[北京百科](例子.测试/北京)\n\n原始链接：google.com/北京\n\n完整链接：https://zh.wikipedia.org/wiki/北京",
+  );
+
+  assert.match(html, /<a href="https:\/\/例子\.测试\/北京">北京百科<\/a>/u);
+  assert.match(html, /<a href="https:\/\/google\.com\/北京">google\.com\/北京<\/a>/u);
+  assert.match(
+    html,
+    /<a href="https:\/\/zh\.wikipedia\.org\/wiki\/北京">https:\/\/zh\.wikipedia\.org\/wiki\/北京<\/a>/u,
+  );
+});
+
 test("tolerates unsupported markdown blocks during paste without dropping supported blocks", () => {
   const markdown = `# h1
 

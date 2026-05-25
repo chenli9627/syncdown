@@ -52,6 +52,7 @@ function createInlineMarkdownRenderer() {
 function inlineMarkdownToHtml(text: string, footnoteReferenceCounts?: Map<string, number>) {
   let result = escapeHtml(text);
   const links: string[] = [];
+  const rawLinkPrefix = "(^|[\\s(（:：])";
 
   result = result.replace(/\[\^([^\]]+)\]/g, (_match, id: string) => {
     return stashFootnoteReference(links, id, footnoteReferenceCounts);
@@ -63,11 +64,25 @@ function inlineMarkdownToHtml(text: string, footnoteReferenceCounts?: Map<string
   result = result.replace(/(?<!!)\[([^\]]+)\]\(([^)\s]+)\)/g, (match, label: string, href: string) =>
     stashLink(links, label, href) ?? match,
   );
-  result = result.replace(/(^|[\s(])((?:https?:\/\/|mailto:)[^\s<]+)/gi, (match, prefix: string, href: string) => {
-    const { cleanHref, trailing } = splitTrailingUrlPunctuation(href);
-    const link = stashLink(links, cleanHref, cleanHref);
-    return link ? `${prefix}${link}${trailing}` : match;
-  });
+  result = result.replace(
+    new RegExp(`${rawLinkPrefix}((?:https?:\\/\\/|mailto:)[^\\s<]+)`, "giu"),
+    (match, prefix: string, href: string) => {
+      const { cleanHref, trailing } = splitTrailingUrlPunctuation(href);
+      const link = stashLink(links, cleanHref, cleanHref);
+      return link ? `${prefix}${link}${trailing}` : match;
+    },
+  );
+  result = result.replace(
+    new RegExp(
+      `${rawLinkPrefix}((?:localhost|(?:\\d{1,3}\\.){3}\\d{1,3}|[\\p{L}\\p{N}-]+(?:\\.[\\p{L}\\p{N}-]+)+)(?::\\d{1,5})?(?:[/?#][^\\s<]*)?)`,
+      "gu",
+    ),
+    (match, prefix: string, href: string) => {
+      const { cleanHref, trailing } = splitTrailingUrlPunctuation(href);
+      const link = stashLink(links, cleanHref, cleanHref);
+      return link ? `${prefix}${link}${trailing}` : match;
+    },
+  );
 
   result = result.replace(/~~(.+?)~~/g, "<s>$1</s>");
   result = result.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
@@ -117,15 +132,48 @@ function isSafeMarkdownLinkHref(href: string) {
 }
 
 function normalizeMarkdownLinkHref(href: string) {
-  if (/^(?:https?:\/\/|mailto:|\/|#)/i.test(href)) {
-    return href;
+  const trimmed = href.trim();
+
+  if (!trimmed) {
+    return null;
   }
 
-  if (/^[a-z0-9.-]+\.[a-z]{2,}(?:[/?#][^\s]*)?$/i.test(href)) {
-    return `https://${href}`;
+  if (/^(?:https?:\/\/|mailto:|\/|#)/i.test(trimmed)) {
+    return trimmed;
   }
 
-  return null;
+  if (!looksLikeBareDomainHref(trimmed)) {
+    return null;
+  }
+
+  const normalized = `https://${trimmed}`;
+
+  try {
+    const parsed = new URL(normalized);
+    return /^https?:$/i.test(parsed.protocol) ? normalized : null;
+  } catch {
+    return null;
+  }
+}
+
+function looksLikeBareDomainHref(href: string) {
+  if (/\s/u.test(href)) {
+    return false;
+  }
+
+  const hostPort = href.split(/[/?#]/u, 1)[0] ?? "";
+  const match = hostPort.match(/^(?<host>.+?)(?::(?<port>\d{1,5}))?$/u);
+  const host = match?.groups?.host ?? hostPort;
+
+  if (!host) {
+    return false;
+  }
+
+  return (
+    host === "localhost" ||
+    /^(?:\d{1,3}\.){3}\d{1,3}$/u.test(host) ||
+    /^[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+$/u.test(host)
+  );
 }
 
 function formatFootnoteLabel(id: string) {
