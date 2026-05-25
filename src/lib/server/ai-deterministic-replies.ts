@@ -106,7 +106,20 @@ function extractWeatherLocation(prompt: string) {
 }
 
 function sanitizeLocation(value: string) {
-  return value.replace(/^(?:今天|明天|后天|today|tomorrow)\s*/iu, "").trim() || null;
+  const normalized = value
+    .trim()
+    .replace(
+      /^(?:现在|目前|此刻|今天|明天|后天|给我|帮我|帮我看(?:看|下)?|帮我查(?:查|一下)?|帮我搜(?:一下)?|请问|我想知道|想知道|看看|查查|查一下|查一查|tell me|show me|give me|what(?:'s| is)|how(?:'s| is)|can you(?: please)?(?: tell me| check)?|please)\s*/iu,
+      "",
+    )
+    .replace(/\s*(?:这边|那边|那里|这儿|那儿)$/u, "")
+    .replace(/\s*(?:天气怎么样|天气如何|天气呢|怎么样|如何)\s*$/iu, "")
+    .replace(/^(?:the\s+)?weather\s+(?:in|for)\s+/iu, "")
+    .replace(/^(?:in|for)\s+/iu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return normalized || null;
 }
 
 function getWeatherDayOffset(prompt: string) {
