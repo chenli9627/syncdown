@@ -1,0 +1,76 @@
+meta:
+  profile: academic-paper
+  figureType: workflow
+  theme: academic
+  layout: horizontal
+  title: 文档权限判定流程
+  description: 展示用户打开文档时从工作区身份到文档级权限的判定过程。
+  legend: owner拥有管理权限，guest根据共享关系获得can_edit或can_view。
+modules:
+  - id: input
+    label: 访问请求
+  - id: decision
+    label: 权限判定
+  - id: result
+    label: 页面状态
+nodes:
+  - id: open_doc
+    label: 用户打开文档
+    type: process
+    module: input
+  - id: check_owner
+    label: 是否为工作区owner
+    type: decision
+    module: decision
+  - id: owner_mode
+    label: 可编辑标题/正文/共享/回收站
+    type: process
+    module: result
+  - id: check_share
+    label: 是否存在文档共享关系
+    type: decision
+    module: decision
+  - id: check_perm
+    label: 判断can_edit或can_view
+    type: decision
+    module: decision
+  - id: edit_mode
+    label: 可编辑正文
+    type: process
+    module: result
+  - id: view_mode
+    label: 只读查看正文
+    type: process
+    module: result
+  - id: deny
+    label: 拒绝访问
+    type: process
+    module: result
+edges:
+  - from: open_doc
+    to: check_owner
+    type: primary
+  - from: check_owner
+    to: owner_mode
+    type: primary
+    label: 是
+  - from: check_owner
+    to: check_share
+    type: data
+    label: 否
+  - from: check_share
+    to: deny
+    type: data
+    label: 无共享
+  - from: check_share
+    to: check_perm
+    type: primary
+    label: 有共享
+  - from: check_perm
+    to: edit_mode
+    type: primary
+    label: can_edit
+  - from: check_perm
+    to: view_mode
+    type: data
+    label: can_view

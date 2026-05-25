@@ -1,0 +1,79 @@
+meta:
+  profile: academic-paper
+  figureType: workflow
+  theme: academic
+  layout: horizontal
+  title: 基于CRDT的协同编辑算法流程
+  description: 展示Tiptap编辑操作转换为Yjs增量更新、经Hocuspocus广播并由客户端合并保存的流程。
+  legend: CRDT update负责正文一致性，Awareness负责协作者状态，自动保存负责持久化。
+modules:
+  - id: client_a
+    label: 客户端A
+  - id: server
+    label: 协作服务
+  - id: client_b
+    label: 客户端B
+  - id: persist
+    label: 应用持久化
+nodes:
+  - id: edit_a
+    label: 本地编辑操作
+    type: process
+    module: client_a
+  - id: ydoc_a
+    label: 写入本地Y.Doc
+    type: process
+    module: client_a
+  - id: update
+    label: 生成CRDT update
+    type: process
+    module: client_a
+  - id: ws
+    label: Hocuspocus房间广播
+    type: service
+    module: server
+  - id: merge_b
+    label: 远端Y.Doc合并
+    type: process
+    module: client_b
+  - id: render_b
+    label: Tiptap重新渲染
+    type: process
+    module: client_b
+  - id: awareness
+    label: Awareness状态同步
+    type: process
+    module: server
+  - id: autosave
+    label: 自动保存节流
+    type: process
+    module: persist
+  - id: state
+    label: PostgreSQL / JSON
+    type: database
+    module: persist
+edges:
+  - from: edit_a
+    to: ydoc_a
+    type: primary
+  - from: ydoc_a
+    to: update
+    type: primary
+  - from: update
+    to: ws
+    type: primary
+  - from: ws
+    to: merge_b
+    type: primary
+  - from: merge_b
+    to: render_b
+    type: primary
+  - from: ws
+    to: awareness
+    type: data
+  - from: ydoc_a
+    to: autosave
+    type: data
+  - from: autosave
+    to: state
+    type: primary

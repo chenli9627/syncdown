@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "title": "Syncdown系统总体架构",
+  "type": "academic-diagram",
+  "source": "generated",
+  "profile": "academic-paper",
+  "theme": "academic",
+  "layout": "horizontal",
+  "counts": {
+    "nodes": 9,
+    "edges": 8,
+    "modules": 4
+  },
+  "nodes": [
+    {
+      "id": "user",
+      "label": "用户浏览器",
+      "type": "user",
+      "module": "client"
+    },
+    {
+      "id": "editor",
+      "label": "React + Tiptap编辑器",
+      "type": "service",
+      "module": "client"
+    },
+    {
+      "id": "api",
+      "label": "Next.js API路由",
+      "type": "service",
+      "module": "service"
+    },
+    {
+      "id": "ai_proxy",
+      "label": "AI服务端代理",
+      "type": "service",
+      "module": "service"
+    },
+    {
+      "id": "hocuspocus",
+      "label": "Hocuspocus WebSocket服务",
+      "type": "service",
+      "module": "collab"
+    },
+    {
+      "id": "ydoc",
+      "label": "Y.Doc共享文档",
+      "type": "service",
+      "module": "collab"
+    },
+    {
+      "id": "postgres",
+      "label": "PostgreSQL / JSON状态存储",
+      "type": "database",
+      "module": "storage"
+    },
+    {
+      "id": "object_store",
+      "label": "本地或S3兼容对象存储",
+      "type": "database",
+      "module": "storage"
+    },
+    {
+      "id": "llm",
+      "label": "OpenAI兼容大模型接口",
+      "type": "cloud",
+      "module": "service"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "user",
+      "to": "editor",
+      "type": "primary",
+      "label": "编辑与选择文本"
+    },
+    {
+      "id": "edge-2",
+      "from": "editor",
+      "to": "api",
+      "type": "data",
+      "label": "保存/权限/媒体/API请求"
+    },
+    {
+      "id": "edge-3",
+      "from": "editor",
+      "to": "hocuspocus",
+      "type": "primary",
+      "label": "CRDT update"
+    },
+    {
+      "id": "edge-4",
+      "from": "hocuspocus",
+      "to": "ydoc",
+      "type": "data",
+      "label": "房间广播"
+    },
+    {
+      "id": "edge-5",
+      "from": "api",
+      "to": "postgres",
+      "type": "primary",
+      "label": "应用状态"
+    },
+    {
+      "id": "edge-6",
+      "from": "api",
+      "to": "object_store",
+      "type": "data",
+      "label": "图片与头像"
+    },
+    {
+      "id": "edge-7",
+      "from": "api",
+      "to": "ai_proxy",
+      "type": "primary",
+      "label": "选区AI请求"
+    },
+    {
+      "id": "edge-8",
+      "from": "ai_proxy",
+      "to": "llm",
+      "type": "data",
+      "label": "模型调用"
+    }
+  ],
+  "modules": [
+    {
+      "id": "client",
+      "label": "前端展示层"
+    },
+    {
+      "id": "service",
+      "label": "业务与AI服务层"
+    },
+    {
+      "id": "collab",
+      "label": "协同编辑层"
+    },
+    {
+      "id": "storage",
+      "label": "数据与媒体层"
+    }
+  ]
+}

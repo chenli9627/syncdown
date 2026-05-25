@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "title": "Syncdown系统数据库E-R关系",
+  "type": "academic-diagram",
+  "source": "generated",
+  "profile": "academic-paper",
+  "theme": "academic",
+  "layout": "horizontal",
+  "counts": {
+    "nodes": 8,
+    "edges": 10,
+    "modules": 3
+  },
+  "nodes": [
+    {
+      "id": "user",
+      "label": "用户(User)",
+      "type": "database",
+      "module": "identity"
+    },
+    {
+      "id": "workspace",
+      "label": "工作区(Workspace)",
+      "type": "database",
+      "module": "identity"
+    },
+    {
+      "id": "member",
+      "label": "工作区成员(WorkspaceMember)",
+      "type": "database",
+      "module": "identity"
+    },
+    {
+      "id": "doc",
+      "label": "文档(Document)",
+      "type": "database",
+      "module": "document"
+    },
+    {
+      "id": "share",
+      "label": "文档共享(DocumentShare)",
+      "type": "database",
+      "module": "document"
+    },
+    {
+      "id": "version",
+      "label": "版本快照(VersionHistory)",
+      "type": "database",
+      "module": "history"
+    },
+    {
+      "id": "update",
+      "label": "更新记录(UpdateHistory)",
+      "type": "database",
+      "module": "history"
+    },
+    {
+      "id": "media",
+      "label": "媒体资源(MediaObject)",
+      "type": "database",
+      "module": "history"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "user",
+      "to": "workspace",
+      "type": "primary",
+      "label": "创建/拥有"
+    },
+    {
+      "id": "edge-2",
+      "from": "user",
+      "to": "member",
+      "type": "data",
+      "label": "作为成员加入"
+    },
+    {
+      "id": "edge-3",
+      "from": "workspace",
+      "to": "member",
+      "type": "data",
+      "label": "包含成员"
+    },
+    {
+      "id": "edge-4",
+      "from": "workspace",
+      "to": "doc",
+      "type": "primary",
+      "label": "包含文档"
+    },
+    {
+      "id": "edge-5",
+      "from": "doc",
+      "to": "share",
+      "type": "data",
+      "label": "授权guest"
+    },
+    {
+      "id": "edge-6",
+      "from": "user",
+      "to": "share",
+      "type": "data",
+      "label": "获得can_edit/can_view"
+    },
+    {
+      "id": "edge-7",
+      "from": "doc",
+      "to": "version",
+      "type": "primary",
+      "label": "产生版本快照"
+    },
+    {
+      "id": "edge-8",
+      "from": "doc",
+      "to": "update",
+      "type": "primary",
+      "label": "产生修改记录"
+    },
+    {
+      "id": "edge-9",
+      "from": "user",
+      "to": "media",
+      "type": "data",
+      "label": "上传"
+    },
+    {
+      "id": "edge-10",
+      "from": "doc",
+      "to": "media",
+      "type": "data",
+      "label": "正文引用"
+    }
+  ],
+  "modules": [
+    {
+      "id": "identity",
+      "label": "身份与工作区"
+    },
+    {
+      "id": "document",
+      "label": "文档与权限"
+    },
+    {
+      "id": "history",
+      "label": "历史与资源"
+    }
+  ]
+}

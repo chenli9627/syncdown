@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "title": "AI多模型辅助编辑流程",
+  "type": "academic-diagram",
+  "source": "generated",
+  "profile": "academic-paper",
+  "theme": "academic",
+  "layout": "horizontal",
+  "counts": {
+    "nodes": 10,
+    "edges": 10,
+    "modules": 4
+  },
+  "nodes": [
+    {
+      "id": "select",
+      "label": "用户选中文本",
+      "type": "process",
+      "module": "editor"
+    },
+    {
+      "id": "bubble",
+      "label": "AI操作气泡",
+      "type": "process",
+      "module": "editor"
+    },
+    {
+      "id": "request",
+      "label": "提交文本/操作/语言/候选数",
+      "type": "process",
+      "module": "api"
+    },
+    {
+      "id": "proxy",
+      "label": "服务端代理读取模型配置",
+      "type": "service",
+      "module": "api"
+    },
+    {
+      "id": "primary",
+      "label": "默认模型候选",
+      "type": "cloud",
+      "module": "model"
+    },
+    {
+      "id": "secondary",
+      "label": "备选模型候选",
+      "type": "cloud",
+      "module": "model"
+    },
+    {
+      "id": "candidates",
+      "label": "候选结果对比",
+      "type": "process",
+      "module": "editor"
+    },
+    {
+      "id": "confirm",
+      "label": "用户确认应用方式",
+      "type": "process",
+      "module": "apply"
+    },
+    {
+      "id": "transaction",
+      "label": "替换选区或插入下方",
+      "type": "process",
+      "module": "apply"
+    },
+    {
+      "id": "yjs",
+      "label": "转换为Yjs update同步",
+      "type": "service",
+      "module": "apply"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "select",
+      "to": "bubble",
+      "type": "primary"
+    },
+    {
+      "id": "edge-2",
+      "from": "bubble",
+      "to": "request",
+      "type": "primary"
+    },
+    {
+      "id": "edge-3",
+      "from": "request",
+      "to": "proxy",
+      "type": "primary"
+    },
+    {
+      "id": "edge-4",
+      "from": "proxy",
+      "to": "primary",
+      "type": "data"
+    },
+    {
+      "id": "edge-5",
+      "from": "proxy",
+      "to": "secondary",
+      "type": "data"
+    },
+    {
+      "id": "edge-6",
+      "from": "primary",
+      "to": "candidates",
+      "type": "primary"
+    },
+    {
+      "id": "edge-7",
+      "from": "secondary",
+      "to": "candidates",
+      "type": "primary"
+    },
+    {
+      "id": "edge-8",
+      "from": "candidates",
+      "to": "confirm",
+      "type": "primary"
+    },
+    {
+      "id": "edge-9",
+      "from": "confirm",
+      "to": "transaction",
+      "type": "primary"
+    },
+    {
+      "id": "edge-10",
+      "from": "transaction",
+      "to": "yjs",
+      "type": "data"
+    }
+  ],
+  "modules": [
+    {
+      "id": "editor",
+      "label": "编辑器侧"
+    },
+    {
+      "id": "api",
+      "label": "服务端侧"
+    },
+    {
+      "id": "model",
+      "label": "模型侧"
+    },
+    {
+      "id": "apply",
+      "label": "回填与同步"
+    }
+  ]
+}
