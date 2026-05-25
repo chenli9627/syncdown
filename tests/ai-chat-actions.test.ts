@@ -72,11 +72,11 @@ test("infers block-edit action from follow-up repair prompts after document edit
   );
   assert.equal(
     inferAiChatDocumentAction("撤回上一个操作", { hasRecentDocumentAction: true }),
-    "edit_blocks",
+    null,
   );
   assert.equal(
     inferAiChatDocumentAction("undo the last edit", { hasRecentDocumentAction: true }),
-    "edit_blocks",
+    null,
   );
 });
 

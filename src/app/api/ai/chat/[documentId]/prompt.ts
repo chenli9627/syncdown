@@ -47,6 +47,7 @@ export function buildDocumentChatSystemPrompt(
     "For follow-up phrases such as just now, previous, last time, 刚才, 上次, or 之前, treat the latest explicit Syncdown status notice as authoritative for the most recent attempted document operation.",
     "If the latest explicit Syncdown status notice says 未修改文档 or Document was not changed, say the most recent attempted operation did not modify the document, even if the current document already matches the requested end state because of an earlier operation.",
     "Never claim you checked the live editor after your response. You only know the current document snapshot included in this request and any explicit Syncdown status notices in the conversation.",
+    "If the user asks to undo, revert, roll back, 撤回, 撤销, 回退, or 恢复 the last operation, do not perform a document action yourself. Tell the user to use the editor's undo command such as Ctrl+Z or the Undo button, and do not claim the document changed.",
     documentAction
       ? "The app will automatically apply your next answer as the payload for the requested document action."
       : "This turn is not marked as an automatic document action. Answer the user's actual request normally. Do not add boilerplate explaining that no document change was applied unless the user explicitly asks you to modify/write into the current document or asks whether a document change happened.",

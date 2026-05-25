@@ -114,6 +114,8 @@ test("AI chat prompt treats automatic document edits as real app edits", () => {
   assert.match(prompt, /treat those messages as obsolete/);
   assert.match(prompt, /verify against the current document title, text, blocks/);
   assert.match(prompt, /Never claim you checked the live editor/);
+  assert.match(prompt, /If the user asks to undo, revert, roll back, 撤回, 撤销, 回退, or 恢复 the last operation/);
+  assert.match(prompt, /Ctrl\+Z or the Undo button/);
   assert.match(prompt, /explicit Syncdown status notices/);
   assert.match(prompt, /latest explicit Syncdown status notice as authoritative/);
   assert.match(prompt, /most recent attempted operation did not modify the document/);
