@@ -6,7 +6,6 @@ import { DefaultChatTransport } from "ai";
 import {
   type PointerEvent,
   type RefObject,
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -25,33 +24,23 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { useLocale } from "@/components/providers/locale-provider";
 import type {
-  AiChatDocumentAction,
   AiChatMessage,
   AiChatModelKey,
   User,
 } from "@/features/app-state/types";
 import { ChatMessage } from "@/features/editor/components/editor-ai-chat-message";
 import { EditorAiChatPanelHeader } from "@/features/editor/components/editor-ai-chat-panel-header";
-import {
-  type AiDocumentApplyFailureReason,
-  useAiChatAutoDocumentAction,
-} from "@/features/editor/hooks/use-ai-chat-auto-document-action";
 import { useAiRequestLock } from "@/features/editor/hooks/use-ai-request-lock";
 import { useAiChatThreads } from "@/features/editor/hooks/use-ai-chat-threads";
 import {
-  type AiChatClarification,
-  type AiChatClarificationKind,
   getAiChatMessageText,
-  isAiChatClarificationCancelPrompt,
-  planAiChatIntent,
-  resolveAiChatClarifiedPrompt,
+  inferAiChatResponseMode,
 } from "@/features/editor/lib/ai-chat-actions";
 import {
   AI_CHAT_MODEL_STORAGE_KEY,
   getAiChatRequestBody,
   readStoredAiChatModelKey,
 } from "@/features/editor/lib/ai-chat-request";
-import { getAiDocumentBlocks } from "@/features/editor/lib/ai-chat-document-tools";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
@@ -92,8 +81,6 @@ export function EditorAiChatPanel({
   );
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredAiChatModelKey());
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
-  const [pendingClarification, setPendingClarification] =
-    useState<AiChatClarification | null>(null);
   const [visibleMessageCount, setVisibleMessageCount] = useState(initialVisibleMessageCount);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const recoveredAssistantMessageIdsRef = useRef<Set<string>>(new Set());
@@ -139,56 +126,6 @@ export function EditorAiChatPanel({
     };
   }, [aiRequestLock]);
 
-  const handledDocumentActionMessageIds = useMemo(
-    () => new Set(Object.keys(appliedNotices)),
-    [appliedNotices],
-  );
-
-  const handleDocumentActionApplied = useCallback(
-    (action: AiChatDocumentAction, messageId: string, summary?: string) => {
-      setAppliedNotices((current) => ({
-        ...current,
-        [messageId]: getAppliedNotice(action, t, summary),
-      }));
-      focusPromptInput(inputRef);
-    },
-    [t],
-  );
-  const handleDocumentActionApplyFailed = useCallback(
-    (messageId: string, summary?: string, reason?: AiDocumentApplyFailureReason) => {
-      setAppliedNotices((current) => ({
-        ...current,
-        [messageId]: getApplyFailedNotice(t, summary, reason),
-      }));
-      focusPromptInput(inputRef);
-    },
-    [t],
-  );
-  const handleDocumentActionCancelled = useCallback(
-    (messageId: string) => {
-      setAppliedNotices((current) => ({
-        ...current,
-        [messageId]: t("aiApplyCancelled"),
-      }));
-      focusPromptInput(inputRef);
-    },
-    [t],
-  );
-  const {
-    cancelPendingAction,
-    confirmPendingAction,
-    pendingConfirmation,
-    setPendingAction,
-  } = useAiChatAutoDocumentAction({
-    busy,
-    editor,
-    error,
-    handledMessageIds: handledDocumentActionMessageIds,
-    messages,
-    onApplied: handleDocumentActionApplied,
-    onCancelled: handleDocumentActionCancelled,
-    onApplyFailed: handleDocumentActionApplyFailed,
-  });
   const {
     activeThreadId,
     createThreadForSend,
@@ -235,128 +172,13 @@ export function EditorAiChatPanel({
     if (!trimmed || requestBusy || !currentUser?.id) {
       return;
     }
-
-    const selected = hasEditorSelection(editor);
-    const hasRecentDocumentAction = hasRecentAiDocumentAction(messages);
-    const resolvedPrompt =
-      pendingClarification && !isAiChatClarificationCancelPrompt(trimmed)
-        ? resolveAiChatClarifiedPrompt(pendingClarification, trimmed)
-        : trimmed;
-
-    if (pendingClarification && isAiChatClarificationCancelPrompt(trimmed)) {
-      setPendingClarification(null);
-      setInput("");
-      focusPromptInput(inputRef);
-      return;
-    }
-
-    if (!pendingClarification) {
-      const intentPlan = planAiChatIntent(trimmed, {
-        documentBlocks: getAiDocumentBlocks(editor),
-        documentText: editor?.getText() ?? "",
-        hasRecentAssistantAnswer: hasRecentSubstantiveAssistantAnswer(messages),
-        hasRecentDocumentAction,
-        hasSelection: selected,
-      });
-
-      if (intentPlan.kind === "clarify") {
-        const threadId = createThreadForSend();
-        const nextMessages = [
-          ...messages,
-          createLocalAiChatTextMessage("user", trimmed, threadId),
-          createLocalAiChatTextMessage(
-            "assistant",
-            getClarificationQuestion(intentPlan.clarification.kind, t),
-            threadId,
-            intentPlan.clarification.kind,
-          ),
-        ];
-
-        setPendingClarification(intentPlan.clarification);
-        setMessages(nextMessages);
-        setInput("");
-        focusPromptInput(inputRef);
-        return;
-      }
-
-      if (intentPlan.kind === "unsupported") {
-        const threadId = createThreadForSend();
-        const nextMessages = [
-          ...messages,
-          createLocalAiChatTextMessage("user", trimmed, threadId),
-          createLocalAiChatTextMessage(
-            "assistant",
-            getUnsupportedIntentMessage(intentPlan.reason, t),
-            threadId,
-          ),
-        ];
-
-        setMessages(nextMessages);
-        setInput("");
-        focusPromptInput(inputRef);
-        return;
-      }
-    }
-
-    const intentPlan = planAiChatIntent(resolvedPrompt, {
-      documentBlocks: getAiDocumentBlocks(editor),
-      documentText: editor?.getText() ?? "",
-      hasRecentAssistantAnswer: hasRecentSubstantiveAssistantAnswer(messages),
-      hasSelection: selected,
-      hasRecentDocumentAction,
-    });
     const threadId = createThreadForSend();
-    cancelPendingConfirmationForNewMessage();
-
-    if (intentPlan.kind === "clarify") {
-      const nextMessages = [
-        ...messages,
-        createLocalAiChatTextMessage("user", trimmed, threadId),
-        createLocalAiChatTextMessage(
-          "assistant",
-          getClarificationQuestion(intentPlan.clarification.kind, t),
-          threadId,
-          intentPlan.clarification.kind,
-        ),
-      ];
-
-      setPendingClarification(intentPlan.clarification);
-      setMessages(nextMessages);
-      setInput("");
-      focusPromptInput(inputRef);
-      return;
-    }
-
-    if (intentPlan.kind === "unsupported") {
-      const nextMessages = [
-        ...messages,
-        createLocalAiChatTextMessage("user", trimmed, threadId),
-        createLocalAiChatTextMessage(
-          "assistant",
-          getUnsupportedIntentMessage(intentPlan.reason, t),
-          threadId,
-        ),
-      ];
-
-      setPendingClarification(null);
-      setMessages(nextMessages);
-      setInput("");
-      focusPromptInput(inputRef);
-      return;
-    }
-
-    const documentAction = intentPlan.kind === "edit" ? intentPlan.documentAction : null;
-    const responseMode =
-      intentPlan.kind === "edit" || intentPlan.kind === "chat"
-        ? intentPlan.responseMode
-        : null;
+    const responseMode = inferAiChatResponseMode(trimmed);
 
     if (!aiRequestLock.acquire()) {
       return;
     }
 
-    setPendingClarification(null);
-    setPendingAction(documentAction, messages.length);
     setInput("");
     focusPromptInput(inputRef);
     void sendMessage(
@@ -367,11 +189,12 @@ export function EditorAiChatPanel({
           modelKey,
           currentUser.id,
           documentTitle,
-          documentAction,
+          null,
           responseMode,
           threadId,
           getOrderedApplicationStatusNotices(messages, appliedNotices),
-          resolvedPrompt === trimmed ? undefined : resolvedPrompt,
+          undefined,
+          true,
         ),
       },
     );
@@ -401,64 +224,12 @@ export function EditorAiChatPanel({
     const threadId = createThreadForSend();
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
-    cancelPendingConfirmationForNewMessage();
-    const intentPlan = planAiChatIntent(trimmed, {
-      documentBlocks: getAiDocumentBlocks(editor),
-      documentText: editor?.getText() ?? "",
-      hasSelection: hasEditorSelection(editor),
-      hasRecentAssistantAnswer: hasRecentSubstantiveAssistantAnswer(nextMessages),
-      hasRecentDocumentAction: hasRecentAiDocumentAction(nextMessages),
-    });
-
-    if (intentPlan.kind === "clarify") {
-      flushSync(() => {
-        setMessages([
-          ...nextMessages,
-          createLocalAiChatTextMessage("user", trimmed, threadId),
-          createLocalAiChatTextMessage(
-            "assistant",
-            getClarificationQuestion(intentPlan.clarification.kind, t),
-            threadId,
-            intentPlan.clarification.kind,
-          ),
-        ]);
-        setEditingQuestion(null);
-      });
-      setPendingClarification(intentPlan.clarification);
-      focusPromptInput(inputRef);
-      return;
-    }
-
-    if (intentPlan.kind === "unsupported") {
-      flushSync(() => {
-        setMessages([
-          ...nextMessages,
-          createLocalAiChatTextMessage("user", trimmed, threadId),
-          createLocalAiChatTextMessage(
-            "assistant",
-            getUnsupportedIntentMessage(intentPlan.reason, t),
-            threadId,
-          ),
-        ]);
-        setEditingQuestion(null);
-      });
-      setPendingClarification(null);
-      focusPromptInput(inputRef);
-      return;
-    }
-
-    const documentAction = intentPlan.kind === "edit" ? intentPlan.documentAction : null;
-    const responseMode =
-      intentPlan.kind === "edit" || intentPlan.kind === "chat"
-        ? intentPlan.responseMode
-        : null;
+    const responseMode = inferAiChatResponseMode(trimmed);
 
     if (!aiRequestLock.acquire()) {
       return;
     }
 
-    setPendingClarification(null);
-    setPendingAction(documentAction, nextMessages.length);
     flushSync(() => {
       setMessages(nextMessages);
       setEditingQuestion(null);
@@ -472,21 +243,15 @@ export function EditorAiChatPanel({
           modelKey,
           currentUser.id,
           documentTitle,
-          documentAction,
+          null,
           responseMode,
           threadId,
           getOrderedApplicationStatusNotices(nextMessages, appliedNotices),
+          undefined,
+          true,
         ),
       },
     );
-  }
-
-  function cancelPendingConfirmationForNewMessage() {
-    if (!pendingConfirmation) {
-      return;
-    }
-
-    cancelPendingAction(pendingConfirmation.messageId);
   }
 
   function handleModelChange(nextModelKey: AiChatModelKey) {
@@ -519,7 +284,6 @@ export function EditorAiChatPanel({
         onNewThread={() => {
           setAppliedNotices({});
           setEditingQuestion(null);
-          setPendingClarification(null);
           setVisibleMessageCount(initialVisibleMessageCount);
           handleNewThread();
         }}
@@ -527,7 +291,6 @@ export function EditorAiChatPanel({
         onSelectThread={(threadId) => {
           setAppliedNotices({});
           setEditingQuestion(null);
-          setPendingClarification(null);
           setVisibleMessageCount(initialVisibleMessageCount);
           handleSelectThread(threadId);
         }}
@@ -567,8 +330,8 @@ export function EditorAiChatPanel({
                     key={message.id}
                     message={message}
                     onCancelEdit={handleCancelEditQuestion}
-                    onCancelDocumentAction={() => cancelPendingAction(message.id)}
-                    onConfirmDocumentAction={() => confirmPendingAction(message.id)}
+                    onCancelDocumentAction={() => {}}
+                    onConfirmDocumentAction={() => {}}
                     onEdit={handleEditQuestion}
                     onEditingTextChange={handleEditingQuestionTextChange}
                     onRegenerate={() =>
@@ -583,6 +346,8 @@ export function EditorAiChatPanel({
                               message.metadata?.responseMode ?? null,
                               activeThreadId,
                               getOrderedApplicationStatusNotices(messages, appliedNotices),
+                              undefined,
+                              true,
                             ),
                             messageId: message.id,
                           })
@@ -590,11 +355,7 @@ export function EditorAiChatPanel({
                     }
                     onSendEdit={handleSendEditedQuestion}
                     onStop={() => void stop()}
-                    pendingDocumentAction={
-                      pendingConfirmation?.messageId === message.id
-                        ? pendingConfirmation
-                        : null
-                    }
+                    pendingDocumentAction={null}
                     showStopAction={isStreamingAssistant}
                   />
                 );
@@ -623,100 +384,6 @@ export function EditorAiChatPanel({
   );
 }
 
-function hasEditorSelection(editor: Editor | null) {
-  return Boolean(editor && !editor.state.selection.empty);
-}
-
-function hasRecentAiDocumentAction(messages: AiChatMessage[]) {
-  const recentMessages = messages.slice(-8);
-
-  for (let index = recentMessages.length - 1; index >= 0; index -= 1) {
-    const message = recentMessages[index];
-
-    if (message?.metadata?.documentAction) {
-      return true;
-    }
-  }
-
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-
-    if (message?.role === "assistant") {
-      return Boolean(message.metadata?.documentAction);
-    }
-  }
-
-  return false;
-}
-
-function hasRecentSubstantiveAssistantAnswer(messages: AiChatMessage[]) {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-
-    if (message?.role !== "assistant") {
-      continue;
-    }
-
-    if (message.metadata?.documentAction || message.metadata?.clarificationKind) {
-      continue;
-    }
-
-    return getPlainTextFromAiChatMessage(message).trim().length > 0;
-  }
-
-  return false;
-}
-
-function createLocalAiChatTextMessage(
-  role: "assistant" | "user",
-  text: string,
-  threadId: string,
-  clarificationKind?: AiChatClarificationKind,
-): AiChatMessage {
-  return {
-    id: `ai_local_${crypto.randomUUID()}`,
-    metadata: {
-      clarificationKind,
-      createdAt: new Date().toISOString(),
-      threadId,
-    },
-    parts: [{ text, type: "text" }],
-    role,
-  };
-}
-
-function getPlainTextFromAiChatMessage(message: AiChatMessage) {
-  return message.parts
-    .map((part) => (part.type === "text" ? part.text : ""))
-    .join("");
-}
-
-function getClarificationQuestion(
-  kind: AiChatClarificationKind,
-  t: (key: MessageKey) => string,
-) {
-  if (kind === "ambiguous_edit_intent") {
-    return t("aiClarifyEditIntent");
-  }
-
-  if (kind === "missing_insert_source") {
-    return t("aiClarifyInsertSource");
-  }
-
-  return t("aiClarifyDocumentTarget");
-}
-
-function getUnsupportedIntentMessage(
-  reason: "manual_undo" | "whole_document_rewrite",
-  t: (key: MessageKey) => string,
-) {
-  if (reason === "manual_undo") {
-    return t("aiUndoUseEditor");
-  }
-
-  return t("aiUnsupportedWholeDocumentEdit");
-}
-
 function focusPromptInput(inputRef: RefObject<HTMLTextAreaElement | null>) {
   window.requestAnimationFrame(() => {
     inputRef.current?.focus();
@@ -730,58 +397,6 @@ function getOrderedApplicationStatusNotices(
   return messages
     .map((message) => appliedNotices[message.id])
     .filter((notice): notice is string => Boolean(notice));
-}
-
-function getAppliedNotice(
-  action: AiChatDocumentAction,
-  t: (key: MessageKey) => string,
-  summary?: string,
-) {
-  const trimmedSummary = summary?.trim();
-
-  if (trimmedSummary) {
-    return `${t("aiAppliedPrefix")}${trimmedSummary}`;
-  }
-
-  if (action === "edit_blocks") {
-    return t("aiAppliedBlockEdit");
-  }
-
-  if (action === "insert_end") {
-    return t("aiAppliedInsertEnd");
-  }
-
-  if (action === "insert_cursor") {
-    return t("aiAppliedInsertCursor");
-  }
-
-  if (action === "replace_selection") {
-    return t("aiAppliedReplaceSelection");
-  }
-
-  return t("aiAppliedReplaceDocument");
-}
-
-function getApplyFailedNotice(
-  t: (key: MessageKey) => string,
-  summary?: string,
-  reason?: AiDocumentApplyFailureReason,
-) {
-  if (reason === "verification_failed") {
-    return t("aiApplyVerificationFailed");
-  }
-
-  const trimmedSummary = summary?.trim();
-
-  if (!trimmedSummary) {
-    return t("aiApplyFailed");
-  }
-
-  if (/^(未修改文档|Document was not changed)/i.test(trimmedSummary)) {
-    return trimmedSummary;
-  }
-
-  return `${t("aiNotChangedPrefix")}${trimmedSummary}`;
 }
 
 function readStoredAppliedNotices() {

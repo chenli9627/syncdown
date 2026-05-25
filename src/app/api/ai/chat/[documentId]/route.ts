@@ -50,6 +50,7 @@ import {
   withChatMetadata,
 } from "./route-helpers";
 import { buildDocumentChatSystemPrompt } from "./prompt";
+import { inferAiChatResponseMode } from "@/features/editor/lib/ai-chat-actions";
 
 export const maxDuration = 60;
 
@@ -59,6 +60,7 @@ type RouteContext = {
 
 type ChatBody = {
   applicationStatusNotices?: string[];
+  chatOnly?: boolean;
   documentAction?: AiChatDocumentAction | null;
   documentBlocks?: AiChatDocumentBlock[];
   documentText?: string;
@@ -167,13 +169,20 @@ export async function POST(request: Request, context: RouteContext) {
   await writeStoredState(saveUserMessageResult.state);
   const activeThreadId = saveUserMessageResult.thread.id;
   const effectivePrompt = body.resolvedPrompt?.trim() || getMessageText(incomingMessage);
-  const serverTurnPlan = planAiChatServerTurn({
-    documentBlocks: body.documentBlocks ?? [],
-    documentText: body.documentText ?? "",
-    messages,
-    prompt: effectivePrompt,
-    selection: body.selection ?? null,
-  });
+  const chatOnly = body.chatOnly === true;
+  const serverTurnPlan = chatOnly
+    ? {
+        documentAction: null,
+        kind: "llm" as const,
+        responseMode: body.responseMode ?? inferAiChatResponseMode(effectivePrompt),
+      }
+    : planAiChatServerTurn({
+        documentBlocks: body.documentBlocks ?? [],
+        documentText: body.documentText ?? "",
+        messages,
+        prompt: effectivePrompt,
+        selection: body.selection ?? null,
+      });
   if (serverTurnPlan.kind === "clarify") {
     return respondWithAssistantText({
       clarificationKind: serverTurnPlan.clarificationKind,
@@ -223,6 +232,7 @@ export async function POST(request: Request, context: RouteContext) {
     documentAction,
     responseMode,
     body.applicationStatusNotices ?? [],
+    chatOnly,
   );
 
   if (serverTurnPlan.kind === "deterministic_edit") {

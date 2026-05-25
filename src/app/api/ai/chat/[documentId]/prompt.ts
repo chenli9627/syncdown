@@ -14,6 +14,7 @@ export function buildDocumentChatSystemPrompt(
   documentAction: AiChatDocumentAction | null,
   responseMode: AiChatResponseMode | null,
   applicationStatusNotices: string[] = [],
+  chatOnly = false,
 ) {
   const cleanDocumentTitle = documentTitle.trim() || "(untitled document)";
   const cleanDocumentText = documentText.trim() || "(empty document)";
@@ -48,7 +49,9 @@ export function buildDocumentChatSystemPrompt(
     "If the latest explicit Syncdown status notice says 未修改文档 or Document was not changed, say the most recent attempted operation did not modify the document, even if the current document already matches the requested end state because of an earlier operation.",
     "Never claim you checked the live editor after your response. You only know the current document snapshot included in this request and any explicit Syncdown status notices in the conversation.",
     "If the user asks to undo, revert, roll back, 撤回, 撤销, 回退, or 恢复 the last operation, do not perform a document action yourself. Tell the user to use the editor's undo command such as Ctrl+Z or the Undo button, and do not claim the document changed.",
-    documentAction
+    chatOnly
+      ? "This chat is discussion-only. Never return document edit JSON, never claim you changed the document, and never ask the user to confirm a document change."
+      : documentAction
       ? "The app will automatically apply your next answer as the payload for the requested document action."
       : "This turn is not marked as an automatic document action. Answer the user's actual request normally. Do not add boilerplate explaining that no document change was applied unless the user explicitly asks you to modify/write into the current document or asks whether a document change happened. Do not claim that Syncdown already updated, modified, inserted into, deleted from, or otherwise changed the document in this turn.",
     documentAction
@@ -61,7 +64,9 @@ export function buildDocumentChatSystemPrompt(
     "If the user asks for key points, return a concise Markdown bullet list of those points.",
     "If the user asks for a table, return a real Markdown table instead of prose that only looks tabular.",
     getResponseModeInstruction(documentAction, responseMode),
-    documentAction
+    chatOnly
+      ? "If the user asks you to modify the document, explain briefly that this AI chat only discusses the document and does not perform edits."
+      : documentAction
       ? "Do not claim that the document has already changed while you are generating the answer."
       : "Do not invent a new document change for this turn. Treat previous document edits as successful only when explicit Syncdown status notices or the current document snapshot show the change.",
     "",
