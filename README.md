@@ -8,13 +8,31 @@ This repository is the active `syncdown v2` implementation inside the `/home/che
 
 - authentication: login, register, settings
 - workspace shell and workspace switching
+- owner / guest workspace-relative roles
 - private documents, shared documents, trash
 - rich text editing with slash menu and block menu
 - image upload for editor content and user avatars
 - markdown `.md` and `.zip` import/export
-- AI editor actions
+- AI selection bubble
+- AI chat panel
 - real-time collaboration with awareness-based presence
 - owner / guest access model with `can_edit` and `can_view`
+- paginated updates, version history, and trash views
+
+## Current AI Behavior
+
+Syncdown currently exposes two separate AI surfaces:
+
+- `AI selection bubble`
+  - works on selected editor text
+  - supports translate, summarize, explain, polish, and custom prompts
+  - can replace the current selection or insert the result below
+- `AI chat panel`
+  - discussion-only
+  - can answer questions about the current document, summarize, explain, translate, and handle supported query tools such as weather lookups
+  - does not directly edit the document
+
+Only one AI request is allowed at a time across both entry points.
 
 ## Tech Stack
 
@@ -25,6 +43,7 @@ This repository is the active `syncdown v2` implementation inside the `/home/che
 - Tiptap
 - Yjs
 - Hocuspocus
+- AI SDK
 - PostgreSQL or local JSON snapshot persistence
 - local media storage or S3-compatible object storage
 
@@ -324,9 +343,12 @@ STORAGE_FORCE_PATH_STYLE=true
 AI_API_KEY=
 AI_BASE_URL=
 AI_MODEL=
+AI_SECONDARY_API_KEY=
+AI_SECONDARY_BASE_URL=
+AI_SECONDARY_MODEL=
 ```
 
-The frontend sends AI requests to `/api/ai/action`.
+The chat panel uses `/api/ai/chat/[documentId]`. The selection AI uses the editor-specific AI endpoints.
 
 ## Collaboration Behavior
 
@@ -339,10 +361,13 @@ The frontend sends AI requests to `/api/ai/action`.
 ## Editor and Media Notes
 
 - new documents are auto-named as `Untitled`, `Untitled1`, `Untitled2`, etc.
+- new documents enter title editing immediately with the default title selected
 - new image uploads return `/api/media/...`
 - markdown export supports images and bundles them into zip assets when needed
 - drag-and-drop image upload is supported
 - copying image to clipboard has been removed from the image block menu
+- editor supports headings `h1` through `h6`, paragraphs, lists, task lists, tables, code blocks, links, strikethrough, and footnotes
+- markdown link parsing supports handwritten links with Chinese domains or Chinese paths
 
 ## Internationalization and UI Notes
 
@@ -368,17 +393,19 @@ Current automated coverage includes:
 - sharing and access control
 - trash / restore behavior
 - markdown import/export guards
+- markdown paste parsing
 - media URL normalization and export bundling
 - workspace visibility rules
-- AI route validation
+- AI route validation and AI chat persistence
 - collaboration provider sync
 
 ## Important Docs
 
-- `../my_plan.md`
+- `my_plan.md`
 - `PROJECT_CONTEXT.md`
 - `ARCHITECTURE_V2.md`
-- `../DESIGN.md`
+- `DESIGN.md`
+- `status.md`
 
 ## Known Non-Product Noise
 
