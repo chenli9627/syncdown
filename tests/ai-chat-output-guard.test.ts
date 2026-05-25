@@ -221,6 +221,47 @@ test("wraps rewritten summary prose into a replace-block fallback", () => {
   );
 });
 
+test("detects current English translation replacement fallbacks", () => {
+  const documentBlocks: AiChatDocumentBlock[] = [
+    { id: "block_1", level: 2, text: "总结", type: "heading" },
+    { id: "block_2", text: "北京是中国的首都，也是历史文化名城。", type: "paragraph" },
+    {
+      id: "block_3",
+      text: "Beijing is the capital of China and a renowned historical and cultural city.",
+      type: "paragraph",
+    },
+  ];
+
+  assert.deepEqual(
+    getInvalidEditBlocksFallback({
+      documentAction: "edit_blocks",
+      documentBlocks,
+      prompt: "把英文翻译精简一些并修改。",
+    }),
+    {
+      blockId: "block_3",
+      kind: "replace_block",
+      summary: "已更新当前英文翻译。",
+    },
+  );
+});
+
+test("wraps shortened English translation prose into a replace-block fallback", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "英文版规划内容原文较长，可以精简为以下版本：\n\n原文： The Beijing Urban Master Plan (2016–2035) positions Beijing as the national political center.\n\n精简版： The Beijing Urban Master Plan (2016–2035) defines Beijing as China's political, cultural, international exchange, and innovation hub.",
+      "edit_blocks",
+      null,
+      {
+        blockId: "block_translation",
+        kind: "replace_block",
+        summary: "已更新当前英文翻译。",
+      },
+    ),
+    '{"summary":"已更新当前英文翻译。","operations":[{"blockId":"block_translation","content":"The Beijing Urban Master Plan (2016–2035) defines Beijing as China\'s political, cultural, international exchange, and innovation hub.","type":"replace_block"}]}',
+  );
+});
+
 test("leaves valid edit-block JSON unchanged", () => {
   const payload = '{"summary":"已插入表格。","operations":[{"type":"insert_after_block"}]}';
 

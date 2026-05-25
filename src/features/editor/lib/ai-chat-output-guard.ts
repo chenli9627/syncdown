@@ -9,6 +9,7 @@ import {
   stripTrailingAiEditPayloadFragment,
 } from "@/features/editor/lib/ai-chat-edit-payload-fragments";
 import { hasSupportedAiDocumentEditOperationTypes } from "@/features/editor/lib/ai-chat-document-edit-operation-normalization";
+import { preferExplicitReplacementCandidate } from "@/features/editor/lib/ai-chat-replacement-content";
 
 export type InvalidEditBlocksFallback = {
   blockId?: string;
@@ -48,8 +49,8 @@ export function sanitizeAiAssistantText(
     const insertableContent = sanitizeAiInsertedContent(
       stripLeadingAssistantPreamble(text, "insert_end", responseMode),
     );
-    const replaceableContent = stripTrailingAiEditPayloadFragment(
-      stripReplaceBlockPreamble(text, responseMode),
+    const replaceableContent = preferExplicitReplacementCandidate(
+      stripTrailingAiEditPayloadFragment(stripReplaceBlockPreamble(text, responseMode)),
     );
 
     if (invalidEditBlocksFallback?.kind === "delete_block" && invalidEditBlocksFallback.blockId) {

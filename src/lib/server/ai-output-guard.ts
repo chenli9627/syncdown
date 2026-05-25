@@ -8,6 +8,7 @@ import {
   containsPseudoToolCallText,
   sanitizeAiAssistantText,
 } from "@/features/editor/lib/ai-chat-output-guard";
+import { getTranslationReplacementFallback } from "@/lib/server/ai-output-guard-translation";
 
 export function guardPseudoToolCallText<TOOLS extends ToolSet>(
   documentAction: AiChatDocumentAction | null,
@@ -111,6 +112,15 @@ export function getInvalidEditBlocksFallback({
       kind: "replace_block" as const,
       summary: "已更新当前总结。",
     };
+  }
+
+  const translationReplacementFallback = getTranslationReplacementFallback(
+    prompt,
+    documentBlocks,
+  );
+
+  if (translationReplacementFallback) {
+    return translationReplacementFallback;
   }
 
   if (isDeleteTablePrompt(prompt)) {
