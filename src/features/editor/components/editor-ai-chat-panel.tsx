@@ -40,6 +40,7 @@ import { useAiChatThreads } from "@/features/editor/hooks/use-ai-chat-threads";
 import {
   type AiChatClarification,
   type AiChatClarificationKind,
+  getAiChatMessageText,
   isAiChatClarificationCancelPrompt,
   planAiChatIntent,
   resolveAiChatClarifiedPrompt,
@@ -94,6 +95,7 @@ export function EditorAiChatPanel({
     useState<AiChatClarification | null>(null);
   const [visibleMessageCount, setVisibleMessageCount] = useState(initialVisibleMessageCount);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const recoveredAssistantMessageIdsRef = useRef<Set<string>>(new Set());
   const transport = useMemo(
     () =>
       new DefaultChatTransport<AiChatMessage>({
@@ -178,6 +180,7 @@ export function EditorAiChatPanel({
     handleNewThread,
     handleSelectThread,
     models,
+    refreshActiveThread,
     threads,
   } = useAiChatThreads({
     busy,
@@ -187,6 +190,28 @@ export function EditorAiChatPanel({
     setMessages,
     stop,
   });
+
+  useEffect(() => {
+    if (busy || !currentUser?.id || !activeThreadId || !messages.length) {
+      return;
+    }
+
+    const lastMessage = messages[messages.length - 1];
+    const visibleText = lastMessage
+      ? getAiChatMessageText(lastMessage, lastMessage.metadata?.documentAction ?? null)
+      : "";
+
+    if (
+      lastMessage?.role !== "assistant" ||
+      visibleText ||
+      recoveredAssistantMessageIdsRef.current.has(lastMessage.id)
+    ) {
+      return;
+    }
+
+    recoveredAssistantMessageIdsRef.current.add(lastMessage.id);
+    void refreshActiveThread(activeThreadId);
+  }, [activeThreadId, busy, currentUser?.id, messages, refreshActiveThread]);
 
   function handleSubmit({ text }: { text: string }) {
     const trimmed = text.trim();

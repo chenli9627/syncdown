@@ -93,3 +93,40 @@ test("applyEditPlanMetadata adds edit plans for deterministic edit payloads", ()
   assert.equal(nextMessage.metadata?.editPlan?.summary, "已调整标题层级。");
   assert.equal(nextMessage.metadata?.editPlan?.requestedCount, 1);
 });
+
+test("sanitizeFinishedMessages adds a visible fallback for tool-only assistant replies", () => {
+  const messages = [
+    {
+      id: "msg_user",
+      metadata: {
+        createdAt: "2026-05-25T00:00:00.000Z",
+      },
+      parts: [{ text: "查一下今天北京的天气预报", type: "text" }],
+      role: "user",
+    },
+    {
+      id: "msg_assistant",
+      metadata: {
+        createdAt: "2026-05-25T00:00:01.000Z",
+      },
+      parts: [
+        {
+          input: { url: "https://example.com" },
+          output: { text: "Example" },
+          state: "output-available",
+          toolCallId: "call_1",
+          type: "tool-fetch_url",
+        },
+      ],
+      role: "assistant",
+    },
+  ] satisfies AiChatMessage[];
+
+  const sanitized = sanitizeFinishedMessages(messages, null, null);
+  const lastMessage = sanitized[sanitized.length - 1];
+  const text = lastMessage.parts
+    .map((part) => (part.type === "text" ? part.text : ""))
+    .join("");
+
+  assert.match(text, /模型没有返回可见回答/);
+});

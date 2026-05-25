@@ -65,28 +65,40 @@ export function useAiChatThreads({
 
     let ignore = false;
 
-    fetch(`/api/ai/chat/${documentId}?userId=${encodeURIComponent(currentUserId)}`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: AiChatPayload | null) => {
-        if (ignore || !payload) {
-          return;
-        }
-
-        setModels(payload.models ?? []);
-        setThreads(payload.threads ?? []);
-        setActiveThreadId(payload.thread?.id ?? null);
-        setMessages(payload.thread?.messages ?? []);
-      })
-      .catch(() => {
-        if (!ignore) {
-          setModels([]);
-        }
-      });
+    refreshThread({
+      currentUserId,
+      documentId,
+      setActiveThreadId,
+      setMessages,
+      setModels,
+      setThreads,
+      shouldIgnore: () => ignore,
+    }).catch(() => {
+      if (!ignore) {
+        setModels([]);
+      }
+    });
 
     return () => {
       ignore = true;
     };
   }, [currentUserId, documentId, setMessages]);
+
+  function refreshActiveThread(threadId?: string | null) {
+    if (!currentUserId) {
+      return Promise.resolve();
+    }
+
+    return refreshThread({
+      currentUserId,
+      documentId,
+      setActiveThreadId,
+      setMessages,
+      setModels,
+      setThreads,
+      threadId: threadId ?? activeThreadId,
+    });
+  }
 
   function createThreadForSend() {
     const threadId = activeThreadId ?? createAiChatThreadId();
@@ -175,6 +187,7 @@ export function useAiChatThreads({
     handleNewThread,
     handleSelectThread,
     models,
+    refreshActiveThread,
     threads: visibleThreads,
   };
 }
@@ -224,4 +237,42 @@ export function syncAiChatThreadMessages(
 
 function pruneEmptyAiChatThreads(threads: AiChatThread[]) {
   return threads.filter((thread) => thread.messages.length > 0);
+}
+
+async function refreshThread({
+  currentUserId,
+  documentId,
+  setActiveThreadId,
+  setMessages,
+  setModels,
+  setThreads,
+  shouldIgnore,
+  threadId,
+}: {
+  currentUserId: string;
+  documentId: string;
+  setActiveThreadId: (threadId: string | null) => void;
+  setMessages: (messages: AiChatMessage[]) => void;
+  setModels: (models: AiModelOption[]) => void;
+  setThreads: (threads: AiChatThread[]) => void;
+  shouldIgnore?: () => boolean;
+  threadId?: string | null;
+}) {
+  const query = new URLSearchParams({ userId: currentUserId });
+
+  if (threadId) {
+    query.set("threadId", threadId);
+  }
+
+  const response = await fetch(`/api/ai/chat/${documentId}?${query.toString()}`);
+  const payload = response.ok ? ((await response.json()) as AiChatPayload) : null;
+
+  if (!payload || shouldIgnore?.()) {
+    return;
+  }
+
+  setModels(payload.models ?? []);
+  setThreads(payload.threads ?? []);
+  setActiveThreadId(payload.thread?.id ?? null);
+  setMessages(payload.thread?.messages ?? []);
 }

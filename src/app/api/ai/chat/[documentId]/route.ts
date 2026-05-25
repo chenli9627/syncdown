@@ -30,6 +30,7 @@ import {
   getAiChatModelConfig,
   getConfiguredAiChatModels,
 } from "@/lib/server/ai-models";
+import { getDeterministicAiChatReply } from "@/lib/server/ai-deterministic-replies";
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
 import { aiWebFetchTools } from "@/lib/server/ai-web-fetch";
 import {
@@ -237,6 +238,26 @@ export async function POST(request: Request, context: RouteContext) {
       userId: body.userId,
       userMessages: messages,
     });
+  }
+
+  if (serverTurnPlan.kind === "llm" && !serverTurnPlan.documentAction) {
+    const deterministicReply = await getDeterministicAiChatReply(effectivePrompt);
+
+    if (deterministicReply) {
+      return respondWithAssistantText({
+        documentAction: null,
+        documentId,
+        messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
+        modelKey,
+        modelName: modelConfig.name,
+        responseMode,
+        selection: body.selection ?? null,
+        text: deterministicReply,
+        threadId: activeThreadId,
+        userId: body.userId,
+        userMessages: messages,
+      });
+    }
   }
 
   const result = streamText({

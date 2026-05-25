@@ -28,10 +28,13 @@ export function sanitizeFinishedMessages(
 
   return messages.map((message, index) =>
     applyEditPlanMetadata(
-      sanitizeAiChatMessage(
-        message,
+      ensureVisibleAssistantText(
+        sanitizeAiChatMessage(
+          message,
+          index === lastAssistantIndex ? documentAction : null,
+          index === lastAssistantIndex ? responseMode : null,
+        ),
         index === lastAssistantIndex ? documentAction : null,
-        index === lastAssistantIndex ? responseMode : null,
       ),
       index === lastAssistantIndex ? documentAction : null,
     ),
@@ -313,4 +316,33 @@ export function applyEditPlanMetadata(
   return documentAction === "edit_blocks"
     ? withAiChatMessageEditPlan(message, documentAction)
     : message;
+}
+
+function ensureVisibleAssistantText(
+  message: AiChatMessage,
+  documentAction: AiChatDocumentAction | null,
+) {
+  if (message.role !== "assistant" || getMessageText(message)) {
+    return message;
+  }
+
+  const hasToolParts = message.parts.some((part) => part.type.startsWith("tool-"));
+
+  if (!hasToolParts) {
+    return message;
+  }
+
+  return {
+    ...message,
+    parts: [
+      ...message.parts,
+      {
+        text:
+          documentAction === "edit_blocks"
+            ? '{"summary":"模型未返回可见回答，未修改文档。","operations":[]}'
+            : "模型没有返回可见回答。请重试一次。",
+        type: "text",
+      },
+    ],
+  };
 }

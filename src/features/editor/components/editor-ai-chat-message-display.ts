@@ -6,6 +6,7 @@ type BuildDisplayTextArgs = {
   fallbackNotice: string;
   isAutomaticDocumentAction: boolean;
   pendingDocumentAction: PendingDocumentActionConfirmation | null;
+  plainText?: string;
   t: (key: MessageKey) => string;
   toolSummary: string | null;
   toolPreviewLines: string[];
@@ -16,6 +17,7 @@ export function buildChatMessageDisplayText({
   fallbackNotice,
   isAutomaticDocumentAction,
   pendingDocumentAction,
+  plainText,
   t,
   toolSummary,
   toolPreviewLines,
@@ -29,7 +31,7 @@ export function buildChatMessageDisplayText({
   }
 
   if (!isAutomaticDocumentAction) {
-    return toolSummary ?? "";
+    return plainText ?? toolSummary ?? "";
   }
 
   if (appliedNotice) {

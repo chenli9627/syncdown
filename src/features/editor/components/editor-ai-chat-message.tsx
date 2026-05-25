@@ -84,6 +84,7 @@ export function ChatMessage({
         fallbackNotice: t("aiApplyingDocumentAction"),
         isAutomaticDocumentAction,
         pendingDocumentAction,
+        plainText: text,
         t,
         toolPreviewLines,
         toolSummary,

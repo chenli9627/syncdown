@@ -64,10 +64,27 @@ test("shows unconfirmed automatic edit details before confirmation", () => {
       fallbackNotice: "正在确认文档修改结果…",
       isAutomaticDocumentAction: true,
       pendingDocumentAction: null,
+      plainText: "",
       t,
       toolPreviewLines: ["将标题调整为 3 级"],
       toolSummary: "已将所有标题缩小一个等级。",
     }),
     "未修改文档：这次修改尚未确认。\n\n- 将标题调整为 3 级",
+  );
+});
+
+test("keeps ordinary assistant text for non-document replies", () => {
+  assert.equal(
+    buildChatMessageDisplayText({
+      appliedNotice: undefined,
+      fallbackNotice: "正在确认文档修改结果…",
+      isAutomaticDocumentAction: false,
+      pendingDocumentAction: null,
+      plainText: "北京 北京市 今天（2026-05-25）天气预报：小雨，19-22°C。",
+      t,
+      toolPreviewLines: [],
+      toolSummary: null,
+    }),
+    "北京 北京市 今天（2026-05-25）天气预报：小雨，19-22°C。",
   );
 });
