@@ -35,6 +35,20 @@ test("plans explicit document edits as edit", () => {
   );
 });
 
+test("plans summary position swaps as document edits", () => {
+  assert.deepEqual(
+    planAiChatIntent("将总结的中英文互换位置。", {
+      documentBlocks,
+      documentText: "中文总结\n总结内容\nEnglish Summary\nSummary content",
+    }),
+    {
+      documentAction: "edit_blocks",
+      kind: "edit",
+      responseMode: null,
+    },
+  );
+});
+
 test("plans ambiguous edit-like requests as clarify", () => {
   const plan = planAiChatIntent("帮我调整一下结构", {
     documentBlocks,
@@ -54,6 +68,20 @@ test("plans whole-document rewrite requests as unsupported", () => {
     {
       kind: "unsupported",
       reason: "whole_document_rewrite",
+    },
+  );
+});
+
+test("allows whole-document summaries when they are appended instead of replacing content", () => {
+  assert.deepEqual(
+    planAiChatIntent("总结全文为一段，放到文档末尾，并配上英文翻译。", {
+      documentBlocks,
+      documentText: "北京旅行计划\n景点\n北京是一座历史与现代交融的城市。",
+    }),
+    {
+      documentAction: "edit_blocks",
+      kind: "edit",
+      responseMode: null,
     },
   );
 });

@@ -336,6 +336,8 @@ function isSpecialFormatEditPrompt(compactPrompt: string, lowerPrompt: string) {
 
 function isDocumentStructureEditPrompt(compactPrompt: string, lowerPrompt: string) {
   return (
+    /(?:互换|交换|调换).{0,48}(?:位置|顺序)/.test(compactPrompt) ||
+    /(?:位置|顺序).{0,48}(?:互换|交换|调换)/.test(compactPrompt) ||
     /(?:移动|挪动|复制|拷贝|移动到|挪到|复制到|替换所有|全部替换|批量替换|所有|全部|勾选|取消勾选|改成任务|转成任务|任务列表|有序列表|无序列表|项目符号|编号列表|新增行|插入行|删除行|新增列|插入列|删除列|表头|标题行).{0,64}(?:替换|改成|块|段落|标题|列表|任务|表格|行|列|单元格|文档|全文|内容)/.test(
       compactPrompt,
     ) ||
@@ -346,6 +348,12 @@ function isDocumentStructureEditPrompt(compactPrompt: string, lowerPrompt: strin
       lowerPrompt,
     ) ||
     /\b(?:block|paragraph|heading|list|task|table|row|column|header row|document|content)\b[\s\S]{0,180}\b(?:move|copy|duplicate|replace all|replace every|check|uncheck|toggle|convert|turn|insert|add|delete|remove)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:swap|exchange|switch)\b[\s\S]{0,120}\b(?:position|order|places?)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:position|order|places?)\b[\s\S]{0,120}\b(?:swap|exchange|switch)\b/.test(
       lowerPrompt,
     )
   );

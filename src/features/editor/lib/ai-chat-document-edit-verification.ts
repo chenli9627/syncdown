@@ -2,8 +2,16 @@ import type {
   AiDocumentEditOperation,
   LocalAiDocumentBlock,
 } from "@/features/editor/lib/ai-chat-document-edit-types";
-import { findTargetTextRanges } from "@/features/editor/lib/ai-chat-document-edit-ranges";
 import { getExpectedContentText } from "@/features/editor/lib/ai-chat-document-edit-verification-content";
+import {
+  blockContainsText,
+  blocksContainInsertedContent,
+  verifyBlockPlacementOperation,
+} from "@/features/editor/lib/ai-chat-document-edit-verification-blocks";
+import {
+  blockTextHasLink,
+  blockTextHasMarks,
+} from "@/features/editor/lib/ai-chat-document-edit-verification-marks";
 import {
   getInsertedColumnIndex,
   getTableColumnCount,
@@ -53,7 +61,7 @@ function verifyAiDocumentEditOperation(
   }
 
   if (operation.type === "insert_before_block" || operation.type === "insert_after_block") {
-    return blocksContainText(afterBlocks, getExpectedContentText(operation.content));
+    return blocksContainInsertedContent(afterBlocks, operation.content);
   }
 
   if (operation.type === "replace_text_in_block") {
@@ -168,7 +176,7 @@ function verifyAiDocumentEditOperation(
   }
 
   if (operation.type === "move_block" || operation.type === "copy_block") {
-    return Boolean(beforeBlock?.text && blocksContainText(afterBlocks, beforeBlock.text));
+    return verifyBlockPlacementOperation(operation, beforeBlocks, afterBlocks);
   }
 
   return false;
@@ -198,14 +206,6 @@ function hasSameBlockAtOriginalIndex(
   );
 }
 
-function blocksContainText(blocks: LocalAiDocumentBlock[], expectedText: string) {
-  return Boolean(expectedText && blocks.some((block) => blockContainsText(block, expectedText)));
-}
-
-function blockContainsText(block: LocalAiDocumentBlock | undefined, expectedText: string) {
-  return Boolean(expectedText && block?.text.includes(expectedText));
-}
-
 function nodeHasTaskItemChecked(
   block: LocalAiDocumentBlock | undefined,
   targetText: string | undefined,
@@ -229,80 +229,4 @@ function nodeHasTaskItemChecked(
   });
 
   return found;
-}
-
-function blockTextHasMarks(
-  block: LocalAiDocumentBlock | undefined,
-  targetText: string | undefined,
-  marks: string | string[] | undefined,
-  shouldHaveMarks: boolean,
-) {
-  const markNames = [marks].flat().filter((mark): mark is string => Boolean(mark));
-
-  if (!block || !targetText || !markNames.length) {
-    return false;
-  }
-
-  return findTargetTextRanges(block, targetText).some((range) =>
-    markNames.every((markName) => rangeHasMark(block, range, markName) === shouldHaveMarks),
-  );
-}
-
-function blockTextHasLink(
-  block: LocalAiDocumentBlock | undefined,
-  targetText: string | undefined,
-  href: string | undefined,
-  shouldHaveLink: boolean,
-) {
-  if (!block || !targetText) {
-    return false;
-  }
-
-  return findTargetTextRanges(block, targetText).some((range) =>
-    rangeHasLink(block, range, href) === shouldHaveLink,
-  );
-}
-
-function rangeHasMark(
-  block: LocalAiDocumentBlock,
-  range: { from: number; to: number },
-  markName: string,
-) {
-  return getTextNodesInRange(block, range).every((node) =>
-    node.marks.some((mark) => mark.type.name === markName),
-  );
-}
-
-function rangeHasLink(
-  block: LocalAiDocumentBlock,
-  range: { from: number; to: number },
-  href: string | undefined,
-) {
-  return getTextNodesInRange(block, range).every((node) =>
-    node.marks.some(
-      (mark) => mark.type.name === "link" && (!href || mark.attrs.href === href),
-    ),
-  );
-}
-
-function getTextNodesInRange(
-  block: LocalAiDocumentBlock,
-  range: { from: number; to: number },
-) {
-  const nodes: Array<{ marks: readonly { attrs: Record<string, unknown>; type: { name: string } }[] }> = [];
-
-  block.node.descendants((node, pos) => {
-    if (!node.isText || !node.text) {
-      return;
-    }
-
-    const from = block.pos + 1 + pos;
-    const to = from + node.text.length;
-
-    if (from < range.to && to > range.from) {
-      nodes.push({ marks: node.marks });
-    }
-  });
-
-  return nodes;
 }

@@ -121,6 +121,10 @@ export function EditorAiChatPanel({
   useEffect(() => {
     writeStoredAppliedNotices(appliedNotices);
   }, [appliedNotices]);
+  const handledDocumentActionMessageIds = useMemo(
+    () => new Set(Object.keys(appliedNotices)),
+    [appliedNotices],
+  );
 
   const handleDocumentActionApplied = useCallback(
     (action: AiChatDocumentAction, messageId: string, summary?: string) => {
@@ -161,6 +165,7 @@ export function EditorAiChatPanel({
     busy,
     editor,
     error,
+    handledMessageIds: handledDocumentActionMessageIds,
     messages,
     onApplied: handleDocumentActionApplied,
     onCancelled: handleDocumentActionCancelled,

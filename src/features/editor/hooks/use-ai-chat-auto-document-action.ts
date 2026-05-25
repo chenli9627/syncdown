@@ -1,14 +1,14 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   AiChatDocumentAction,
   AiChatMessage,
 } from "@/features/app-state/types";
 import { getAiChatMessageText } from "@/features/editor/lib/ai-chat-actions";
 import {
-  applyAiDocumentEditToolResponseWithVerification,
+  applyAiDocumentEditPayloadWithVerification,
 } from "@/features/editor/lib/ai-chat-document-tools";
 import { getAiChatMessageEditPlan } from "@/features/editor/lib/ai-chat-message-edit-plan";
 import type { AiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-types";
@@ -29,6 +29,7 @@ type UseAiChatAutoDocumentActionArgs = {
   busy: boolean;
   editor: Editor | null;
   error: Error | undefined;
+  handledMessageIds?: ReadonlySet<string>;
   messages: AiChatMessage[];
   onApplied?: (action: AiChatDocumentAction, messageId: string, summary?: string) => void;
   onCancelled?: (messageId: string) => void;
@@ -41,6 +42,7 @@ export function useAiChatAutoDocumentAction({
   busy,
   editor,
   error,
+  handledMessageIds,
   messages,
   onApplied,
   onCancelled,
@@ -49,6 +51,39 @@ export function useAiChatAutoDocumentAction({
   const pendingActionRef = useRef<PendingDocumentAction | null>(null);
   const [pendingConfirmation, setPendingConfirmation] =
     useState<PendingDocumentActionConfirmation | null>(null);
+  const fallbackPendingConfirmation = useMemo(() => {
+    if (busy || !editor || pendingConfirmation) {
+      return null;
+    }
+
+    const lastUnhandledAssistantEdit = findLastUnhandledAssistantEditMessage(
+      messages,
+      handledMessageIds,
+    );
+
+    if (!lastUnhandledAssistantEdit) {
+      return null;
+    }
+
+    const plan = getAiChatMessageEditPlan(
+      lastUnhandledAssistantEdit,
+      "edit_blocks",
+      { allowTextFallback: false },
+    );
+
+    if (!shouldRequestDocumentActionConfirmation("edit_blocks", plan)) {
+      return null;
+    }
+
+    return {
+      action: "edit_blocks" as const,
+      plan: plan!,
+      message: lastUnhandledAssistantEdit,
+      messageId: lastUnhandledAssistantEdit.id,
+    };
+  }, [busy, editor, handledMessageIds, messages, pendingConfirmation]);
+  const activePendingConfirmation =
+    pendingConfirmation ?? fallbackPendingConfirmation;
 
   useEffect(() => {
     if (busy || !editor) {
@@ -107,6 +142,42 @@ export function useAiChatAutoDocumentAction({
     }
   }, [error]);
 
+  useEffect(() => {
+    if (busy || !editor || pendingActionRef.current || pendingConfirmation) {
+      return;
+    }
+
+    const lastUnhandledAssistantEdit = findLastUnhandledAssistantEditMessage(
+      messages,
+      handledMessageIds,
+    );
+
+    if (!lastUnhandledAssistantEdit) {
+      return;
+    }
+
+    const plan = getAiChatMessageEditPlan(
+      lastUnhandledAssistantEdit,
+      "edit_blocks",
+      { allowTextFallback: false },
+    );
+
+    if (!shouldRequestDocumentActionConfirmation("edit_blocks", plan)) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      setPendingConfirmation({
+        action: "edit_blocks",
+        plan: plan!,
+        message: lastUnhandledAssistantEdit,
+        messageId: lastUnhandledAssistantEdit.id,
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [busy, editor, handledMessageIds, messages, pendingConfirmation]);
+
   function setPendingAction(action: AiChatDocumentAction | null, submittedMessageCount: number) {
     setPendingConfirmation(null);
     pendingActionRef.current = action
@@ -118,18 +189,20 @@ export function useAiChatAutoDocumentAction({
   }
 
   function confirmPendingAction(messageId: string) {
-    if (!editor || pendingConfirmation?.messageId !== messageId) {
+    const confirmation = activePendingConfirmation;
+
+    if (!editor || confirmation?.messageId !== messageId) {
       return;
     }
-
-    const confirmation = pendingConfirmation;
 
     setPendingConfirmation(null);
     applyConfirmedDocumentAction(editor, confirmation, onApplied, onApplyFailed);
   }
 
   function cancelPendingAction(messageId: string) {
-    if (pendingConfirmation?.messageId !== messageId) {
+    const confirmation = activePendingConfirmation;
+
+    if (confirmation?.messageId !== messageId) {
       return;
     }
 
@@ -140,9 +213,28 @@ export function useAiChatAutoDocumentAction({
   return {
     cancelPendingAction,
     confirmPendingAction,
-    pendingConfirmation,
+    pendingConfirmation: activePendingConfirmation,
     setPendingAction,
   };
+}
+
+function findLastUnhandledAssistantEditMessage(
+  messages: AiChatMessage[],
+  handledMessageIds: ReadonlySet<string> | undefined,
+) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+
+    if (
+      message?.role === "assistant" &&
+      message.metadata?.documentAction === "edit_blocks" &&
+      !handledMessageIds?.has(message.id)
+    ) {
+      return message;
+    }
+  }
+
+  return null;
 }
 
 function applyConfirmedDocumentAction(
@@ -158,9 +250,9 @@ function applyConfirmedDocumentAction(
     return;
   }
 
-  const applyResult = applyAiDocumentEditToolResponseWithVerification(
+  const applyResult = applyAiDocumentEditPayloadWithVerification(
     editor,
-    confirmation.plan.responseText,
+    confirmation.plan.payload,
   );
   const didApplyAndVerify =
     applyResult.appliedCount > 0 &&

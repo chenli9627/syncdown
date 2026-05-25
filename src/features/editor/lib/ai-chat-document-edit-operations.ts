@@ -1,5 +1,6 @@
 import type { Editor } from "@tiptap/react";
 import type { ExecutableOperation } from "@/features/editor/lib/ai-chat-document-edit-types";
+import { insertContentWithFallback } from "@/features/editor/lib/ai-chat-document-edit-insert-fallback";
 import {
   isTableStructureOperation,
   updateTableStructure,
@@ -22,7 +23,7 @@ export function applyExecutableOperation(editor: Editor, operation: ExecutableOp
   }
 
   if (operation.type === "replace_block") {
-    editor.chain().focus().insertContentAt(operation.range, operation.content).run();
+    insertContentWithFallback(editor, operation.range, operation.content);
     return;
   }
 
@@ -71,7 +72,7 @@ export function applyExecutableOperation(editor: Editor, operation: ExecutableOp
     return;
   }
 
-  editor.chain().focus().insertContentAt(operation.position, operation.content).run();
+  insertContentWithFallback(editor, operation.position, operation.content);
 }
 
 function replaceRangeText(editor: Editor, operation: ExecutableOperation) {

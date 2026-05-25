@@ -32,7 +32,10 @@ import {
 } from "@/lib/server/ai-models";
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
 import { aiWebFetchTools } from "@/lib/server/ai-web-fetch";
-import { guardPseudoToolCallText } from "@/lib/server/ai-output-guard";
+import {
+  getInvalidEditBlocksFallback,
+  guardPseudoToolCallText,
+} from "@/lib/server/ai-output-guard";
 import {
   createAiChatStreamMessageMetadata,
   formatAiChatStreamError,
@@ -203,6 +206,11 @@ export async function POST(request: Request, context: RouteContext) {
   }
   const documentAction = serverTurnPlan.documentAction;
   const responseMode = serverTurnPlan.responseMode;
+  const invalidEditBlocksFallback = getInvalidEditBlocksFallback({
+    documentAction,
+    documentBlocks: body.documentBlocks ?? [],
+    prompt: effectivePrompt,
+  });
 
   const systemPrompt = buildDocumentChatSystemPrompt(
     body.documentTitle ?? "",
@@ -245,7 +253,11 @@ export async function POST(request: Request, context: RouteContext) {
         toolChoice: "none",
       };
     },
-    experimental_transform: guardPseudoToolCallText(documentAction, responseMode),
+    experimental_transform: guardPseudoToolCallText(
+      documentAction,
+      responseMode,
+      invalidEditBlocksFallback,
+    ),
     stopWhen: stepCountIs(8),
     system: systemPrompt,
     temperature: 0.3,

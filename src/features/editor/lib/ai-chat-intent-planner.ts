@@ -59,7 +59,11 @@ export function planAiChatIntent(
     };
   }
 
-  if (isWholeDocumentRewritePrompt(compactPrompt, lowerPrompt) && !options.hasSelection) {
+  if (
+    isWholeDocumentRewritePrompt(compactPrompt, lowerPrompt) &&
+    !isDocumentAppendPrompt(compactPrompt, lowerPrompt) &&
+    !options.hasSelection
+  ) {
     return {
       kind: "unsupported",
       reason: "whole_document_rewrite",
@@ -127,6 +131,23 @@ function isWholeDocumentRewritePrompt(compactPrompt: string, lowerPrompt: string
       lowerPrompt,
     ) ||
     /\b(?:document|doc|page|article)\b[\s\S]{0,120}\b(?:rewrite|revise|improve|translate|format|reformat|clean|convert|turn|update)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isDocumentAppendPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:放到|放入|放进|放在|写入|插入到|插入进|添加到|添加在|加入到|加到|追加到).{0,12}(?:文档)?(?:末尾|最后|结尾|底部)/.test(
+      compactPrompt,
+    ) ||
+    /(?:文档)?(?:末尾|最后|结尾|底部).{0,12}(?:放|写入|插入|添加|加入|加|追加)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:append|insert|add|place)\b[\s\S]{0,120}\b(?:end|bottom)\b[\s\S]{0,60}\b(?:document|doc|page)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:append|insert|add|place)\b[\s\S]{0,120}\b(?:document|doc|page)\b[\s\S]{0,60}\b(?:end|bottom)\b/.test(
       lowerPrompt,
     )
   );

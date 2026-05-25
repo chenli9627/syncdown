@@ -55,6 +55,36 @@ test("falls back to parsing edit plan from assistant text", () => {
   assert.deepEqual(plan?.previewLines, ["将勾选任务“订酒店”"]);
 });
 
+test("normalizes move-before aliases from model output", () => {
+  const message = {
+    id: "msg_2a",
+    metadata: {
+      createdAt: "2026-05-25T00:00:00.000Z",
+      documentAction: "edit_blocks",
+    },
+    parts: [
+      {
+        text: '{"summary":"已互换位置。","operations":[{"blockId":"block_11","targetBlockId":"block_9","type":"move_before_block"}]}',
+        type: "text",
+      },
+    ],
+    role: "assistant",
+  } satisfies AiChatMessage;
+
+  const plan = getAiChatMessageEditPlan(message);
+
+  assert.deepEqual(plan?.payload.operations, [
+    {
+      blockId: "block_11",
+      placement: "before",
+      targetBlockId: "block_9",
+      type: "move_block",
+    },
+  ]);
+  assert.deepEqual(plan?.previewLines, ["将移动一个块"]);
+});
+
+
 test("can disable text fallback for current-turn edit plan resolution", () => {
   const message = {
     id: "msg_2b",

@@ -105,6 +105,24 @@ export function normalizeDependentTableInsertOperations(
 }
 
 function sanitizeAiDocumentEditOperation(operation: AiDocumentEditOperation): AiDocumentEditOperation {
+  const rawOperation = operation as AiDocumentEditOperation & { type?: string };
+
+  if (rawOperation.type === "move_before_block") {
+    return {
+      ...rawOperation,
+      placement: "before",
+      type: "move_block",
+    };
+  }
+
+  if (rawOperation.type === "move_after_block") {
+    return {
+      ...rawOperation,
+      placement: "after",
+      type: "move_block",
+    };
+  }
+
   if (!("content" in operation) || typeof operation.content !== "string") {
     return operation;
   }

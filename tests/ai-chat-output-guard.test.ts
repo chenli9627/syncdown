@@ -119,6 +119,38 @@ test("sanitizes invalid edit-block prose into an empty operation payload", () =>
   );
 });
 
+test("wraps insertable invalid edit-block prose when an insertion fallback is available", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "好的，已将内容插入到文档末尾。\n\n### 总结\n\n北京是中国首都。",
+      "edit_blocks",
+      null,
+      {
+        blockId: "block_4",
+        kind: "insert_after_block",
+        summary: "在文档中插入了模型生成的内容。",
+      },
+    ),
+    '{"summary":"在文档中插入了模型生成的内容。","operations":[{"blockId":"block_4","content":"### 总结\\n\\n北京是中国首都。","type":"insert_after_block"}]}',
+  );
+});
+
+test("wraps invalid edit-block prose into a delete-table fallback", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      "未修改文档：模型没有返回可应用的文档操作，未修改文档。",
+      "edit_blocks",
+      null,
+      {
+        blockId: "block_table",
+        kind: "delete_block",
+        summary: "删除了文档中的表格。",
+      },
+    ),
+    '{"summary":"删除了文档中的表格。","operations":[{"blockId":"block_table","type":"delete_block"}]}',
+  );
+});
+
 test("leaves valid edit-block JSON unchanged", () => {
   const payload = '{"summary":"已插入表格。","operations":[{"type":"insert_after_block"}]}';
 

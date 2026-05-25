@@ -81,6 +81,7 @@ export function ChatMessage({
       : null,
     text,
     toolSummary,
+    unconfirmedNotice: t("aiUnconfirmedDocumentAction"),
   });
   const [copied, setCopied] = useState(false);
   const editInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -266,6 +267,7 @@ function getDisplayText({
   pendingNotice,
   text,
   toolSummary,
+  unconfirmedNotice,
 }: {
   appliedNotice?: string;
   fallbackNotice: string;
@@ -274,13 +276,14 @@ function getDisplayText({
   pendingNotice: string | null;
   text: string;
   toolSummary: string | null;
+  unconfirmedNotice: string;
 }) {
   if (pendingNotice) {
     return pendingNotice;
   }
 
   if (isAutomaticDocumentAction) {
-    return appliedNotice ?? fallbackNotice;
+    return appliedNotice ?? (toolSummary ? unconfirmedNotice : fallbackNotice);
   }
 
   return isNotChangedNotice ? (appliedNotice ?? "") : (toolSummary ?? text);

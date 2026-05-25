@@ -4,6 +4,12 @@ import type {
   AiChatResponseMode,
 } from "@/features/app-state/types";
 
+export type InvalidEditBlocksFallback = {
+  blockId?: string;
+  kind: "delete_block" | "insert_after_block";
+  summary: string;
+};
+
 const pseudoToolCallPattern =
   /<\s*(?:\||\uFF5C){2}\s*DSML\s*(?:\||\uFF5C){2}\s*tool_calls\b/i;
 
@@ -26,12 +32,44 @@ export function sanitizeAiAssistantText(
   text: string,
   documentAction: AiChatDocumentAction | null = null,
   responseMode: AiChatResponseMode | null = null,
+  invalidEditBlocksFallback?: InvalidEditBlocksFallback | null,
 ) {
   if (containsPseudoToolCallText(text)) {
     return getPseudoToolCallFallbackText(documentAction);
   }
 
   if (documentAction === "edit_blocks" && !isValidEditBlocksPayload(text)) {
+    const insertableContent = stripLeadingAssistantPreamble(text, "insert_end", responseMode);
+
+    if (invalidEditBlocksFallback?.kind === "delete_block" && invalidEditBlocksFallback.blockId) {
+      return JSON.stringify({
+        summary: invalidEditBlocksFallback.summary,
+        operations: [
+          {
+            blockId: invalidEditBlocksFallback.blockId,
+            type: "delete_block",
+          },
+        ],
+      });
+    }
+
+    if (
+      invalidEditBlocksFallback?.kind === "insert_after_block" &&
+      invalidEditBlocksFallback.blockId &&
+      looksLikeInsertableContent(insertableContent)
+    ) {
+      return JSON.stringify({
+        summary: invalidEditBlocksFallback.summary,
+        operations: [
+          {
+            blockId: invalidEditBlocksFallback.blockId,
+            content: insertableContent,
+            type: "insert_after_block",
+          },
+        ],
+      });
+    }
+
     return JSON.stringify({
       summary: getInvalidEditBlocksSummary(text),
       operations: [],
