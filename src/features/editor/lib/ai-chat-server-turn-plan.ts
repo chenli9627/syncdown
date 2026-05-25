@@ -2,10 +2,12 @@ import type {
   AiChatDocumentAction,
   AiChatDocumentBlock,
   AiChatMessage,
-  AiChatResponseMode,
   AiChatSelection,
 } from "@/features/app-state/types";
-import { buildDeterministicAiDocumentEditPayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit";
+import {
+  type AiChatEditPlan,
+  planAiChatEdit,
+} from "@/features/editor/lib/ai-chat-edit-planner";
 import {
   getAiChatClarificationReply,
   getAiChatUnsupportedReply,
@@ -26,12 +28,7 @@ export type AiChatServerTurnPlan =
       kind: "clarify";
       text: string;
     }
-  | {
-      documentAction: "edit_blocks";
-      kind: "deterministic_edit";
-      payloadText: string;
-      responseMode: AiChatResponseMode | null;
-    }
+  | AiChatEditPlan
   | {
       documentAction: AiChatDocumentAction | null;
       kind: "llm";
@@ -73,22 +70,11 @@ export function planAiChatServerTurn({
   }
 
   if (intentPlan.kind === "edit") {
-    const deterministicPayload = buildDeterministicAiDocumentEditPayload(prompt, documentBlocks);
-
-    if (deterministicPayload) {
-      return {
-        documentAction: "edit_blocks",
-        kind: "deterministic_edit",
-        payloadText: JSON.stringify(deterministicPayload),
-        responseMode: intentPlan.responseMode,
-      };
-    }
-
-    return {
-      documentAction: intentPlan.documentAction,
-      kind: "llm",
+    return planAiChatEdit({
+      documentBlocks,
+      prompt,
       responseMode: intentPlan.responseMode,
-    };
+    });
   }
 
   return {

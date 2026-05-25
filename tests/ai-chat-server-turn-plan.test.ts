@@ -81,7 +81,7 @@ test("plans llm edit turns when the edit is supported but not deterministic", ()
 
   assert.deepEqual(plan, {
     documentAction: "edit_blocks",
-    kind: "llm",
+    kind: "llm_edit",
     responseMode: null,
   });
 });
