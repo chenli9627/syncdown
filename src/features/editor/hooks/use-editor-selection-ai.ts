@@ -305,6 +305,7 @@ export function useEditorSelectionAi({
           top: bubblePosition.top,
           viewOnly: false,
         });
+        globalThis.window?.getSelection()?.removeAllRanges();
       },
       async previewAction(action: AiActionKind) {
         setAiBubble((current) => ({
