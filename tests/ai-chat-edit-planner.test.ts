@@ -46,3 +46,27 @@ test("plans deterministic edits from previous assistant content when available",
   assert.match(plan.payloadText, /insert_after_block/);
   assert.match(plan.payloadText, /西湖/);
 });
+
+test("does not reuse previous assistant content for unrelated structural edit prompts", () => {
+  const plan = planAiChatEdit({
+    documentBlocks,
+    messages: [
+      {
+        id: "msg_user",
+        metadata: { createdAt: new Date().toISOString() },
+        parts: [{ text: "介绍一下杭州", type: "text" }],
+        role: "user",
+      },
+      {
+        id: "msg_assistant",
+        metadata: { createdAt: new Date().toISOString() },
+        parts: [{ text: "- 西湖\n- 灵隐寺", type: "text" }],
+        role: "assistant",
+      },
+    ],
+    prompt: "给每一段加上二级标题",
+    responseMode: null,
+  });
+
+  assert.equal(plan.kind, "llm_edit");
+});
