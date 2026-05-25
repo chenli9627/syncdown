@@ -9,6 +9,12 @@ import { sanitizeAiAssistantText } from "@/features/editor/lib/ai-chat-output-gu
 export { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-action-inference";
 export { inferAiChatResponseMode } from "@/features/editor/lib/ai-chat-response-mode-inference";
 export {
+  planAiChatIntent,
+} from "@/features/editor/lib/ai-chat-intent-planner";
+export type {
+  AiChatIntentPlan,
+} from "@/features/editor/lib/ai-chat-intent-planner";
+export {
   inferAiChatClarification,
   isAiChatClarificationCancelPrompt,
   resolveAiChatClarifiedPrompt,

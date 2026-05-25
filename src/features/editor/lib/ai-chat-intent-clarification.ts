@@ -7,6 +7,7 @@ type InferAiChatClarificationOptions = {
 };
 
 export type AiChatClarificationKind =
+  | "ambiguous_edit_intent"
   | "ambiguous_document_target"
   | "missing_insert_source";
 

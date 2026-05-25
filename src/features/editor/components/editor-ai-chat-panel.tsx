@@ -40,10 +40,8 @@ import { useAiChatThreads } from "@/features/editor/hooks/use-ai-chat-threads";
 import {
   type AiChatClarification,
   type AiChatClarificationKind,
-  inferAiChatClarification,
-  inferAiChatDocumentAction,
-  inferAiChatResponseMode,
   isAiChatClarificationCancelPrompt,
+  planAiChatIntent,
   resolveAiChatClarifiedPrompt,
 } from "@/features/editor/lib/ai-chat-actions";
 import {
@@ -207,26 +205,46 @@ export function EditorAiChatPanel({
     }
 
     if (!pendingClarification) {
-      const clarification = inferAiChatClarification(trimmed, {
+      const intentPlan = planAiChatIntent(trimmed, {
+        documentBlocks: getAiDocumentBlocks(editor),
+        documentText: editor?.getText() ?? "",
         hasRecentAssistantAnswer: hasRecentSubstantiveAssistantAnswer(messages),
         hasRecentDocumentAction,
         hasSelection: selected,
       });
 
-      if (clarification) {
+      if (intentPlan.kind === "clarify") {
         const threadId = createThreadForSend();
         const nextMessages = [
           ...messages,
           createLocalAiChatTextMessage("user", trimmed, threadId),
           createLocalAiChatTextMessage(
             "assistant",
-            getClarificationQuestion(clarification.kind, t),
+            getClarificationQuestion(intentPlan.clarification.kind, t),
             threadId,
-            clarification.kind,
+            intentPlan.clarification.kind,
           ),
         ];
 
-        setPendingClarification(clarification);
+        setPendingClarification(intentPlan.clarification);
+        setMessages(nextMessages);
+        setInput("");
+        focusPromptInput(inputRef);
+        return;
+      }
+
+      if (intentPlan.kind === "unsupported") {
+        const threadId = createThreadForSend();
+        const nextMessages = [
+          ...messages,
+          createLocalAiChatTextMessage("user", trimmed, threadId),
+          createLocalAiChatTextMessage(
+            "assistant",
+            getUnsupportedIntentMessage(intentPlan.reason, t),
+            threadId,
+          ),
+        ];
+
         setMessages(nextMessages);
         setInput("");
         focusPromptInput(inputRef);
@@ -234,14 +252,57 @@ export function EditorAiChatPanel({
       }
     }
 
-    const documentAction = inferAiChatDocumentAction(resolvedPrompt, {
+    const intentPlan = planAiChatIntent(resolvedPrompt, {
       documentBlocks: getAiDocumentBlocks(editor),
       documentText: editor?.getText() ?? "",
+      hasRecentAssistantAnswer: hasRecentSubstantiveAssistantAnswer(messages),
       hasSelection: selected,
       hasRecentDocumentAction,
     });
-    const responseMode = inferAiChatResponseMode(resolvedPrompt);
     const threadId = createThreadForSend();
+
+    if (intentPlan.kind === "clarify") {
+      const nextMessages = [
+        ...messages,
+        createLocalAiChatTextMessage("user", trimmed, threadId),
+        createLocalAiChatTextMessage(
+          "assistant",
+          getClarificationQuestion(intentPlan.clarification.kind, t),
+          threadId,
+          intentPlan.clarification.kind,
+        ),
+      ];
+
+      setPendingClarification(intentPlan.clarification);
+      setMessages(nextMessages);
+      setInput("");
+      focusPromptInput(inputRef);
+      return;
+    }
+
+    if (intentPlan.kind === "unsupported") {
+      const nextMessages = [
+        ...messages,
+        createLocalAiChatTextMessage("user", trimmed, threadId),
+        createLocalAiChatTextMessage(
+          "assistant",
+          getUnsupportedIntentMessage(intentPlan.reason, t),
+          threadId,
+        ),
+      ];
+
+      setPendingClarification(null);
+      setMessages(nextMessages);
+      setInput("");
+      focusPromptInput(inputRef);
+      return;
+    }
+
+    const documentAction = intentPlan.kind === "edit" ? intentPlan.documentAction : null;
+    const responseMode =
+      intentPlan.kind === "edit" || intentPlan.kind === "chat"
+        ? intentPlan.responseMode
+        : null;
 
     setPendingClarification(null);
     setPendingAction(documentAction, messages.length);
@@ -289,14 +350,58 @@ export function EditorAiChatPanel({
     const threadId = createThreadForSend();
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
-    const documentAction = inferAiChatDocumentAction(trimmed, {
+    const intentPlan = planAiChatIntent(trimmed, {
       documentBlocks: getAiDocumentBlocks(editor),
       documentText: editor?.getText() ?? "",
       hasSelection: hasEditorSelection(editor),
+      hasRecentAssistantAnswer: hasRecentSubstantiveAssistantAnswer(nextMessages),
       hasRecentDocumentAction: hasRecentAiDocumentAction(nextMessages),
     });
-    const responseMode = inferAiChatResponseMode(trimmed);
 
+    if (intentPlan.kind === "clarify") {
+      flushSync(() => {
+        setMessages([
+          ...nextMessages,
+          createLocalAiChatTextMessage("user", trimmed, threadId),
+          createLocalAiChatTextMessage(
+            "assistant",
+            getClarificationQuestion(intentPlan.clarification.kind, t),
+            threadId,
+            intentPlan.clarification.kind,
+          ),
+        ]);
+        setEditingQuestion(null);
+      });
+      setPendingClarification(intentPlan.clarification);
+      focusPromptInput(inputRef);
+      return;
+    }
+
+    if (intentPlan.kind === "unsupported") {
+      flushSync(() => {
+        setMessages([
+          ...nextMessages,
+          createLocalAiChatTextMessage("user", trimmed, threadId),
+          createLocalAiChatTextMessage(
+            "assistant",
+            getUnsupportedIntentMessage(intentPlan.reason, t),
+            threadId,
+          ),
+        ]);
+        setEditingQuestion(null);
+      });
+      setPendingClarification(null);
+      focusPromptInput(inputRef);
+      return;
+    }
+
+    const documentAction = intentPlan.kind === "edit" ? intentPlan.documentAction : null;
+    const responseMode =
+      intentPlan.kind === "edit" || intentPlan.kind === "chat"
+        ? intentPlan.responseMode
+        : null;
+
+    setPendingClarification(null);
     setPendingAction(documentAction, nextMessages.length);
     flushSync(() => {
       setMessages(nextMessages);
@@ -524,11 +629,26 @@ function getClarificationQuestion(
   kind: AiChatClarificationKind,
   t: (key: MessageKey) => string,
 ) {
+  if (kind === "ambiguous_edit_intent") {
+    return t("aiClarifyEditIntent");
+  }
+
   if (kind === "missing_insert_source") {
     return t("aiClarifyInsertSource");
   }
 
   return t("aiClarifyDocumentTarget");
+}
+
+function getUnsupportedIntentMessage(
+  reason: "manual_undo" | "whole_document_rewrite",
+  t: (key: MessageKey) => string,
+) {
+  if (reason === "manual_undo") {
+    return t("aiUndoUseEditor");
+  }
+
+  return t("aiUnsupportedWholeDocumentEdit");
 }
 
 function focusPromptInput(inputRef: RefObject<HTMLTextAreaElement | null>) {

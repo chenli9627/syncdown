@@ -228,8 +228,13 @@ export const messages = {
     aiApplyCancelled: "未修改文档：你取消了这次修改。",
     aiClarifyDocumentTarget:
       "我不确定你要修改文档里的哪一处。请说明目标文字、当前光标所在块、选区，或具体标题/段落。",
+    aiClarifyEditIntent:
+      "我看起来像是在帮你修改文档，但还不确定具体要怎么改。请说明要改哪一部分、改成什么，以及是否要写回文档。",
     aiClarifyInsertSource:
       "我不确定要把哪段内容放进文档。请说明来源内容，以及要放到末尾、光标处，还是某个标题下面。",
+    aiUndoUseEditor: "我不会替你撤回上一次修改。请使用 Ctrl+Z 或编辑器里的撤销按钮。",
+    aiUnsupportedWholeDocumentEdit:
+      "我还不能直接重写整篇文档。请指定一个段落、小节、表格、列表、选区或插入位置。",
     aiUntitledChat: "新会话",
     aiCursor: "光标",
     aiEnd: "末尾",
@@ -564,8 +569,14 @@ export const messages = {
     aiApplyCancelled: "Document was not changed: you cancelled this edit.",
     aiClarifyDocumentTarget:
       "I am not sure which part of the document to edit. Please name the target text, current cursor block, selection, or a specific heading/paragraph.",
+    aiClarifyEditIntent:
+      "This sounds like a document edit, but I am not sure what you want changed yet. Please name the target, the intended result, and whether it should be written back to the document.",
     aiClarifyInsertSource:
       "I am not sure what content to put into the document. Please name the source and whether it should go at the end, cursor, or under a heading.",
+    aiUndoUseEditor:
+      "I will not undo the last edit for you. Please use Ctrl+Z or the editor's Undo button.",
+    aiUnsupportedWholeDocumentEdit:
+      "I cannot rewrite the whole document directly yet. Please name a paragraph, section, table, list, selection, or insertion point.",
     aiUntitledChat: "New chat",
     aiCursor: "Cursor",
     aiEnd: "End",
