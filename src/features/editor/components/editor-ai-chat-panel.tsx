@@ -290,6 +290,7 @@ export function EditorAiChatPanel({
       hasRecentDocumentAction,
     });
     const threadId = createThreadForSend();
+    cancelPendingConfirmationForNewMessage();
 
     if (intentPlan.kind === "clarify") {
       const nextMessages = [
@@ -380,6 +381,7 @@ export function EditorAiChatPanel({
     const threadId = createThreadForSend();
     const editedIndex = messages.findIndex((message) => message.id === editingQuestion.id);
     const nextMessages = editedIndex >= 0 ? messages.slice(0, editedIndex) : messages;
+    cancelPendingConfirmationForNewMessage();
     const intentPlan = planAiChatIntent(trimmed, {
       documentBlocks: getAiDocumentBlocks(editor),
       documentText: editor?.getText() ?? "",
@@ -453,6 +455,14 @@ export function EditorAiChatPanel({
         ),
       },
     );
+  }
+
+  function cancelPendingConfirmationForNewMessage() {
+    if (!pendingConfirmation) {
+      return;
+    }
+
+    cancelPendingAction(pendingConfirmation.messageId);
   }
 
   function handleModelChange(nextModelKey: AiChatModelKey) {
