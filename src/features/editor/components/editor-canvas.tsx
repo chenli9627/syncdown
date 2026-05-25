@@ -615,6 +615,7 @@ export function EditorCanvas({
       />
       <div
         className="relative -ml-20 pl-20"
+        data-ai-selection-preview={aiBubble.open ? "true" : undefined}
         onContextMenu={(event) => {
           if (!canEditBody || !editor) {
             return;

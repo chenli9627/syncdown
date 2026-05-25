@@ -536,3 +536,11 @@ button:disabled {
   background: transparent !important;
   pointer-events: none;
 }
+
+[data-ai-selection-preview="true"] .ProseMirror ::selection {
+  background: transparent;
+}
+
+[data-ai-selection-preview="true"] .ProseMirror ::-moz-selection {
+  background: transparent;
+}
