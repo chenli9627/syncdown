@@ -126,6 +126,18 @@ export function getAiDocumentEditToolOperationCount(responseText: string) {
   return payload ? normalizeDependentTableInsertOperations(payload.operations).length : 0;
 }
 
+export function getAiDocumentEditToolPreviewLines(responseText: string) {
+  const payload = parseAiDocumentEditPayload(responseText);
+
+  if (!payload?.operations?.length) {
+    return [];
+  }
+
+  return normalizeDependentTableInsertOperations(payload.operations)
+    .map((operation) => toPreviewLine(operation))
+    .filter((line): line is string => Boolean(line));
+}
+
 function parseAiDocumentEditPayload(responseText: string): AiDocumentEditPayload | null {
   const jsonText = extractJsonObject(responseText);
 
@@ -238,4 +250,78 @@ function isNonAppliedEditSummary(summary: string) {
   return /^(?:未修改文档|No matching document target found\.?|I cannot do that edit yet\.?|I cannot do whole-document replacement yet\.?|模型没有返回可应用的文档操作，未修改文档。)/i.test(
     summary.trim(),
   );
+}
+
+function toPreviewLine(operation: AiDocumentEditOperation) {
+  switch (operation.type) {
+    case "insert_after_block":
+      return `将插入到块后：${previewContent(operation.content)}`;
+    case "insert_before_block":
+      return `将插入到块前：${previewContent(operation.content)}`;
+    case "replace_block":
+      return `将整块替换为：${previewContent(operation.content)}`;
+    case "delete_block":
+      return "将删除一个块";
+    case "replace_text_in_block":
+      return operation.targetText
+        ? `将把“${operation.targetText}”改成“${previewContent(operation.replacementText)}”`
+        : null;
+    case "replace_all_text":
+      return operation.targetText
+        ? `将把所有“${operation.targetText}”改成“${previewContent(operation.replacementText)}”`
+        : null;
+    case "set_heading_level":
+      return `将标题调整为 ${operation.level} 级`;
+    case "set_task_item_checked":
+      return operation.targetText
+        ? operation.checked
+          ? `将勾选任务“${operation.targetText}”`
+          : `将取消勾选任务“${operation.targetText}”`
+        : null;
+    case "set_text_marks":
+      return operation.targetText ? `将修改“${operation.targetText}”的文本样式` : null;
+    case "unset_text_marks":
+      return operation.targetText ? `将移除“${operation.targetText}”的文本样式` : null;
+    case "set_link":
+      return operation.targetText
+        ? `将更新“${operation.targetText}”的链接为 ${previewContent(operation.href)}`
+        : null;
+    case "unset_link":
+      return operation.targetText ? `将移除“${operation.targetText}”的链接` : null;
+    case "update_table_cell":
+      return `将把表格第 ${operation.row} 行第 ${operation.column} 列改成：${previewContent(operation.content)}`;
+    case "set_block_type":
+      return `将块类型改成 ${operation.blockType}`;
+    case "set_list_type":
+      return `将列表类型改成 ${operation.listType}`;
+    case "insert_table_row_before":
+      return `将新增表格第 ${operation.row} 行之前的一行`;
+    case "insert_table_row_after":
+      return `将新增表格第 ${operation.row} 行之后的一行`;
+    case "delete_table_row":
+      return `将删除表格第 ${operation.row} 行`;
+    case "insert_table_column_before":
+      return `将新增表格第 ${operation.column} 列之前的一列`;
+    case "insert_table_column_after":
+      return `将新增表格第 ${operation.column} 列之后的一列`;
+    case "delete_table_column":
+      return `将删除表格第 ${operation.column} 列`;
+    case "toggle_table_header_row":
+      return "将切换表格标题行";
+    case "move_block":
+      return "将移动一个块";
+    case "copy_block":
+      return "将复制一个块";
+    default:
+      return null;
+  }
+}
+
+function previewContent(value?: string) {
+  const trimmed = (value ?? "").trim().replace(/\s+/g, " ");
+  if (!trimmed) {
+    return "空内容";
+  }
+
+  return trimmed.length > 80 ? `${trimmed.slice(0, 77)}...` : trimmed;
 }

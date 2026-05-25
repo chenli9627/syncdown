@@ -9,6 +9,7 @@ import type {
 import { getAiChatMessageText } from "@/features/editor/lib/ai-chat-actions";
 import {
   applyAiDocumentEditToolResponseWithVerification,
+  getAiDocumentEditToolPreviewLines,
   getAiDocumentEditToolOperationCount,
   getAiDocumentEditToolSummary,
 } from "@/features/editor/lib/ai-chat-document-tools";
@@ -22,6 +23,7 @@ export type PendingDocumentActionConfirmation = {
   action: AiChatDocumentAction;
   message: AiChatMessage;
   messageId: string;
+  previewLines: string[];
   responseText: string;
   summary?: string;
 };
@@ -96,6 +98,10 @@ export function useAiChatAutoDocumentAction({
       action: documentAction.action,
       message: lastMessage,
       messageId: lastMessage.id,
+      previewLines:
+        documentAction.action === "edit_blocks"
+          ? getAiDocumentEditToolPreviewLines(responseText)
+          : [],
       responseText,
       summary,
     });

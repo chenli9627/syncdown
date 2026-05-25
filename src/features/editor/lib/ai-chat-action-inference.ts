@@ -153,6 +153,12 @@ function isReplaceSelectionPrompt(compactPrompt: string, lowerPrompt: string) {
 
 function isDocumentEditFollowUpPrompt(compactPrompt: string, lowerPrompt: string) {
   return (
+    /^(?:撤回|撤销|回退|还原|恢复).{0,24}(?:上一个|上次|刚才|最近一次).{0,24}(?:操作|修改|改动|编辑)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:undo|revert|roll back|rollback|restore)\b[\s\S]{0,80}\b(?:last|previous|recent)\b[\s\S]{0,80}\b(?:change|edit|operation)\b/.test(
+      lowerPrompt,
+    ) ||
     /^(?:不对|错了|有问题|没成功|没生效|没有修改|没改|不成功|失败了|还是不行).{0,80}(?:修复|修正|改|修改|调整|重做|重新|再试|执行|应用|生效)/.test(
       compactPrompt,
     ) ||

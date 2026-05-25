@@ -287,11 +287,17 @@ function getPendingDocumentActionText(
   t: (key: MessageKey) => string,
 ) {
   if (pendingDocumentAction.action === "edit_blocks") {
-    return `${t("aiPendingDocumentAction")}${
-      pendingDocumentAction.summary
-        ? `\n\n${toPendingDocumentActionSummary(pendingDocumentAction.summary)}`
-        : ""
-    }`;
+    const parts = [t("aiPendingDocumentAction")];
+
+    if (pendingDocumentAction.summary) {
+      parts.push(toPendingDocumentActionSummary(pendingDocumentAction.summary));
+    }
+
+    if (pendingDocumentAction.previewLines.length) {
+      parts.push(pendingDocumentAction.previewLines.map((line) => `- ${line}`).join("\n"));
+    }
+
+    return parts.join("\n\n");
   }
 
   return `${t("aiPendingGeneratedContent")}\n\n${pendingDocumentAction.responseText}`;

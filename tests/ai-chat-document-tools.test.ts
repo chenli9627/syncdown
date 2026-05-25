@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   getAiDocumentEditToolOperationCount,
+  getAiDocumentEditToolPreviewLines,
   getAiDocumentEditToolSummary,
 } from "../src/features/editor/lib/ai-chat-document-tools";
 
@@ -77,5 +78,19 @@ test("counts dependent table column header updates as one operation", () => {
       }),
     ),
     1,
+  );
+});
+
+test("builds preview lines for pending edit confirmation", () => {
+  assert.deepEqual(
+    getAiDocumentEditToolPreviewLines(
+      JSON.stringify({
+        operations: [
+          { blockId: "block_1", content: "### 北京概况", type: "insert_after_block" },
+          { blockId: "block_2", replacementText: "北京烤鸭", targetText: "烤鸭", type: "replace_text_in_block" },
+        ],
+      }),
+    ),
+    ["将插入到块后：### 北京概况", "将把“烤鸭”改成“北京烤鸭”"],
   );
 });
