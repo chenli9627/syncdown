@@ -265,7 +265,9 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   if (serverTurnPlan.kind === "llm" && !serverTurnPlan.documentAction) {
-    const deterministicReply = await getDeterministicAiChatReply(effectivePrompt);
+  const deterministicReply = await getDeterministicAiChatReply(effectivePrompt, {
+    modelConfig,
+  });
 
     if (deterministicReply) {
       return respondWithAssistantText({

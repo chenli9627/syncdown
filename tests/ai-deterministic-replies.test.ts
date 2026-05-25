@@ -113,3 +113,111 @@ test("parses chinese weather prompts with connector words around the city name",
   assert.deepEqual(geocodingNames, ["信阳"]);
   assert.match(reply ?? "", /信阳 河南省/u);
 });
+
+test("supports county and district weather locations through model interpretation", async () => {
+  const geocodingNames: string[] = [];
+  const fetchImpl = (async (input: URL | RequestInfo) => {
+    const url = new URL(String(input));
+
+    if (url.hostname === "geocoding-api.open-meteo.com") {
+      const name = url.searchParams.get("name") ?? "";
+      geocodingNames.push(name);
+
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              admin1: "北京市",
+              latitude: 39.9593,
+              longitude: 116.2985,
+              name: "海淀区",
+            },
+          ],
+        }),
+        { headers: { "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        daily: {
+          precipitation_probability_max: [15],
+          temperature_2m_max: [29.5],
+          temperature_2m_min: [18.2],
+          time: ["2026-05-25"],
+          weather_code: [1],
+          wind_speed_10m_max: [10.1],
+        },
+      }),
+      { headers: { "Content-Type": "application/json" }, status: 200 },
+    );
+  }) as typeof fetch;
+
+  const reply = await getDeterministicAiChatReply("海淀区现在天气怎么样", {
+    fetchImpl,
+    interpretPromptImpl: async () => ({
+      dayOffset: 0,
+      isSingleLocationReply: true,
+      isWeatherRequest: true,
+      location: "海淀区",
+    }),
+    now: new Date("2026-05-25T08:00:00+08:00"),
+  });
+
+  assert.deepEqual(geocodingNames, ["海淀区"]);
+  assert.match(reply ?? "", /海淀区 北京市/u);
+});
+
+test("supports town-level weather locations through model interpretation", async () => {
+  const geocodingNames: string[] = [];
+  const fetchImpl = (async (input: URL | RequestInfo) => {
+    const url = new URL(String(input));
+
+    if (url.hostname === "geocoding-api.open-meteo.com") {
+      const name = url.searchParams.get("name") ?? "";
+      geocodingNames.push(name);
+
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              admin1: "浙江省",
+              latitude: 29.3056,
+              longitude: 120.0754,
+              name: "佛堂镇",
+            },
+          ],
+        }),
+        { headers: { "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        daily: {
+          precipitation_probability_max: [55],
+          temperature_2m_max: [31.4],
+          temperature_2m_min: [22.8],
+          time: ["2026-05-25"],
+          weather_code: [61],
+          wind_speed_10m_max: [7.8],
+        },
+      }),
+      { headers: { "Content-Type": "application/json" }, status: 200 },
+    );
+  }) as typeof fetch;
+
+  const reply = await getDeterministicAiChatReply("佛堂镇今天会下雨吗", {
+    fetchImpl,
+    interpretPromptImpl: async () => ({
+      dayOffset: 0,
+      isSingleLocationReply: true,
+      isWeatherRequest: true,
+      location: "佛堂镇",
+    }),
+    now: new Date("2026-05-25T08:00:00+08:00"),
+  });
+
+  assert.deepEqual(geocodingNames, ["佛堂镇"]);
+  assert.match(reply ?? "", /佛堂镇 浙江省/u);
+});
