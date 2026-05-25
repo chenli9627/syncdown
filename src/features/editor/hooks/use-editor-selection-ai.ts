@@ -9,6 +9,7 @@ import {
   toAiInsertHtml,
   type AiActionKind,
 } from "@/features/editor/lib/ai";
+import { useAiRequestLock } from "@/features/editor/hooks/use-ai-request-lock";
 import type { AiBubbleState, SelectionBubbleState } from "@/features/editor/lib/types";
 import { getSearchRects } from "@/features/editor/lib/search";
 
@@ -33,10 +34,12 @@ export function useEditorSelectionAi({
   const selectionBubbleRef = useRef<HTMLDivElement | null>(null);
   const aiBubbleRef = useRef<HTMLDivElement | null>(null);
   const dismissedSelectionRef = useRef<{ from: number; to: number } | null>(null);
+  const aiRequestLock = useAiRequestLock("selection");
   const [selectionBubble, setSelectionBubble] = useState<SelectionBubbleState>(closedSelectionBubble);
   const [aiBubble, setAiBubble] = useState<AiBubbleState>(closedAiBubble);
   const selectedCandidate = aiBubble.candidates[aiBubble.selectedCandidateIndex] ?? null;
   const hasWritableResult = !aiBubble.viewOnly && Boolean(selectedCandidate?.result.trim());
+  const aiRequestBusy = aiBubble.loading || aiRequestLock.isLockedByOther;
   const visibleSelectionBubble = canEditBody ? selectionBubble : closedSelectionBubble();
   const visibleAiBubble = canEditBody ? aiBubble : closedAiBubble();
   const dismissAll = useCallback(() => {
@@ -59,6 +62,18 @@ export function useEditorSelectionAi({
     setAiBubble(closedAiBubble());
     setSelectionBubble(closedSelectionBubble());
   }, [aiBubble.from, aiBubble.open, aiBubble.to, editor, selectionBubble.from, selectionBubble.open, selectionBubble.to]);
+
+  useEffect(() => {
+    if (!aiBubble.loading) {
+      aiRequestLock.release();
+    }
+  }, [aiBubble.loading, aiRequestLock]);
+
+  useEffect(() => {
+    return () => {
+      aiRequestLock.release();
+    };
+  }, [aiRequestLock]);
 
   useEffect(() => {
     if (!editor || !canEditBody) {
@@ -356,6 +371,10 @@ export function useEditorSelectionAi({
         globalThis.window?.getSelection()?.removeAllRanges();
       },
       async previewAction(action: AiActionKind) {
+        if (aiRequestBusy || !aiRequestLock.acquire()) {
+          return;
+        }
+
         setAiBubble((current) => ({
           ...current,
           action,
@@ -499,6 +518,8 @@ export function useEditorSelectionAi({
     }),
     [
       aiBubble,
+      aiRequestBusy,
+      aiRequestLock,
       dismissAll,
       editor,
       editorContainerRef,
@@ -511,6 +532,7 @@ export function useEditorSelectionAi({
 
   return {
     actions,
+    aiRequestBusy,
     aiBubble: visibleAiBubble,
     aiBubbleRef,
     selectionBubble: visibleSelectionBubble,

@@ -117,6 +117,7 @@ type EditorCanvasProps = {
   remoteEntries: RemoteAwarenessEntry[];
   searchRects: SearchRect[];
   aiHighlightRects: SearchRect[];
+  aiRequestBusy: boolean;
   aiBubble: AiBubbleState;
   aiBubbleRef: RefObject<HTMLDivElement | null>;
   onAiApply: () => void;
@@ -177,6 +178,7 @@ export function EditorCanvas({
   remoteEntries,
   searchRects,
   aiHighlightRects,
+  aiRequestBusy,
   aiBubble,
   aiBubbleRef,
   onAiApply,
@@ -1054,6 +1056,7 @@ export function EditorCanvas({
           selectionBubbleRef={selectionBubbleRef}
         />
         <EditorAiBubble
+          aiRequestBusy={aiRequestBusy}
           aiBubble={aiBubble}
           aiBubbleRef={aiBubbleRef}
           onApply={onAiApply}

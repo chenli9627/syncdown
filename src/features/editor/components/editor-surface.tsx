@@ -217,6 +217,7 @@ export function EditorSurface({
           remoteEntries={model.presence.remoteEntries}
           searchRects={model.ui.searchBody.searchRects}
           aiHighlightRects={model.selectionAi.aiBubble.highlightRects}
+          aiRequestBusy={model.selectionAi.aiRequestBusy}
           aiBubble={model.selectionAi.aiBubble}
           aiBubbleRef={model.selectionAi.aiBubbleRef}
           onAiApply={model.selectionAi.actions.applyResult}

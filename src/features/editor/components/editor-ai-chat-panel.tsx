@@ -36,6 +36,7 @@ import {
   type AiDocumentApplyFailureReason,
   useAiChatAutoDocumentAction,
 } from "@/features/editor/hooks/use-ai-chat-auto-document-action";
+import { useAiRequestLock } from "@/features/editor/hooks/use-ai-request-lock";
 import { useAiChatThreads } from "@/features/editor/hooks/use-ai-chat-threads";
 import {
   type AiChatClarification,
@@ -115,7 +116,9 @@ export function EditorAiChatPanel({
     id: `${documentId}:${currentUser?.id ?? "anonymous"}`,
     transport,
   });
+  const aiRequestLock = useAiRequestLock("chat");
   const busy = status === "submitted" || status === "streaming";
+  const requestBusy = busy || aiRequestLock.isLockedByOther;
   const hiddenMessageCount = Math.max(0, messages.length - visibleMessageCount);
   const visibleMessages =
     hiddenMessageCount > 0 ? messages.slice(hiddenMessageCount) : messages;
@@ -123,6 +126,19 @@ export function EditorAiChatPanel({
   useEffect(() => {
     writeStoredAppliedNotices(appliedNotices);
   }, [appliedNotices]);
+
+  useEffect(() => {
+    if (!busy) {
+      aiRequestLock.release();
+    }
+  }, [aiRequestLock, busy]);
+
+  useEffect(() => {
+    return () => {
+      aiRequestLock.release();
+    };
+  }, [aiRequestLock]);
+
   const handledDocumentActionMessageIds = useMemo(
     () => new Set(Object.keys(appliedNotices)),
     [appliedNotices],
@@ -216,7 +232,7 @@ export function EditorAiChatPanel({
   function handleSubmit({ text }: { text: string }) {
     const trimmed = text.trim();
 
-    if (!trimmed || busy || !currentUser?.id) {
+    if (!trimmed || requestBusy || !currentUser?.id) {
       return;
     }
 
@@ -335,6 +351,10 @@ export function EditorAiChatPanel({
         ? intentPlan.responseMode
         : null;
 
+    if (!aiRequestLock.acquire()) {
+      return;
+    }
+
     setPendingClarification(null);
     setPendingAction(documentAction, messages.length);
     setInput("");
@@ -374,7 +394,7 @@ export function EditorAiChatPanel({
   function handleSendEditedQuestion() {
     const trimmed = editingQuestion?.text.trim() ?? "";
 
-    if (!editingQuestion || !trimmed || busy || !currentUser?.id) {
+    if (!editingQuestion || !trimmed || requestBusy || !currentUser?.id) {
       return;
     }
 
@@ -432,6 +452,10 @@ export function EditorAiChatPanel({
       intentPlan.kind === "edit" || intentPlan.kind === "chat"
         ? intentPlan.responseMode
         : null;
+
+    if (!aiRequestLock.acquire()) {
+      return;
+    }
 
     setPendingClarification(null);
     setPendingAction(documentAction, nextMessages.length);
@@ -535,7 +559,7 @@ export function EditorAiChatPanel({
                 return (
                   <ChatMessage
                     appliedNotice={appliedNotices[message.id]}
-                    busy={busy}
+                    busy={requestBusy}
                     editingText={
                       editingQuestion?.id === message.id ? editingQuestion.text : undefined
                     }
@@ -548,19 +572,21 @@ export function EditorAiChatPanel({
                     onEdit={handleEditQuestion}
                     onEditingTextChange={handleEditingQuestionTextChange}
                     onRegenerate={() =>
-                      void regenerate({
-                        body: getAiChatRequestBody(
-                          editor,
-                          modelKey,
-                          currentUser?.id ?? "",
-                          documentTitle,
-                          null,
-                          message.metadata?.responseMode ?? null,
-                          activeThreadId,
-                          getOrderedApplicationStatusNotices(messages, appliedNotices),
-                        ),
-                        messageId: message.id,
-                      })
+                      void (aiRequestLock.acquire()
+                        ? regenerate({
+                            body: getAiChatRequestBody(
+                              editor,
+                              modelKey,
+                              currentUser?.id ?? "",
+                              documentTitle,
+                              null,
+                              message.metadata?.responseMode ?? null,
+                              activeThreadId,
+                              getOrderedApplicationStatusNotices(messages, appliedNotices),
+                            ),
+                            messageId: message.id,
+                          })
+                        : Promise.resolve())
                     }
                     onSendEdit={handleSendEditedQuestion}
                     onStop={() => void stop()}
@@ -590,7 +616,7 @@ export function EditorAiChatPanel({
             ref={inputRef}
             value={input}
           />
-          <PromptInputSubmit disabled={busy || !input.trim()} />
+          <PromptInputSubmit disabled={requestBusy || !input.trim()} />
         </div>
       </PromptInput>
     </aside>

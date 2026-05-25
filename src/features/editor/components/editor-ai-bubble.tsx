@@ -8,6 +8,7 @@ import type { AiActionKind } from "@/features/editor/lib/ai";
 import type { AiBubbleState } from "@/features/editor/lib/types";
 
 type EditorAiBubbleProps = {
+  aiRequestBusy?: boolean;
   aiBubble: AiBubbleState;
   aiBubbleRef: RefObject<HTMLDivElement | null>;
   onApply: () => void;
@@ -20,6 +21,7 @@ type EditorAiBubbleProps = {
 };
 
 export function EditorAiBubble({
+  aiRequestBusy = false,
   aiBubble,
   aiBubbleRef,
   onApply,
@@ -72,6 +74,7 @@ export function EditorAiBubble({
           />
         ) : (
           <AiActionMenu
+            aiRequestBusy={aiRequestBusy}
             candidateCount={aiBubble.candidateCount}
             prompt={aiBubble.prompt}
             onClose={onClose}
@@ -87,6 +90,7 @@ export function EditorAiBubble({
 }
 
 type AiActionMenuProps = {
+  aiRequestBusy: boolean;
   candidateCount: 1 | 2;
   onClose: () => void;
   onPreviewAction: (action: AiActionKind) => void;
@@ -96,6 +100,7 @@ type AiActionMenuProps = {
 };
 
 function AiActionMenu({
+  aiRequestBusy,
   candidateCount,
   onClose,
   onPreviewAction,
@@ -113,14 +118,15 @@ function AiActionMenu({
         onChange={(checked) => onResultCountChange(checked ? 2 : 1)}
       />
       <div className="grid grid-cols-2 gap-1.5">
-        <AiActionButton label={t("translate")} onClick={() => onPreviewAction("translate")} />
-        <AiActionButton label={t("summarize")} onClick={() => onPreviewAction("summarize")} />
-        <AiActionButton label={t("explain")} onClick={() => onPreviewAction("explain")} />
-        <AiActionButton label={t("improveWriting")} onClick={() => onPreviewAction("improve_writing")} />
+        <AiActionButton disabled={aiRequestBusy} label={t("translate")} onClick={() => onPreviewAction("translate")} />
+        <AiActionButton disabled={aiRequestBusy} label={t("summarize")} onClick={() => onPreviewAction("summarize")} />
+        <AiActionButton disabled={aiRequestBusy} label={t("explain")} onClick={() => onPreviewAction("explain")} />
+        <AiActionButton disabled={aiRequestBusy} label={t("improveWriting")} onClick={() => onPreviewAction("improve_writing")} />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden border-t border-[var(--color-border)] pt-2">
         <textarea
           className="min-h-24 w-full flex-1 resize-none border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-2 text-[12px] outline-none transition focus:border-[var(--color-ring)]"
+          disabled={aiRequestBusy}
           onChange={(event) => {
             onPromptChange(event.target.value);
           }}
@@ -137,7 +143,8 @@ function AiActionMenu({
             {t("discard")}
           </button>
           <button
-            className="bg-[var(--color-primary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-primary-foreground)] transition hover:brightness-95"
+            className="bg-[var(--color-primary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-primary-foreground)] transition hover:brightness-95 disabled:opacity-50"
+            disabled={aiRequestBusy}
             onMouseDown={preventBubbleBlur}
             onClick={() => onPreviewAction("custom")}
             type="button"
@@ -359,14 +366,16 @@ function AiCompareResultsToggle({
 }
 
 type AiActionButtonProps = {
+  disabled?: boolean;
   label: string;
   onClick: () => void;
 };
 
-function AiActionButton({ label, onClick }: AiActionButtonProps) {
+function AiActionButton({ disabled = false, label, onClick }: AiActionButtonProps) {
   return (
     <button
-      className="border border-[var(--color-border)] px-2.5 py-1.5 text-left text-[12px] transition hover:bg-[var(--color-hover)]"
+      className="border border-[var(--color-border)] px-2.5 py-1.5 text-left text-[12px] transition hover:bg-[var(--color-hover)] disabled:opacity-50"
+      disabled={disabled}
       onMouseDown={preventBubbleBlur}
       onClick={onClick}
       type="button"
