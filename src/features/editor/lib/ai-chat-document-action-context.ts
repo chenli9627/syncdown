@@ -55,6 +55,13 @@ export function matchesCurrentDocumentMutationContext(
   }
 
   if (
+    hasSummaryTarget(context.documentBlocks, normalizedDocumentText) &&
+    isSummaryReplacementPrompt(compactPrompt, lowerPrompt)
+  ) {
+    return true;
+  }
+
+  if (
     /\b(?:change|replace|update|rename|delete|remove)\b/.test(lowerPrompt) &&
     hasExactEnglishTargetInDocument(lowerPrompt, normalizedDocumentText)
   ) {
@@ -169,4 +176,39 @@ function hasTaskListBlock(blocks?: AiChatDocumentBlock[]) {
 
 function hasLinkBlock(blocks?: AiChatDocumentBlock[]) {
   return (blocks ?? []).some((block) => (block.html ?? "").includes("<a "));
+}
+
+function hasSummaryTarget(
+  blocks: AiChatDocumentBlock[] | undefined,
+  normalizedDocumentText: string,
+) {
+  if (/(?:^|\n)(?:总结|摘要|概述|summary)(?:[:：]|\n|$)/i.test(normalizedDocumentText)) {
+    return true;
+  }
+
+  return (blocks ?? []).some(
+    (block) =>
+      /^(?:总结|摘要|概述|summary)$/iu.test(block.text.trim()) ||
+      /^(?:总结|摘要|概述|summary)\s*[:：]/iu.test(block.text.trim()),
+  );
+}
+
+function isSummaryReplacementPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:总结|摘要|概述).{0,40}(?:加长|扩写|改写|重写|润色|优化|详细|完善|补充|展开|丰富).{0,40}(?:替换|覆盖|改掉|更新|换掉|替换现在的|替换当前的)?/.test(
+      compactPrompt,
+    ) ||
+    /(?:加长|扩写|改写|重写|润色|优化|详细|完善|补充|展开|丰富).{0,40}(?:总结|摘要|概述).{0,40}(?:替换|覆盖|改掉|更新|换掉|替换现在的|替换当前的)?/.test(
+      compactPrompt,
+    ) ||
+    /(?:替换|覆盖|改掉|更新).{0,40}(?:当前|现在|现有|已有|原有|原来).{0,24}(?:总结|摘要|概述)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:expand|lengthen|rewrite|revise|polish|improve|update|replace)\b[\s\S]{0,120}\b(?:current|existing)\b[\s\S]{0,60}\bsummary\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:current|existing)\b[\s\S]{0,60}\bsummary\b[\s\S]{0,120}\b(?:expand|lengthen|rewrite|revise|polish|improve|update|replace)\b/.test(
+      lowerPrompt,
+    )
+  );
 }

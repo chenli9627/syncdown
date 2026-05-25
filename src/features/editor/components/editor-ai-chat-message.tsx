@@ -86,6 +86,7 @@ export function ChatMessage({
         pendingDocumentAction,
         plainText: text,
         t,
+        toolRequestedCount: detectedEditPlan?.requestedCount ?? 0,
         toolPreviewLines,
         toolSummary,
       })

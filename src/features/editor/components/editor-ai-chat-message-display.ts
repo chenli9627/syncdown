@@ -8,6 +8,7 @@ type BuildDisplayTextArgs = {
   pendingDocumentAction: PendingDocumentActionConfirmation | null;
   plainText?: string;
   t: (key: MessageKey) => string;
+  toolRequestedCount: number;
   toolSummary: string | null;
   toolPreviewLines: string[];
 };
@@ -19,6 +20,7 @@ export function buildChatMessageDisplayText({
   pendingDocumentAction,
   plainText,
   t,
+  toolRequestedCount,
   toolSummary,
   toolPreviewLines,
 }: BuildDisplayTextArgs) {
@@ -41,6 +43,10 @@ export function buildChatMessageDisplayText({
   }
 
   if (toolSummary) {
+    if (toolRequestedCount <= 0) {
+      return toolSummary;
+    }
+
     return appendPreviewLines(t("aiUnconfirmedDocumentAction"), toolPreviewLines);
   }
 

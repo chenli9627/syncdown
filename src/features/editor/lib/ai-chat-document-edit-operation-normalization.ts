@@ -24,6 +24,7 @@ const OPERATION_TYPE_MAP = {
   toggletableheaderrow: "toggle_table_header_row",
   unsetlink: "unset_link",
   unsettextmarks: "unset_text_marks",
+  updateblock: "replace_block",
   updatetablecell: "update_table_cell",
 } as const;
 
