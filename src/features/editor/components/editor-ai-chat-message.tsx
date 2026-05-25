@@ -64,7 +64,11 @@ export function ChatMessage({
   const text = getAiChatMessageText(message, message.metadata?.documentAction ?? null);
   const isAssistant = message.role === "assistant";
   const isAutomaticDocumentAction = isAssistant && Boolean(message.metadata?.documentAction);
-  const toolSummary = isAssistant ? getAiChatMessageEditPlan(message)?.summary ?? null : null;
+  const toolSummary = isAssistant
+    ? getAiChatMessageEditPlan(message, message.metadata?.documentAction ?? null, {
+        allowTextFallback: false,
+      })?.summary ?? null
+    : null;
   const isNotChangedNotice = isDocumentNotChangedNotice(appliedNotice);
   const canRetry = !isAutomaticDocumentAction;
   const displayText = getDisplayText({

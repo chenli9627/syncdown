@@ -3,7 +3,9 @@ import { test } from "node:test";
 import type { AiChatMessage } from "../src/features/app-state/types";
 import {
   getAiChatMessageEditPlan,
+  withAiChatMessagesEditPlans,
   withAiChatMessageEditPlan,
+  withAiChatThreadsEditPlans,
 } from "../src/features/editor/lib/ai-chat-message-edit-plan";
 
 test("reads edit plan from message metadata when present", () => {
@@ -95,4 +97,58 @@ test("adds edit plan metadata to edit-block assistant messages", () => {
 
   assert.equal(nextMessage.metadata?.editPlan?.summary, "已删除一个块。");
   assert.equal(nextMessage.metadata?.editPlan?.requestedCount, 1);
+});
+
+test("hydrates loaded assistant messages with edit plan metadata", () => {
+  const messages = withAiChatMessagesEditPlans([
+    {
+      id: "msg_4",
+      metadata: {
+        createdAt: "2026-05-25T00:00:00.000Z",
+        documentAction: "edit_blocks",
+      },
+      parts: [
+        {
+          text: '{"summary":"已勾选任务。","operations":[{"blockId":"block_1","checked":true,"targetText":"订酒店","type":"set_task_item_checked"}]}',
+          type: "text",
+        },
+      ],
+      role: "assistant",
+    },
+  ] satisfies AiChatMessage[]);
+
+  assert.equal(messages[0]?.metadata?.editPlan?.summary, "已勾选任务。");
+});
+
+test("hydrates loaded threads with edit plan metadata", () => {
+  const threads = withAiChatThreadsEditPlans([
+    {
+      createdAt: "2026-05-25T00:00:00.000Z",
+      documentId: "doc_1",
+      id: "thread_1",
+      messages: [
+        {
+          id: "msg_5",
+          metadata: {
+            createdAt: "2026-05-25T00:00:01.000Z",
+            documentAction: "edit_blocks",
+          },
+          parts: [
+            {
+              text: '{"summary":"已调整标题层级。","operations":[{"blockId":"block_1","level":3,"type":"set_heading_level"}]}',
+              type: "text",
+            },
+          ],
+          role: "assistant",
+        },
+      ],
+      updatedAt: "2026-05-25T00:00:02.000Z",
+      userId: "user_1",
+    },
+  ]);
+
+  assert.equal(
+    threads[0]?.messages[0]?.metadata?.editPlan?.summary,
+    "已调整标题层级。",
+  );
 });

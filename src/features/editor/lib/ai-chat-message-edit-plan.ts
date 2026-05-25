@@ -1,6 +1,7 @@
 import type {
   AiChatDocumentAction,
   AiChatMessage,
+  AiChatThread,
 } from "@/features/app-state/types";
 import { parseAiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-plan";
 
@@ -47,6 +48,17 @@ export function withAiChatMessageEditPlan(
       editPlan,
     },
   };
+}
+
+export function withAiChatMessagesEditPlans(messages: AiChatMessage[]) {
+  return messages.map((message) => withAiChatMessageEditPlan(message));
+}
+
+export function withAiChatThreadsEditPlans(threads: AiChatThread[]) {
+  return threads.map((thread) => ({
+    ...thread,
+    messages: withAiChatMessagesEditPlans(thread.messages),
+  }));
 }
 
 function getAiChatMessageText(message: AiChatMessage) {

@@ -20,6 +20,10 @@ import {
   getAiChatThreadsForUser,
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations";
+import {
+  withAiChatMessagesEditPlans,
+  withAiChatThreadsEditPlans,
+} from "@/features/editor/lib/ai-chat-message-edit-plan";
 import { planAiChatServerTurn } from "@/features/editor/lib/ai-chat-server-turn-plan";
 import {
   createAiChatModel,
@@ -80,9 +84,10 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: result.error }, { status: 403 });
   }
 
+  const threads = withAiChatThreadsEditPlans(result.threads);
   const activeThread = threadId
-    ? result.threads.find((thread: AiChatThread) => thread.id === threadId) ?? null
-    : result.threads[0] ?? null;
+    ? threads.find((thread: AiChatThread) => thread.id === threadId) ?? null
+    : threads[0] ?? null;
 
   return NextResponse.json({
     models: getConfiguredAiChatModels().map(({ key, name }) => ({ key, name })),
@@ -92,7 +97,7 @@ export async function GET(request: Request, context: RouteContext) {
       messages: [],
       userId,
     },
-    threads: result.threads,
+    threads,
   });
 }
 
@@ -311,14 +316,15 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   await writeStoredState(result.state);
+  const threads = withAiChatThreadsEditPlans(result.threads);
 
   return NextResponse.json({
-    thread: result.threads[0] ?? {
+    thread: threads[0] ?? {
       documentId,
       id: null,
-      messages: [],
+      messages: withAiChatMessagesEditPlans([]),
       userId,
     },
-    threads: result.threads,
+    threads,
   });
 }
