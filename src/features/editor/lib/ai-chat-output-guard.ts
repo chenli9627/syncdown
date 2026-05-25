@@ -146,7 +146,7 @@ export function sanitizeAiChatMessage(
     parts: [
       {
         text: getPseudoToolCallFallbackText(documentAction),
-        type: "text",
+        type: "text" as const,
       },
     ],
     metadata: {

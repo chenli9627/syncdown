@@ -35,7 +35,7 @@ export function resolveAiChatDocumentInsertTarget(
 function resolveSpecificInsertTarget(
   prompt: string,
   documentBlocks: AiChatDocumentBlock[],
-) {
+): InsertTarget | null {
   const compactPrompt = prompt.replace(/\s+/g, "");
 
   if (/(?:文档末尾|文末|最后|结尾|底部)/u.test(compactPrompt)) {
@@ -89,7 +89,10 @@ function resolveSpecificInsertTarget(
   return {
     blockId: block.id,
     locationLabel: `${anchor}${placement === "before" ? "前面" : "后面"}`,
-    operationType: placement === "before" ? "insert_before_block" : "insert_after_block",
+    operationType:
+      placement === "before"
+        ? ("insert_before_block" as const)
+        : ("insert_after_block" as const),
   };
 }
 

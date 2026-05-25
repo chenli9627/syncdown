@@ -12,7 +12,7 @@ import { sanitizeAiChatMessage } from "@/features/editor/lib/ai-chat-output-guar
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
 
 export function sanitizeFinishedMessages(messages: AiChatMessage[]) {
-  return messages.map((message) =>
+  return messages.map((message): AiChatMessage =>
     ensureVisibleAssistantText(sanitizeAiChatMessage(message, null, message.metadata?.responseMode ?? null)),
   );
 }
@@ -38,7 +38,7 @@ export function withChatMetadata(
 export function replaceMessageText(message: AiChatMessage, text: string): AiChatMessage {
   return {
     ...message,
-    parts: [{ text, type: "text" }],
+    parts: [{ text, type: "text" as const }],
   };
 }
 
@@ -106,7 +106,7 @@ export async function respondWithAssistantText({
   const assistantMessage = withChatMetadata(
     {
       id: messageId,
-      parts: [{ text, type: "text" }],
+      parts: [{ text, type: "text" as const }],
       role: "assistant",
     },
     {
@@ -175,7 +175,7 @@ function ensureVisibleAssistantText(message: AiChatMessage) {
       ...message.parts,
       {
         text: "模型没有返回可见回答。请重试一次。",
-        type: "text",
+        type: "text" as const,
       },
     ],
   };

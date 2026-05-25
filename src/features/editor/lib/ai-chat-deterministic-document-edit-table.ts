@@ -27,7 +27,10 @@ export function buildTableCellUpdatePayload(
   );
 }
 
-function buildExplicitTableCellUpdatePayload(prompt: string, tables: ReturnType<typeof getParsedTables>) {
+function buildExplicitTableCellUpdatePayload(
+  prompt: string,
+  tables: ReturnType<typeof getParsedTables>,
+): AiDocumentEditPayload | null {
   const match = prompt.match(
     /(?:表格|行程表)?第([0-9一二三四五六七八九十两]{1,4})行第([0-9一二三四五六七八九十两]{1,4})列(?:[^,\uff0c\u3002\uff01\uff1f]{0,24})?(?:改成|改为|替换成|替换为|更新为|设为|设置为)\s*([^\n]{1,120})/iu,
   );
@@ -42,13 +45,18 @@ function buildExplicitTableCellUpdatePayload(prompt: string, tables: ReturnType<
   const table = tables.find((candidate) => candidate.rows[row - 1]?.[column - 1] != null);
   return table
     ? {
-        operations: [{ blockId: table.block.id, column, content, row, type: "update_table_cell" }],
+        operations: [
+          { blockId: table.block.id, column, content, row, type: "update_table_cell" as const },
+        ],
         summary: `已更新表格第 ${row} 行第 ${column} 列。`,
       }
     : null;
 }
 
-function buildLabeledTableCellUpdatePayload(prompt: string, tables: ReturnType<typeof getParsedTables>) {
+function buildLabeledTableCellUpdatePayload(
+  prompt: string,
+  tables: ReturnType<typeof getParsedTables>,
+): AiDocumentEditPayload | null {
   const match = prompt.match(
     /(?:把|将)\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,40}?)\s*的\s*([^\n,\uff0c\u3002\uff01\uff1f]{1,24}?)\s*(?:改成|改为|替换成|替换为|更新为|设为|设置为)\s*([^\n]{1,120})/u,
   );
@@ -65,7 +73,9 @@ function buildLabeledTableCellUpdatePayload(prompt: string, tables: ReturnType<t
     const row = findTableRowIndex(table.rows, rowLabel);
     if (column && row) {
       return {
-        operations: [{ blockId: table.block.id, column, content, row, type: "update_table_cell" }],
+        operations: [
+          { blockId: table.block.id, column, content, row, type: "update_table_cell" as const },
+        ],
         summary: `已更新表格中“${rowLabel}”这一行的“${columnLabel}”单元格。`,
       };
     }

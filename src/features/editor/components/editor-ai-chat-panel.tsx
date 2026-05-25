@@ -23,7 +23,7 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { useLocale } from "@/components/providers/locale-provider";
-import type { AiChatModelKey, User } from "@/features/app-state/types";
+import type { AiChatMessage, AiChatModelKey, User } from "@/features/app-state/types";
 import { ChatMessage } from "@/features/editor/components/editor-ai-chat-message";
 import { EditorAiChatPanelHeader } from "@/features/editor/components/editor-ai-chat-panel-header";
 import { useAiRequestLock } from "@/features/editor/hooks/use-ai-request-lock";
