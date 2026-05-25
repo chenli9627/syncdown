@@ -63,6 +63,18 @@
       "sourceType": "github",
       "computedHash": "c1b1133e43d087a9f97de44c2b8abdd4b6c59364d3ac9c0456b01916d58a55b2"
     },
+    "drawio": {
+      "source": "bahayonghang/drawio-skills",
+      "sourceType": "github",
+      "skillPath": "skills/drawio/SKILL.md",
+      "computedHash": "22f4ae5b26c6b71de85a7f4916a3011e5cb5e803927d38fa0404b8f5014536bf"
+    },
+    "drawio-academic-skills": {
+      "source": "bahayonghang/drawio-skills",
+      "sourceType": "github",
+      "skillPath": "skills/drawio-academic-skills/SKILL.md",
+      "computedHash": "d1a125feec8da9662a0bc6ad1249260dd6255ca6c8eafbd84f5a9e1f93c600a8"
+    },
     "electron": {
       "source": "vercel-labs/agent-browser",
       "sourceType": "github",
