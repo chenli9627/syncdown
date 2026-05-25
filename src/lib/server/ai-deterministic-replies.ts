@@ -77,7 +77,7 @@ function looksLikeWeatherPrompt(prompt: string) {
 
 function extractWeatherLocation(prompt: string) {
   const zhPatterns = [
-    /(?:查一下|查查|看看|帮我查一下|请问|想知道)?(?:今天|明天|后天)?\s*([^\s，。！？,.]{1,20}?)(?:的)?(?:天气预报|天气|气温)/u,
+    /(?:查一下|查查|看看|帮我查一下|请问|想知道)?(?:今天|明天|后天)?(?:的)?\s*([^\s，。！？,.]{1,20}?)(?:的)?(?:天气预报|天气|气温)/u,
     /([^\s，。！？,.]{1,20}?)(?:今天|明天|后天)(?:的)?(?:天气预报|天气|气温)/u,
   ];
 
@@ -112,8 +112,10 @@ function sanitizeLocation(value: string) {
       /^(?:现在|目前|此刻|今天|明天|后天|给我|帮我|帮我看(?:看|下)?|帮我查(?:查|一下)?|帮我搜(?:一下)?|请问|我想知道|想知道|看看|查查|查一下|查一查|tell me|show me|give me|what(?:'s| is)|how(?:'s| is)|can you(?: please)?(?: tell me| check)?|please)\s*/iu,
       "",
     )
+    .replace(/^(?:的|在)\s*/u, "")
     .replace(/\s*(?:这边|那边|那里|这儿|那儿)$/u, "")
     .replace(/\s*(?:天气怎么样|天气如何|天气呢|怎么样|如何)\s*$/iu, "")
+    .replace(/\s*的$/u, "")
     .replace(/^(?:the\s+)?weather\s+(?:in|for)\s+/iu, "")
     .replace(/^(?:in|for)\s+/iu, "")
     .replace(/\s+/g, " ")
