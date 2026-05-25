@@ -2,6 +2,14 @@
 
 Last updated: 2026-05-25
 
+## Frozen Checkpoint
+
+This version is being recorded as a temporary stable checkpoint that should not be changed casually.
+
+- freeze date: `2026-05-25`
+- baseline commit before this status update: `19a523f`
+- checkpoint purpose: preserve the current discussion-only AI chat architecture, current selection AI behavior, and the latest editor/layout fixes as a known-good reference point
+
 ## Current Product State
 
 Syncdown is currently running as a Notion-like collaborative document app with:
