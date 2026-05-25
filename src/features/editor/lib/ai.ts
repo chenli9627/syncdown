@@ -6,6 +6,7 @@ import { decodeHtmlEntities } from "@/lib/html-entities";
 export type AiActionKind =
   | "improve_writing"
   | "explain"
+  | "translate"
   | "reformat"
   | "summarize"
   | "custom";
@@ -19,7 +20,8 @@ export type AiRequestPayload = {
 };
 
 export function getAiViewOnly(action: AiActionKind) {
-  return action === "explain" || action === "summarize";
+  void action;
+  return false;
 }
 
 export function buildAiUserPrompt({
@@ -48,6 +50,10 @@ function getChineseInstruction(action: AiActionKind, customPrompt?: string) {
     return "请重组下面这段文字，让结构更清楚。直接输出结果，不要加解释。";
   }
 
+  if (action === "translate") {
+    return "请翻译下面这段文字，尽量保持原意和语气。直接输出翻译结果，不要加解释。";
+  }
+
   if (action === "summarize") {
     return "请总结下面这段文字。直接输出总结，不要加解释。";
   }
@@ -66,6 +72,10 @@ function getEnglishInstruction(action: AiActionKind, customPrompt?: string) {
 
   if (action === "reformat") {
     return "Reformat the text below so the structure is clearer. Return only the result.";
+  }
+
+  if (action === "translate") {
+    return "Translate the text below while preserving the original meaning and tone. Return only the translated result.";
   }
 
   if (action === "summarize") {

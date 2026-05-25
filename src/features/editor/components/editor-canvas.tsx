@@ -123,7 +123,6 @@ type EditorCanvasProps = {
   onAiClose: () => void;
   onAiInsertBelow: () => void;
   onAiPreviewAction: (action: AiActionKind) => void;
-  onAiPromptChange: (value: string) => void;
   onAiResultCountChange: (count: 1 | 2) => void;
   onAiSelectCandidate: (index: number) => void;
   onFormatSelection: (command: "bold" | "italic" | "strike" | "code") => void;
@@ -183,7 +182,6 @@ export function EditorCanvas({
   onAiClose,
   onAiInsertBelow,
   onAiPreviewAction,
-  onAiPromptChange,
   onAiResultCountChange,
   onAiSelectCandidate,
   onFormatSelection,
@@ -1060,7 +1058,6 @@ export function EditorCanvas({
           onClose={onAiClose}
           onInsertBelow={onAiInsertBelow}
           onPreviewAction={onAiPreviewAction}
-          onPromptChange={onAiPromptChange}
           onResultCountChange={onAiResultCountChange}
           onSelectCandidate={onAiSelectCandidate}
         />

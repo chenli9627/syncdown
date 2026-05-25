@@ -144,6 +144,54 @@ export function useEditorSelectionAi({
       return;
     }
 
+    const clearEditorDomSelection = () => {
+      const selection = globalThis.window?.getSelection();
+
+      if (!selection || selection.rangeCount === 0) {
+        return;
+      }
+
+      const anchorNode = selection.anchorNode;
+
+      if (!(anchorNode instanceof Node)) {
+        return;
+      }
+
+      const container = editorContainerRef.current;
+      const bubbleElement = aiBubbleRef.current;
+
+      if (
+        container instanceof HTMLElement &&
+        container.contains(anchorNode) &&
+        !(bubbleElement instanceof HTMLElement && bubbleElement.contains(anchorNode))
+      ) {
+        selection.removeAllRanges();
+      }
+    };
+
+    const handleSelectionChange = () => {
+      clearEditorDomSelection();
+    };
+
+    const frame = globalThis.window?.requestAnimationFrame(() => {
+      clearEditorDomSelection();
+    });
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+
+    return () => {
+      if (typeof frame === "number") {
+        globalThis.window?.cancelAnimationFrame(frame);
+      }
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, [aiBubble.open, editorContainerRef]);
+
+  useEffect(() => {
+    if (!aiBubble.open) {
+      return;
+    }
+
     const preventBackgroundScroll = (event: WheelEvent | TouchEvent) => {
       const target = event.target;
 
