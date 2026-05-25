@@ -25,6 +25,11 @@ import {
 import { sanitizeAiChatMessage } from "@/features/editor/lib/ai-chat-output-guard";
 import { buildDeterministicAiDocumentEditPayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit";
 import {
+  getAiChatClarificationReply,
+  getAiChatUnsupportedReply,
+} from "@/features/editor/lib/ai-chat-intent-fallback";
+import { planAiChatIntent } from "@/features/editor/lib/ai-chat-intent-planner";
+import {
   createAiChatModel,
   getAiChatModelConfig,
   getConfiguredAiChatModels,
@@ -148,9 +153,54 @@ export async function POST(request: Request, context: RouteContext) {
 
   await writeStoredState(saveUserMessageResult.state);
   const activeThreadId = saveUserMessageResult.thread.id;
-  const documentAction = body.documentAction ?? null;
-  const responseMode = body.responseMode ?? null;
   const effectivePrompt = body.resolvedPrompt?.trim() || getMessageText(incomingMessage);
+  const serverIntentPlan = planAiChatIntent(effectivePrompt, {
+    documentBlocks: body.documentBlocks ?? [],
+    documentText: body.documentText ?? "",
+    hasRecentAssistantAnswer: hasRecentSubstantiveAssistantAnswer(messages),
+    hasRecentDocumentAction: hasRecentDocumentAction(messages),
+    hasSelection: Boolean(body.selection?.text?.trim()),
+  });
+  const documentAction =
+    serverIntentPlan.kind === "edit" ? serverIntentPlan.documentAction : null;
+  const responseMode =
+    serverIntentPlan.kind === "edit" || serverIntentPlan.kind === "chat"
+      ? serverIntentPlan.responseMode
+      : null;
+
+  if (serverIntentPlan.kind === "clarify") {
+    return respondWithAssistantText({
+      clarificationKind: serverIntentPlan.clarification.kind,
+      documentAction: null,
+      documentId,
+      messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
+      modelKey,
+      modelName: modelConfig.name,
+      responseMode: null,
+      selection: body.selection ?? null,
+      text: getAiChatClarificationReply(serverIntentPlan.clarification.kind, effectivePrompt),
+      threadId: activeThreadId,
+      userId: body.userId,
+      userMessages: messages,
+    });
+  }
+
+  if (serverIntentPlan.kind === "unsupported") {
+    return respondWithAssistantText({
+      documentAction: null,
+      documentId,
+      messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
+      modelKey,
+      modelName: modelConfig.name,
+      responseMode: null,
+      selection: body.selection ?? null,
+      text: getAiChatUnsupportedReply(serverIntentPlan.reason, effectivePrompt),
+      threadId: activeThreadId,
+      userId: body.userId,
+      userMessages: messages,
+    });
+  }
+
   const systemPrompt = buildDocumentChatSystemPrompt(
     body.documentTitle ?? "",
     body.documentText ?? "",
@@ -450,4 +500,113 @@ async function respondWithDeterministicEditPayload({
       },
     }),
   });
+}
+
+async function respondWithAssistantText({
+  clarificationKind,
+  documentAction,
+  documentId,
+  messageId,
+  modelKey,
+  modelName,
+  responseMode,
+  selection,
+  text,
+  threadId,
+  userId,
+  userMessages,
+}: {
+  clarificationKind?: string;
+  documentAction: AiChatDocumentAction | null;
+  documentId: string;
+  messageId: string;
+  modelKey: AiChatModelKey;
+  modelName: string;
+  responseMode: AiChatResponseMode | null;
+  selection: AiChatSelection | null;
+  text: string;
+  threadId: string;
+  userId: string;
+  userMessages: AiChatMessage[];
+}) {
+  const assistantMessage = withChatMetadata(
+    {
+      id: messageId,
+      parts: [{ text, type: "text" }],
+      role: "assistant",
+    },
+    {
+      clarificationKind,
+      documentAction,
+      modelKey,
+      modelName,
+      responseMode,
+      selection,
+      threadId,
+    },
+  );
+  const latestState = await readStoredState();
+  const saveResult = saveAiChatThreadMessages(
+    latestState,
+    userId,
+    documentId,
+    [...userMessages, assistantMessage],
+    { threadId },
+  );
+
+  if (!saveResult.ok) {
+    return NextResponse.json({ error: saveResult.error }, { status: 403 });
+  }
+
+  await writeStoredState(saveResult.state);
+
+  return createUIMessageStreamResponse({
+    stream: createUIMessageStream<AiChatMessage>({
+      onError: (error) => formatAiChatStreamError(error),
+      originalMessages: userMessages,
+      execute: ({ writer }) => {
+        writer.write({
+          messageId,
+          messageMetadata: assistantMessage.metadata,
+          type: "start",
+        });
+        writer.write({ type: "start-step" });
+        writer.write({ id: "txt-0", type: "text-start" });
+        writer.write({ delta: text, id: "txt-0", type: "text-delta" });
+        writer.write({ id: "txt-0", type: "text-end" });
+        writer.write({ type: "finish-step" });
+        writer.write({
+          finishReason: "stop",
+          messageMetadata: assistantMessage.metadata,
+          type: "finish",
+        });
+      },
+    }),
+  });
+}
+
+function hasRecentDocumentAction(messages: AiChatMessage[]) {
+  return messages
+    .slice(-8)
+    .some((message) => Boolean(message.metadata?.documentAction));
+}
+
+function hasRecentSubstantiveAssistantAnswer(messages: AiChatMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+
+    if (message?.role !== "assistant") {
+      continue;
+    }
+
+    if (message.metadata?.documentAction || message.metadata?.clarificationKind) {
+      continue;
+    }
+
+    if (getMessageText(message).trim().length > 0) {
+      return true;
+    }
+  }
+
+  return false;
 }
