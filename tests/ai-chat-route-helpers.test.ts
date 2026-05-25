@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AiChatMessage } from "../src/features/app-state/types";
-import { sanitizeFinishedMessages } from "../src/app/api/ai/chat/[documentId]/route-helpers";
+import {
+  createAiChatStreamMessageMetadata,
+  sanitizeFinishedMessages,
+} from "../src/app/api/ai/chat/[documentId]/route-helpers";
 
 test("sanitizeFinishedMessages adds edit plan metadata to the last edit assistant message", () => {
   const messages = [
@@ -33,4 +36,32 @@ test("sanitizeFinishedMessages adds edit plan metadata to the last edit assistan
 
   assert.equal(lastMessage.metadata?.editPlan?.summary, "已调整标题层级。");
   assert.equal(lastMessage.metadata?.editPlan?.requestedCount, 1);
+});
+
+test("createAiChatStreamMessageMetadata adds edit plan metadata on finish for streamed edit responses", () => {
+  const resolveMetadata = createAiChatStreamMessageMetadata({
+    baseMetadata: {
+      createdAt: "2026-05-25T00:00:00.000Z",
+      documentAction: "edit_blocks",
+      modelKey: "primary",
+      modelName: "deepseek-v4-flash",
+      responseMode: null,
+      selection: null,
+      threadId: "thread_1",
+    },
+    documentAction: "edit_blocks",
+  });
+
+  resolveMetadata({ part: { type: "start" } });
+  resolveMetadata({ part: { text: '{"summary":"已更新任务。","operations":[', type: "text-delta" } });
+  resolveMetadata({
+    part: {
+      text: '{"blockId":"block_1","checked":true,"targetText":"订酒店","type":"set_task_item_checked"}]}',
+      type: "text-delta",
+    },
+  });
+  const finishMetadata = resolveMetadata({ part: { type: "finish" } });
+
+  assert.equal(finishMetadata.editPlan?.summary, "已更新任务。");
+  assert.equal(finishMetadata.editPlan?.requestedCount, 1);
 });

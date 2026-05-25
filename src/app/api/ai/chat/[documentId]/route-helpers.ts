@@ -6,6 +6,7 @@ import {
 import type {
   AiChatDocumentAction,
   AiChatMessage,
+  AiChatMessageMetadata,
   AiChatModelKey,
   AiChatResponseMode,
   AiChatSelection,
@@ -13,6 +14,7 @@ import type {
 import {
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations";
+import { parseAiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-plan";
 import { withAiChatMessageEditPlan } from "@/features/editor/lib/ai-chat-message-edit-plan";
 import { sanitizeAiChatMessage } from "@/features/editor/lib/ai-chat-output-guard";
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
@@ -78,6 +80,34 @@ export function getMessageText(message: AiChatMessage) {
     .map((part) => (part.type === "text" ? part.text : ""))
     .join("")
     .trim();
+}
+
+export function createAiChatStreamMessageMetadata({
+  baseMetadata,
+  documentAction,
+}: {
+  baseMetadata: Omit<AiChatMessageMetadata, "editPlan">;
+  documentAction: AiChatDocumentAction | null;
+}) {
+  let streamedText = "";
+
+  return ({ part }: { part: { type: string; text?: string } }) => {
+    if (part.type === "text-delta" && typeof part.text === "string") {
+      streamedText += part.text;
+      return baseMetadata;
+    }
+
+    if (part.type !== "finish") {
+      return baseMetadata;
+    }
+
+    return documentAction === "edit_blocks"
+      ? {
+          ...baseMetadata,
+          editPlan: parseAiDocumentEditPlan(streamedText),
+        }
+      : baseMetadata;
+  };
 }
 
 export function formatAiChatStreamError(error: unknown) {

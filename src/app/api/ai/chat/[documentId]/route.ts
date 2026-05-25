@@ -30,6 +30,7 @@ import { readStoredState, writeStoredState } from "@/lib/server/state-store";
 import { aiWebFetchTools } from "@/lib/server/ai-web-fetch";
 import { guardPseudoToolCallText } from "@/lib/server/ai-output-guard";
 import {
+  createAiChatStreamMessageMetadata,
   formatAiChatStreamError,
   getMessageText,
   getNoMoreToolCallsInstruction,
@@ -247,21 +248,22 @@ export async function POST(request: Request, context: RouteContext) {
   });
 
   result.consumeStream();
+  const messageMetadata = createAiChatStreamMessageMetadata({
+    baseMetadata: {
+      createdAt: new Date().toISOString(),
+      documentAction,
+      modelKey,
+      modelName: modelConfig.name,
+      responseMode,
+      selection: body.selection ?? null,
+      threadId: activeThreadId,
+    },
+    documentAction,
+  });
 
   return result.toUIMessageStreamResponse<AiChatMessage>({
     generateMessageId: createIdGenerator({ prefix: "ai_msg", size: 16 }),
-    messageMetadata: ({ part }) =>
-      part.type === "start" || part.type === "finish"
-        ? {
-            createdAt: new Date().toISOString(),
-            documentAction,
-            modelKey,
-            modelName: modelConfig.name,
-            responseMode,
-            selection: body.selection ?? null,
-            threadId: activeThreadId,
-          }
-        : undefined,
+    messageMetadata,
     onError: (error) => formatAiChatStreamError(error),
     onFinish: async ({ messages: finishedMessages }) => {
       const latestState = await readStoredState();
