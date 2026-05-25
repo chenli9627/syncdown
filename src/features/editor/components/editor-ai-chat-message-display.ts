@@ -37,7 +37,7 @@ export function buildChatMessageDisplayText({
   if (appliedNotice) {
     return isDocumentNotChangedNotice(appliedNotice)
       ? appliedNotice
-      : appendPreviewLines(appliedNotice, toolPreviewLines);
+      : appendPreviewLines(appliedNotice, toolPreviewLines, toAppliedPreviewLine);
   }
 
   if (toolSummary) {
@@ -72,12 +72,62 @@ export function isDocumentNotChangedNotice(notice: string | undefined) {
   return Boolean(notice && /^(未修改文档|Document was not changed)/i.test(notice.trim()));
 }
 
-function appendPreviewLines(baseText: string, previewLines: string[]) {
+function appendPreviewLines(
+  baseText: string,
+  previewLines: string[],
+  transformLine: (line: string) => string = (line) => line,
+) {
   if (!previewLines.length) {
     return baseText;
   }
 
-  return `${baseText}\n\n${previewLines.map((line) => `- ${line}`).join("\n")}`;
+  return `${baseText}\n\n${previewLines.map((line) => `- ${transformLine(line)}`).join("\n")}`;
+}
+
+function toAppliedPreviewLine(line: string) {
+  const trimmed = line.trim();
+
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  if (/^将插入到块[前后]：/u.test(trimmed)) {
+    return trimmed.replace(/^将插入到块[前后]：/u, "已插入：");
+  }
+
+  if (/^将删除/u.test(trimmed)) {
+    return trimmed.replace(/^将删除/u, "已删除");
+  }
+
+  if (/^将标题调整为/u.test(trimmed)) {
+    return trimmed.replace(/^将标题调整为/u, "标题已调整为");
+  }
+
+  if (/^将列表类型改成/u.test(trimmed)) {
+    return trimmed.replace(/^将列表类型改成/u, "列表类型已改成");
+  }
+
+  if (/^将整块替换为：/u.test(trimmed)) {
+    return trimmed.replace(/^将整块替换为：/u, "已替换为：");
+  }
+
+  if (/^将把/u.test(trimmed)) {
+    return trimmed.replace(/^将把/u, "已将");
+  }
+
+  if (/^将修改/u.test(trimmed)) {
+    return trimmed.replace(/^将修改/u, "已修改");
+  }
+
+  if (/^将更新/u.test(trimmed)) {
+    return trimmed.replace(/^将更新/u, "已更新");
+  }
+
+  if (/^将/u.test(trimmed)) {
+    return `已${trimmed.slice(1)}`;
+  }
+
+  return trimmed;
 }
 
 function toPendingDocumentActionSummary(summary: string) {

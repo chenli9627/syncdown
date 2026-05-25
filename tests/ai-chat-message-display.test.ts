@@ -49,11 +49,12 @@ test("keeps applied document edit details in the chat bubble", () => {
       fallbackNotice: "正在确认文档修改结果…",
       isAutomaticDocumentAction: true,
       pendingDocumentAction: null,
+      plainText: "",
       t,
       toolPreviewLines: ["将删除一个块", "将删除一个块"],
       toolSummary: "已删除“景点”标题及其下方的景点列表。",
     }),
-    "已修改文档：已删除“景点”标题及其下方的景点列表。\n\n- 将删除一个块\n- 将删除一个块",
+    "已修改文档：已删除“景点”标题及其下方的景点列表。\n\n- 已删除一个块\n- 已删除一个块",
   );
 });
 
@@ -86,5 +87,21 @@ test("keeps ordinary assistant text for non-document replies", () => {
       toolSummary: null,
     }),
     "北京 北京市 今天（2026-05-25）天气预报：小雨，19-22°C。",
+  );
+});
+
+test("rewrites applied insert preview lines into completed wording", () => {
+  assert.equal(
+    buildChatMessageDisplayText({
+      appliedNotice: "已修改文档：已在文档末尾插入北京概况小节。",
+      fallbackNotice: "正在确认文档修改结果…",
+      isAutomaticDocumentAction: true,
+      pendingDocumentAction: null,
+      plainText: "",
+      t,
+      toolPreviewLines: ["将插入到块后：### 北京概况"],
+      toolSummary: "已在文档末尾插入北京概况小节。",
+    }),
+    "已修改文档：已在文档末尾插入北京概况小节。\n\n- 已插入：### 北京概况",
   );
 });
