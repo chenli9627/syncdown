@@ -127,7 +127,7 @@ export function ChatMessage({
         className={cn(
           isAssistant
             ? "w-full bg-[var(--color-surface)]"
-            : "max-w-[88%] bg-[var(--color-muted)]",
+            : "max-w-[88%] bg-[var(--color-muted)] whitespace-pre-wrap break-words",
         )}
       >
         {isAssistant ? <MessageResponse>{displayText}</MessageResponse> : text}

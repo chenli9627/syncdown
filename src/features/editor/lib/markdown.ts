@@ -415,7 +415,7 @@ export function markdownToEditorHtml(markdown: string) {
       continue;
     }
 
-    const fenceMatch = trimmed.match(/^(`{2,3})([\w+-]+)?$/);
+    const fenceMatch = trimmed.match(/^(`{2,3})([^\s`]+)?$/);
 
     if (fenceMatch) {
       const openingFence = fenceMatch[1] ?? "```";

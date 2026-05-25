@@ -83,10 +83,15 @@ function documentTextContainsSegment(documentText: string, segment: string) {
   const compactDocumentText = toCompactComparableText(documentText);
   const compactSegment = toCompactComparableText(segment);
   const compactExcerpt = toCompactComparableText(excerpt);
+  const looseDocumentText = toLooseComparableText(documentText);
+  const looseSegment = toLooseComparableText(segment);
+  const looseExcerpt = toLooseComparableText(excerpt);
 
   return Boolean(
     (compactSegment && compactDocumentText.includes(compactSegment)) ||
-      (compactExcerpt && compactDocumentText.includes(compactExcerpt)),
+      (compactExcerpt && compactDocumentText.includes(compactExcerpt)) ||
+      (looseSegment && looseDocumentText.includes(looseSegment)) ||
+      (looseExcerpt && looseDocumentText.includes(looseExcerpt)),
   );
 }
 
@@ -102,6 +107,10 @@ function getStableSegmentExcerpt(segment: string) {
 
 function toCompactComparableText(text: string) {
   return text.replace(/[\s|:："'“”‘’`]+/g, "").trim();
+}
+
+function toLooseComparableText(text: string) {
+  return text.replace(/[\p{P}\p{S}\s]+/gu, "").trim();
 }
 
 function findMatchingBlockIndex(

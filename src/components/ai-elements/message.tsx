@@ -22,7 +22,7 @@ export function MessageContent({
   return (
     <div
       className={cn(
-        "max-w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm leading-6 text-[var(--color-foreground)]",
+        "max-w-full overflow-x-hidden border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm leading-6 text-[var(--color-foreground)] [overflow-wrap:anywhere]",
         className,
       )}
       {...props}
@@ -40,7 +40,7 @@ export function MessageResponse({
   return (
     <div
       className={cn(
-        "ai-message-markdown space-y-2 text-sm leading-6 text-[var(--color-foreground)]",
+        "ai-message-markdown space-y-2 text-sm leading-6 text-[var(--color-foreground)] [overflow-wrap:anywhere]",
         className,
       )}
     >

@@ -28,6 +28,13 @@ test("toAiInsertHtml converts level six markdown headings", () => {
   assert.match(html, /<h6>Details<\/h6>/);
 });
 
+test("toAiInsertHtml converts fenced code blocks with dotted language names", () => {
+  const html = toAiInsertHtml("```hono.js\nimport { Hono } from 'hono'\n```");
+
+  assert.match(html, /<pre><code class="language-hono\.js">/);
+  assert.match(html, /import \{ Hono \} from &#39;hono&#39;/);
+});
+
 test("toAiInsertHtml preserves raw html responses", () => {
   const html = toAiInsertHtml("<blockquote><p>Explained</p></blockquote>");
 

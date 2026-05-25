@@ -20,6 +20,13 @@ const schema = new Schema({
       parseDOM: [{ tag: "p" }],
       toDOM: () => ["p", 0],
     },
+    codeBlock: {
+      content: "text*",
+      group: "block",
+      code: true,
+      parseDOM: [{ tag: "pre" }],
+      toDOM: () => ["pre", ["code", 0]],
+    },
     text: { group: "inline" },
   },
   marks: {
@@ -204,6 +211,31 @@ test("verifies inserted markdown tables by compact cell text", () => {
   assert.equal(result.failedCount, 0);
 });
 
+test("verifies inserted fenced code blocks with dotted language names", () => {
+  const result = verifyAiDocumentEditOperations(
+    [
+      {
+        blockId: "block_1",
+        content:
+          "```hono.js\nimport { serve } from '@hono/node-server'\nimport { Hono } from 'hono'\n\nconst app = new Hono()\n\nserve({\n  fetch: app.fetch,\n  port: 3000,\n})\n```",
+        type: "insert_after_block",
+      },
+    ],
+    [paragraphBlock("block_1", "原文", 0)],
+    [
+      paragraphBlock("block_1", "原文", 0),
+      codeBlock(
+        "block_2",
+        "import { serve } from '@hono/node-server'\nimport { Hono } from 'hono'\n\nconst app = new Hono()\n\nserve({\n  fetch: app.fetch,\n  port: 3000,\n})",
+        4,
+      ),
+    ],
+  );
+
+  assert.equal(result.verified, true);
+  assert.equal(result.failedCount, 0);
+});
+
 test("verifies moved blocks by their new relative position", () => {
   const result = verifyAiDocumentEditOperations(
     [
@@ -249,6 +281,19 @@ function paragraphBlock(
     pos,
     text,
     type: "paragraph",
+  };
+}
+
+function codeBlock(id: string, text: string, pos: number): LocalAiDocumentBlock {
+  const node = schema.nodes.codeBlock.create(null, text ? schema.text(text) : undefined);
+
+  return {
+    id,
+    node,
+    nodeSize: node.nodeSize,
+    pos,
+    text,
+    type: "codeBlock",
   };
 }
 
