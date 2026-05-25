@@ -168,6 +168,90 @@ test("builds deterministic labeled table row delete operations", () => {
   );
 });
 
+test("builds deterministic table row insert operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload(
+      "在 Day 2 后面新增一行，内容是 Day 3、颐和园、下午出发。",
+      documentBlocks,
+    ),
+    {
+      operations: [
+        {
+          blockId: "block_4",
+          content:
+            "| 日期 | 地点 | 备注 |\n| --- | --- | --- |\n| Day 1 | 故宫 | 提前预约 |\n| Day 2 | 天坛 | 早点出发 |\n| Day 3 | 颐和园 | 下午出发 |",
+          type: "replace_block",
+        },
+      ],
+      summary: "已在“Day 2”所在行后新增一行。",
+    },
+  );
+});
+
+test("builds deterministic table column insert operations with values", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload(
+      "在备注后面新增一列负责人，内容是张三、李四。",
+      documentBlocks,
+    ),
+    {
+      operations: [
+        {
+          blockId: "block_4",
+          content:
+            "| 日期 | 地点 | 备注 | 负责人 |\n| --- | --- | --- | --- |\n| Day 1 | 故宫 | 提前预约 | 张三 |\n| Day 2 | 天坛 | 早点出发 | 李四 |",
+          type: "replace_block",
+        },
+      ],
+      summary: "已新增一列“负责人”。",
+    },
+  );
+});
+
+test("builds deterministic table column delete operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("删除备注列。", documentBlocks),
+    {
+      operations: [{ blockId: "block_4", column: 3, type: "delete_table_column" }],
+      summary: "已删除表格中的“备注”列。",
+    },
+  );
+});
+
+test("builds deterministic table header rename operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("把地点列改成景点。", documentBlocks),
+    {
+      operations: [
+        {
+          blockId: "block_4",
+          content:
+            "| 日期 | 景点 | 备注 |\n| --- | --- | --- |\n| Day 1 | 故宫 | 提前预约 |\n| Day 2 | 天坛 | 早点出发 |",
+          type: "replace_block",
+        },
+      ],
+      summary: "已将“地点”列改名为“景点”。",
+    },
+  );
+});
+
+test("builds deterministic table column fill operations", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("把备注列填成提前预约、午后出发。", documentBlocks),
+    {
+      operations: [
+        {
+          blockId: "block_4",
+          content:
+            "| 日期 | 地点 | 备注 |\n| --- | --- | --- |\n| Day 1 | 故宫 | 提前预约 |\n| Day 2 | 天坛 | 午后出发 |",
+          type: "replace_block",
+        },
+      ],
+      summary: "已填充“备注”列的内容。",
+    },
+  );
+});
+
 test("builds deterministic task checkbox operations", () => {
   assert.deepEqual(
     buildDeterministicAiDocumentEditPayload("勾选任务里的订酒店。", documentBlocks),

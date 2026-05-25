@@ -119,6 +119,10 @@ test("infers block-edit action from special placement requests", () => {
     "edit_blocks",
   );
   assert.equal(
+    inferAiChatDocumentAction("添加东京、大阪、新加坡、雅加达的天气到表格中"),
+    "edit_blocks",
+  );
+  assert.equal(
     inferAiChatDocumentAction("Create a comparison table under the Background section"),
     "edit_blocks",
   );
