@@ -52,6 +52,17 @@ export function planAiChatIntent(
   });
   const responseMode = inferAiChatResponseMode(prompt);
 
+  if (
+    isExplicitNoDocumentChatPrompt(compactPrompt, lowerPrompt) ||
+    isAnswerFormattingOnlyPrompt(compactPrompt, lowerPrompt)
+  ) {
+    return {
+      documentAction: null,
+      kind: "chat",
+      responseMode,
+    };
+  }
+
   if (isManualUndoPrompt(compactPrompt, lowerPrompt)) {
     return {
       kind: "unsupported",
@@ -106,6 +117,37 @@ export function planAiChatIntent(
     kind: "chat",
     responseMode,
   };
+}
+
+function isExplicitNoDocumentChatPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:不要|别|仅|只|只是).{0,24}(?:修改|改动|更改|编辑|操作|插入|添加|删除|替换|写回).{0,16}(?:文档|正文|内容|页面|当前文档)/.test(
+      compactPrompt,
+    ) ||
+    /(?:不修改|不改动|不更改|不编辑|不操作|不写回).{0,16}(?:文档|正文|内容|页面|当前文档)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:do not|don't|dont|without|only)\b[\s\S]{0,120}\b(?:modify|change|edit|update|insert|add|delete|replace|write back)\b[\s\S]{0,80}\b(?:document|doc|page|content|text)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isAnswerFormattingOnlyPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    !/(?:文档|正文|页面|末尾|开头|光标|插入|添加到|放到|写入|替换|删掉|删除|改成|改为|变成)/.test(
+      compactPrompt,
+    ) &&
+    /(?:请用|用).{0,20}(?:markdown)?(?:表格|列表|要点|清单)(?:回答|输出|展示|返回)/.test(
+      compactPrompt,
+    )
+  ) ||
+    (!/\b(?:document|doc|page|cursor|insert|append|add to|write to|replace|delete|remove|change)\b/.test(
+      lowerPrompt,
+    ) &&
+      /\b(?:answer|respond|return|show|output)\b[\s\S]{0,40}\b(?:markdown\s+)?(?:table|list|bullet\s+list|key\s+points?)\b/.test(
+        lowerPrompt,
+      ));
 }
 
 function isManualUndoPrompt(compactPrompt: string, lowerPrompt: string) {

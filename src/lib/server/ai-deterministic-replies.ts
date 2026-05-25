@@ -28,7 +28,7 @@ export async function getDeterministicAiChatReply(
   prompt: string,
   { fetchImpl = fetch, now = new Date() }: DeterministicReplyOptions = {},
 ) {
-  if (!looksLikeWeatherPrompt(prompt)) {
+  if (!looksLikeWeatherPrompt(prompt) || isComplexWeatherFormattingPrompt(prompt)) {
     return null;
   }
 
@@ -73,6 +73,17 @@ export async function getDeterministicAiChatReply(
 
 function looksLikeWeatherPrompt(prompt: string) {
   return /(?:天气|天气预报|气温|weather|forecast|temperature)/i.test(prompt);
+}
+
+function isComplexWeatherFormattingPrompt(prompt: string) {
+  return (
+    /(?:表格|列表|清单|图表|对比|比较|整理|汇总|汇总成|markdown\s*表格|markdown\s*列表|几个大城市|各大城市|多个城市|多地|分别如何|分别是|城市天气表)/iu.test(
+      prompt,
+    ) ||
+    /\b(?:table|list|chart|compare|comparison|multiple cities|several cities|major cities|markdown table|markdown list)\b/i.test(
+      prompt,
+    )
+  );
 }
 
 function extractWeatherLocation(prompt: string) {

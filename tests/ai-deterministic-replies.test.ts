@@ -6,6 +6,14 @@ test("returns null for ordinary non-weather prompts", async () => {
   const reply = await getDeterministicAiChatReply("介绍一下北京的历史");
 
   assert.equal(reply, null);
+  assert.equal(
+    await getDeterministicAiChatReply("给我一个中国几个大城市今日天气表，不要修改文档。"),
+    null,
+  );
+  assert.equal(
+    await getDeterministicAiChatReply("今天北京上海广州深圳成都杭州的天气分别如何？请用 markdown 表格回答。"),
+    null,
+  );
 });
 
 test("returns deterministic weather reply for chinese city prompt", async () => {

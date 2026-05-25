@@ -19,6 +19,16 @@ test("plans ordinary requests as chat", () => {
     kind: "chat",
     responseMode: null,
   });
+  assert.deepEqual(planAiChatIntent("给我一个中国几个大城市今日天气表，不要修改文档。", {}), {
+    documentAction: null,
+    kind: "chat",
+    responseMode: null,
+  });
+  assert.deepEqual(planAiChatIntent("今天北京上海广州深圳成都杭州的天气分别如何？请用 markdown 表格回答。", {}), {
+    documentAction: null,
+    kind: "chat",
+    responseMode: null,
+  });
 });
 
 test("plans explicit document edits as edit", () => {
