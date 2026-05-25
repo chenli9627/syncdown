@@ -38,7 +38,42 @@ export function blockContainsText(
   block: LocalAiDocumentBlock | undefined,
   expectedText: string,
 ) {
-  return Boolean(expectedText && block?.text.includes(expectedText));
+  if (!expectedText || !block?.text) {
+    return false;
+  }
+
+  if (block.text.includes(expectedText)) {
+    return true;
+  }
+
+  const excerpt = getStableSegmentExcerpt(expectedText);
+  const compactBlockText = toCompactComparableText(block.text);
+  const compactExpectedText = toCompactComparableText(expectedText);
+  const compactExcerpt = toCompactComparableText(excerpt);
+  const looseBlockText = toLooseComparableText(block.text);
+  const looseExpectedText = toLooseComparableText(expectedText);
+  const looseExcerpt = toLooseComparableText(excerpt);
+
+  return Boolean(
+    (compactExpectedText && compactBlockText.includes(compactExpectedText)) ||
+      (compactExcerpt && compactBlockText.includes(compactExcerpt)) ||
+      (looseExpectedText && looseBlockText.includes(looseExpectedText)) ||
+      (looseExcerpt && looseBlockText.includes(looseExcerpt)),
+  );
+}
+
+export function blockContainsContent(
+  block: LocalAiDocumentBlock | undefined,
+  content: string | undefined,
+) {
+  const expectedText = getExpectedContentText(content);
+
+  if (blockContainsText(block, expectedText)) {
+    return true;
+  }
+
+  const segments = getExpectedContentSegments(content);
+  return Boolean(segments.length && segments.every((segment) => blockContainsText(block, segment)));
 }
 
 export function verifyBlockPlacementOperation(

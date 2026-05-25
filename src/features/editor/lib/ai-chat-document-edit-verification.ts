@@ -2,8 +2,8 @@ import type {
   AiDocumentEditOperation,
   LocalAiDocumentBlock,
 } from "@/features/editor/lib/ai-chat-document-edit-types";
-import { getExpectedContentText } from "@/features/editor/lib/ai-chat-document-edit-verification-content";
 import {
+  blockContainsContent,
   blockContainsText,
   blocksContainInsertedContent,
   verifyBlockPlacementOperation,
@@ -57,7 +57,7 @@ function verifyAiDocumentEditOperation(
   }
 
   if (operation.type === "replace_block") {
-    return blockContainsText(afterBlock, getExpectedContentText(operation.content));
+    return blockContainsContent(afterBlock, operation.content);
   }
 
   if (operation.type === "insert_before_block" || operation.type === "insert_after_block") {
