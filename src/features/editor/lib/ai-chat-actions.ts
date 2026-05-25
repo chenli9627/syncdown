@@ -1,41 +1,32 @@
 import type { Editor } from "@tiptap/react";
-import type {
-  AiChatDocumentAction,
-  AiChatMessage,
-} from "@/features/app-state/types";
+import type { AiChatMessage } from "@/features/app-state/types";
 import { toAiInlineInsertHtml, toAiInsertHtml } from "@/features/editor/lib/ai";
+import { parseAiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-plan";
 import { sanitizeAiAssistantText } from "@/features/editor/lib/ai-chat-output-guard";
 
-export { inferAiChatDocumentAction } from "@/features/editor/lib/ai-chat-action-inference";
 export { inferAiChatResponseMode } from "@/features/editor/lib/ai-chat-response-mode-inference";
-export {
-  planAiChatIntent,
-} from "@/features/editor/lib/ai-chat-intent-planner";
-export type {
-  AiChatIntentPlan,
-} from "@/features/editor/lib/ai-chat-intent-planner";
-export {
-  inferAiChatClarification,
-  isAiChatClarificationCancelPrompt,
-  resolveAiChatClarifiedPrompt,
-} from "@/features/editor/lib/ai-chat-intent-clarification";
-export type {
-  AiChatClarification,
-  AiChatClarificationKind,
-} from "@/features/editor/lib/ai-chat-intent-clarification";
 
-export function getAiChatMessageText(
-  message: AiChatMessage,
-  documentAction: AiChatDocumentAction | null = null,
-) {
+export function getAiChatMessageText(message: AiChatMessage) {
   const text = message.parts
     .map((part) => (part.type === "text" ? part.text : ""))
     .join("")
     .trim();
 
-  return message.role === "assistant"
-    ? sanitizeAiAssistantText(text, documentAction, message.metadata?.responseMode ?? null)
-    : text;
+  if (message.role !== "assistant") {
+    return text;
+  }
+
+  const sanitizedText = sanitizeAiAssistantText(text, null, message.metadata?.responseMode ?? null);
+  const legacyEditPlan =
+    message.metadata?.documentAction === "edit_blocks" || looksLikeLegacyEditPayload(sanitizedText)
+      ? parseAiDocumentEditPlan(sanitizedText)
+      : null;
+
+  return legacyEditPlan?.summary?.trim() || sanitizedText;
+}
+
+function looksLikeLegacyEditPayload(text: string) {
+  return /^\s*\{\s*"summary"\s*:\s*".*"\s*,\s*"operations"\s*:/s.test(text);
 }
 
 export function replaceSelectionWithAiResponse(

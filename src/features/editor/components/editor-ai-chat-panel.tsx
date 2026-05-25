@@ -23,11 +23,7 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { useLocale } from "@/components/providers/locale-provider";
-import type {
-  AiChatMessage,
-  AiChatModelKey,
-  User,
-} from "@/features/app-state/types";
+import type { AiChatModelKey, User } from "@/features/app-state/types";
 import { ChatMessage } from "@/features/editor/components/editor-ai-chat-message";
 import { EditorAiChatPanelHeader } from "@/features/editor/components/editor-ai-chat-panel-header";
 import { useAiRequestLock } from "@/features/editor/hooks/use-ai-request-lock";
@@ -62,8 +58,6 @@ type EditingQuestion = {
 
 const initialVisibleMessageCount = 40;
 const visibleMessageStep = 40;
-const AI_CHAT_APPLIED_NOTICE_STORAGE_KEY = "syncdown.ai-chat.applied-notices.v1";
-
 export function EditorAiChatPanel({
   currentUser,
   documentId,
@@ -76,9 +70,6 @@ export function EditorAiChatPanel({
 }: AiChatPanelProps) {
   const { t } = useLocale();
   const [input, setInput] = useState("");
-  const [appliedNotices, setAppliedNotices] = useState<Record<string, string>>(() =>
-    readStoredAppliedNotices(),
-  );
   const [modelKey, setModelKey] = useState<AiChatModelKey>(() => readStoredAiChatModelKey());
   const [editingQuestion, setEditingQuestion] = useState<EditingQuestion | null>(null);
   const [visibleMessageCount, setVisibleMessageCount] = useState(initialVisibleMessageCount);
@@ -109,10 +100,6 @@ export function EditorAiChatPanel({
   const hiddenMessageCount = Math.max(0, messages.length - visibleMessageCount);
   const visibleMessages =
     hiddenMessageCount > 0 ? messages.slice(hiddenMessageCount) : messages;
-
-  useEffect(() => {
-    writeStoredAppliedNotices(appliedNotices);
-  }, [appliedNotices]);
 
   useEffect(() => {
     if (!busy) {
@@ -150,9 +137,7 @@ export function EditorAiChatPanel({
     }
 
     const lastMessage = messages[messages.length - 1];
-    const visibleText = lastMessage
-      ? getAiChatMessageText(lastMessage, lastMessage.metadata?.documentAction ?? null)
-      : "";
+    const visibleText = lastMessage ? getAiChatMessageText(lastMessage) : "";
 
     if (
       lastMessage?.role !== "assistant" ||
@@ -189,12 +174,9 @@ export function EditorAiChatPanel({
           modelKey,
           currentUser.id,
           documentTitle,
-          null,
           responseMode,
           threadId,
-          getOrderedApplicationStatusNotices(messages, appliedNotices),
           undefined,
-          true,
         ),
       },
     );
@@ -243,12 +225,9 @@ export function EditorAiChatPanel({
           modelKey,
           currentUser.id,
           documentTitle,
-          null,
           responseMode,
           threadId,
-          getOrderedApplicationStatusNotices(nextMessages, appliedNotices),
           undefined,
-          true,
         ),
       },
     );
@@ -282,14 +261,12 @@ export function EditorAiChatPanel({
         onDeleteThread={handleDeleteThread}
         onModelChange={handleModelChange}
         onNewThread={() => {
-          setAppliedNotices({});
           setEditingQuestion(null);
           setVisibleMessageCount(initialVisibleMessageCount);
           handleNewThread();
         }}
         onResizeStart={onResizeStart}
         onSelectThread={(threadId) => {
-          setAppliedNotices({});
           setEditingQuestion(null);
           setVisibleMessageCount(initialVisibleMessageCount);
           handleSelectThread(threadId);
@@ -321,7 +298,6 @@ export function EditorAiChatPanel({
 
                 return (
                   <ChatMessage
-                    appliedNotice={appliedNotices[message.id]}
                     busy={requestBusy}
                     editingText={
                       editingQuestion?.id === message.id ? editingQuestion.text : undefined
@@ -330,8 +306,6 @@ export function EditorAiChatPanel({
                     key={message.id}
                     message={message}
                     onCancelEdit={handleCancelEditQuestion}
-                    onCancelDocumentAction={() => {}}
-                    onConfirmDocumentAction={() => {}}
                     onEdit={handleEditQuestion}
                     onEditingTextChange={handleEditingQuestionTextChange}
                     onRegenerate={() =>
@@ -342,12 +316,9 @@ export function EditorAiChatPanel({
                               modelKey,
                               currentUser?.id ?? "",
                               documentTitle,
-                              null,
                               message.metadata?.responseMode ?? null,
                               activeThreadId,
-                              getOrderedApplicationStatusNotices(messages, appliedNotices),
                               undefined,
-                              true,
                             ),
                             messageId: message.id,
                           })
@@ -355,7 +326,6 @@ export function EditorAiChatPanel({
                     }
                     onSendEdit={handleSendEditedQuestion}
                     onStop={() => void stop()}
-                    pendingDocumentAction={null}
                     showStopAction={isStreamingAssistant}
                   />
                 );
@@ -388,52 +358,6 @@ function focusPromptInput(inputRef: RefObject<HTMLTextAreaElement | null>) {
   window.requestAnimationFrame(() => {
     inputRef.current?.focus();
   });
-}
-
-function getOrderedApplicationStatusNotices(
-  messages: AiChatMessage[],
-  appliedNotices: Record<string, string>,
-) {
-  return messages
-    .map((message) => appliedNotices[message.id])
-    .filter((notice): notice is string => Boolean(notice));
-}
-
-function readStoredAppliedNotices() {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  try {
-    const raw = window.localStorage.getItem(AI_CHAT_APPLIED_NOTICE_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-
-    const parsed = JSON.parse(raw) as Record<string, string>;
-    return Object.fromEntries(
-      Object.entries(parsed).filter(
-        ([messageId, notice]) => typeof messageId === "string" && typeof notice === "string",
-      ),
-    );
-  } catch {
-    return {};
-  }
-}
-
-function writeStoredAppliedNotices(appliedNotices: Record<string, string>) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(
-      AI_CHAT_APPLIED_NOTICE_STORAGE_KEY,
-      JSON.stringify(appliedNotices),
-    );
-  } catch {
-    // ignore storage failures
-  }
 }
 
 function getAiRequestErrorText(

@@ -1,55 +1,24 @@
 import { NextResponse } from "next/server";
-import {
-  createUIMessageStream,
-  createUIMessageStreamResponse,
-} from "ai";
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import type {
-  AiChatDocumentAction,
   AiChatMessage,
   AiChatMessageMetadata,
   AiChatModelKey,
   AiChatResponseMode,
   AiChatSelection,
 } from "@/features/app-state/types";
-import {
-  saveAiChatThreadMessages,
-} from "@/features/app-state/lib/mutations";
-import { parseAiDocumentEditPlan } from "@/features/editor/lib/ai-chat-document-edit-plan";
-import { withAiChatMessageEditPlan } from "@/features/editor/lib/ai-chat-message-edit-plan";
+import { saveAiChatThreadMessages } from "@/features/app-state/lib/mutations";
 import { sanitizeAiChatMessage } from "@/features/editor/lib/ai-chat-output-guard";
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
 
-export function sanitizeFinishedMessages(
-  messages: AiChatMessage[],
-  documentAction: AiChatDocumentAction | null,
-  responseMode: AiChatResponseMode | null,
-) {
-  const lastAssistantIndex = findLastAssistantMessageIndex(messages);
-
-  return messages.map((message, index) =>
-    applyEditPlanMetadata(
-      ensureVisibleAssistantText(
-        sanitizeAiChatMessage(
-          message,
-          index === lastAssistantIndex ? documentAction : null,
-          index === lastAssistantIndex ? responseMode : null,
-        ),
-        index === lastAssistantIndex ? documentAction : null,
-      ),
-      index === lastAssistantIndex ? documentAction : null,
-    ),
+export function sanitizeFinishedMessages(messages: AiChatMessage[]) {
+  return messages.map((message) =>
+    ensureVisibleAssistantText(sanitizeAiChatMessage(message, null, message.metadata?.responseMode ?? null)),
   );
 }
 
-export function getNoMoreToolCallsInstruction(documentAction: AiChatDocumentAction | null) {
-  const baseInstruction =
-    "You have already attempted the available web fetches. Do not call any more tools in this step. Give the user a visible final answer based only on the available tool results.";
-
-  if (documentAction === "edit_blocks") {
-    return `${baseInstruction} If the requested current web data could not be fetched reliably, return exactly valid JSON with a short Chinese summary and an empty operations array, for example {"summary":"无法获取可靠的实时网页数据，未修改文档。","operations":[]}.`;
-  }
-
-  return `${baseInstruction} If the requested current web data could not be fetched reliably, say so briefly in Chinese and do not invent the data.`;
+export function getNoMoreToolCallsInstruction() {
+  return "You have already attempted the available web fetches. Do not call any more tools in this step. Give the user a visible final answer based only on the available tool results. If the requested current web data could not be fetched reliably, say so briefly in Chinese and do not invent the data.";
 }
 
 export function withChatMetadata(
@@ -69,12 +38,7 @@ export function withChatMetadata(
 export function replaceMessageText(message: AiChatMessage, text: string): AiChatMessage {
   return {
     ...message,
-    parts: [
-      {
-        text,
-        type: "text",
-      },
-    ],
+    parts: [{ text, type: "text" }],
   };
 }
 
@@ -87,30 +51,10 @@ export function getMessageText(message: AiChatMessage) {
 
 export function createAiChatStreamMessageMetadata({
   baseMetadata,
-  documentAction,
 }: {
-  baseMetadata: Omit<AiChatMessageMetadata, "editPlan">;
-  documentAction: AiChatDocumentAction | null;
+  baseMetadata: AiChatMessageMetadata;
 }) {
-  let streamedText = "";
-
-  return ({ part }: { part: { type: string; text?: string } }) => {
-    if (part.type === "text-delta" && typeof part.text === "string") {
-      streamedText += part.text;
-      return baseMetadata;
-    }
-
-    if (part.type !== "finish") {
-      return baseMetadata;
-    }
-
-    return documentAction === "edit_blocks"
-      ? {
-          ...baseMetadata,
-          editPlan: parseAiDocumentEditPlan(streamedText),
-        }
-      : baseMetadata;
-  };
+  return () => baseMetadata;
 }
 
 export function formatAiChatStreamError(error: unknown) {
@@ -136,7 +80,6 @@ export function formatAiChatStreamError(error: unknown) {
 
 export async function respondWithAssistantText({
   clarificationKind,
-  documentAction,
   documentId,
   messageId,
   modelKey,
@@ -149,7 +92,6 @@ export async function respondWithAssistantText({
   userMessages,
 }: {
   clarificationKind?: string;
-  documentAction: AiChatDocumentAction | null;
   documentId: string;
   messageId: string;
   modelKey: AiChatModelKey;
@@ -169,7 +111,6 @@ export async function respondWithAssistantText({
     },
     {
       clarificationKind,
-      documentAction,
       modelKey,
       modelName,
       responseMode,
@@ -177,13 +118,12 @@ export async function respondWithAssistantText({
       threadId,
     },
   );
-  const finalizedAssistantMessage = applyEditPlanMetadata(assistantMessage, documentAction);
   const latestState = await readStoredState();
   const saveResult = saveAiChatThreadMessages(
     latestState,
     userId,
     documentId,
-    [...userMessages, finalizedAssistantMessage],
+    [...userMessages, assistantMessage],
     { threadId },
   );
 
@@ -200,7 +140,7 @@ export async function respondWithAssistantText({
       execute: ({ writer }) => {
         writer.write({
           messageId,
-          messageMetadata: finalizedAssistantMessage.metadata,
+          messageMetadata: assistantMessage.metadata,
           type: "start",
         });
         writer.write({ type: "start-step" });
@@ -210,7 +150,7 @@ export async function respondWithAssistantText({
         writer.write({ type: "finish-step" });
         writer.write({
           finishReason: "stop",
-          messageMetadata: finalizedAssistantMessage.metadata,
+          messageMetadata: assistantMessage.metadata,
           type: "finish",
         });
       },
@@ -218,110 +158,7 @@ export async function respondWithAssistantText({
   });
 }
 
-export async function respondWithDeterministicEditPayload({
-  documentAction,
-  documentId,
-  messageId,
-  modelKey,
-  modelName,
-  payloadText,
-  responseMode,
-  selection,
-  threadId,
-  userId,
-  userMessages,
-}: {
-  documentAction: AiChatDocumentAction | null;
-  documentId: string;
-  messageId: string;
-  modelKey: AiChatModelKey;
-  modelName: string;
-  payloadText: string;
-  responseMode: AiChatResponseMode | null;
-  selection: AiChatSelection | null;
-  threadId: string;
-  userId: string;
-  userMessages: AiChatMessage[];
-}) {
-  const assistantMessage = withChatMetadata(
-    {
-      id: messageId,
-      parts: [{ text: payloadText, type: "text" }],
-      role: "assistant",
-    },
-    {
-      documentAction,
-      modelKey,
-      modelName,
-      responseMode,
-      selection,
-      threadId,
-    },
-  );
-  const finalizedAssistantMessage = applyEditPlanMetadata(assistantMessage, documentAction);
-  const latestState = await readStoredState();
-  const saveResult = saveAiChatThreadMessages(
-    latestState,
-    userId,
-    documentId,
-    [...userMessages, finalizedAssistantMessage],
-    { threadId },
-  );
-
-  if (!saveResult.ok) {
-    return NextResponse.json({ error: saveResult.error }, { status: 403 });
-  }
-
-  await writeStoredState(saveResult.state);
-
-  return createUIMessageStreamResponse({
-    stream: createUIMessageStream<AiChatMessage>({
-      onError: (error) => formatAiChatStreamError(error),
-      originalMessages: userMessages,
-      execute: ({ writer }) => {
-        writer.write({
-          messageId,
-          messageMetadata: finalizedAssistantMessage.metadata,
-          type: "start",
-        });
-        writer.write({ type: "start-step" });
-        writer.write({ id: "txt-0", type: "text-start" });
-        writer.write({ delta: payloadText, id: "txt-0", type: "text-delta" });
-        writer.write({ id: "txt-0", type: "text-end" });
-        writer.write({ type: "finish-step" });
-        writer.write({
-          finishReason: "stop",
-          messageMetadata: finalizedAssistantMessage.metadata,
-          type: "finish",
-        });
-      },
-    }),
-  });
-}
-
-function findLastAssistantMessageIndex(messages: AiChatMessage[]) {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === "assistant") {
-      return index;
-    }
-  }
-
-  return -1;
-}
-
-export function applyEditPlanMetadata(
-  message: AiChatMessage,
-  documentAction: AiChatDocumentAction | null,
-) {
-  return documentAction === "edit_blocks"
-    ? withAiChatMessageEditPlan(message, documentAction)
-    : message;
-}
-
-function ensureVisibleAssistantText(
-  message: AiChatMessage,
-  documentAction: AiChatDocumentAction | null,
-) {
+function ensureVisibleAssistantText(message: AiChatMessage) {
   if (message.role !== "assistant" || getMessageText(message)) {
     return message;
   }
@@ -337,10 +174,7 @@ function ensureVisibleAssistantText(
     parts: [
       ...message.parts,
       {
-        text:
-          documentAction === "edit_blocks"
-            ? '{"summary":"模型未返回可见回答，未修改文档。","operations":[]}'
-            : "模型没有返回可见回答。请重试一次。",
+        text: "模型没有返回可见回答。请重试一次。",
         type: "text",
       },
     ],

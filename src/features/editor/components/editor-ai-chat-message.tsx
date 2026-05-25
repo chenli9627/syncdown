@@ -19,78 +19,39 @@ import {
 } from "@/components/ai-elements/message";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { AiChatMessage } from "@/features/app-state/types";
-import {
-  buildChatMessageDisplayText,
-  isDocumentNotChangedNotice,
-} from "@/features/editor/components/editor-ai-chat-message-display";
-import type { PendingDocumentActionConfirmation } from "@/features/editor/hooks/use-ai-chat-auto-document-action";
 import { getAiChatMessageText } from "@/features/editor/lib/ai-chat-actions";
-import { getAiChatMessageEditPlan } from "@/features/editor/lib/ai-chat-message-edit-plan";
 import { cn } from "@/lib/utils";
 
 type ChatMessageProps = {
-  appliedNotice?: string;
   busy?: boolean;
   editingText?: string;
   isEditing?: boolean;
   message: AiChatMessage;
   onCancelEdit?: () => void;
-  onCancelDocumentAction?: () => void;
-  onConfirmDocumentAction?: () => void;
   onEdit?: (messageId: string, text: string) => void;
   onEditingTextChange?: (value: string) => void;
   onRegenerate: () => void;
   onSendEdit?: () => void;
   onStop?: () => void;
-  pendingDocumentAction?: PendingDocumentActionConfirmation | null;
   showStopAction?: boolean;
 };
 
 export function ChatMessage({
-  appliedNotice,
   busy = false,
   editingText = "",
   isEditing = false,
   message,
   onCancelEdit,
-  onCancelDocumentAction,
-  onConfirmDocumentAction,
   onEdit,
   onEditingTextChange,
   onRegenerate,
   onSendEdit,
   onStop,
-  pendingDocumentAction = null,
   showStopAction = false,
 }: ChatMessageProps) {
   const { t } = useLocale();
-  const text = getAiChatMessageText(message, message.metadata?.documentAction ?? null);
+  const text = getAiChatMessageText(message);
   const isAssistant = message.role === "assistant";
-  const detectedEditPlan = isAssistant
-    ? getAiChatMessageEditPlan(message, "edit_blocks", {
-        allowTextFallback: true,
-      })
-    : null;
-  const isAutomaticDocumentAction =
-    isAssistant &&
-    (Boolean(message.metadata?.documentAction) || Boolean(detectedEditPlan));
-  const toolSummary = detectedEditPlan?.summary ?? null;
-  const toolPreviewLines = detectedEditPlan?.previewLines ?? [];
-  const isNotChangedNotice = isDocumentNotChangedNotice(appliedNotice);
-  const canRetry = !isAutomaticDocumentAction;
-  const displayText = isAssistant
-    ? buildChatMessageDisplayText({
-        appliedNotice,
-        fallbackNotice: t("aiApplyingDocumentAction"),
-        isAutomaticDocumentAction,
-        pendingDocumentAction,
-        plainText: text,
-        t,
-        toolRequestedCount: detectedEditPlan?.requestedCount ?? 0,
-        toolPreviewLines,
-        toolSummary,
-      })
-    : text;
   const [copied, setCopied] = useState(false);
   const editInputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -111,7 +72,7 @@ export function ChatMessage({
   }, [isEditing]);
 
   function handleCopy() {
-    const copyText = isAssistant ? displayText : text;
+    const copyText = text;
 
     if (!copyText.trim()) {
       return;
@@ -132,34 +93,7 @@ export function ChatMessage({
             : "max-w-[88%] bg-[var(--color-muted)] whitespace-pre-wrap break-words",
         )}
       >
-        {isAssistant ? <MessageResponse>{displayText}</MessageResponse> : text}
-        {isAssistant && appliedNotice && !isAutomaticDocumentAction && !isNotChangedNotice ? (
-          <p className="mt-2 border-t border-[var(--color-border)] pt-2 text-xs text-[var(--color-muted-foreground)]">
-            {appliedNotice}
-          </p>
-        ) : null}
-        {pendingDocumentAction ? (
-          <div className="mt-3 flex items-center justify-end gap-2 border-t border-[var(--color-border)] pt-2">
-            <button
-              className="inline-flex h-7 items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-card)] px-2 text-[11px] font-medium text-[var(--color-muted-foreground)] transition hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)]"
-              disabled={busy}
-              onClick={onCancelDocumentAction}
-              type="button"
-            >
-              <X aria-hidden="true" size={12} />
-              <span>{t("cancel")}</span>
-            </button>
-            <button
-              className="inline-flex h-7 items-center gap-1.5 border border-[var(--color-primary)] bg-[var(--color-primary)] px-2 text-[11px] font-medium text-[var(--color-primary-foreground)] transition hover:brightness-95 disabled:opacity-50"
-              disabled={busy}
-              onClick={onConfirmDocumentAction}
-              type="button"
-            >
-              <Check aria-hidden="true" size={12} />
-              <span>{t("aiConfirmApply")}</span>
-            </button>
-          </div>
-        ) : null}
+        {isAssistant ? <MessageResponse>{text}</MessageResponse> : text}
       </MessageContent>
       {isAssistant && text.trim() ? (
         showStopAction ? (
@@ -183,12 +117,10 @@ export function ChatMessage({
               )}
               <ActionLabel>{copied ? t("aiCopied") : t("copy")}</ActionLabel>
             </MessageAction>
-            {canRetry ? (
-              <MessageAction onClick={onRegenerate} tooltip={t("aiRetry")}>
-                <RefreshCw aria-hidden="true" size={13} />
-                <ActionLabel>{t("aiRetry")}</ActionLabel>
-              </MessageAction>
-            ) : null}
+            <MessageAction onClick={onRegenerate} tooltip={t("aiRetry")}>
+              <RefreshCw aria-hidden="true" size={13} />
+              <ActionLabel>{t("aiRetry")}</ActionLabel>
+            </MessageAction>
           </MessageActions>
         )
       ) : null}

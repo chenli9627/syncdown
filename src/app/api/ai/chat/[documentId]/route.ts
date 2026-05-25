@@ -7,7 +7,6 @@ import {
 } from "ai";
 import type {
   AiChatDocumentBlock,
-  AiChatDocumentAction,
   AiChatMessage,
   AiChatModelKey,
   AiChatResponseMode,
@@ -21,23 +20,14 @@ import {
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations";
 import {
-  withAiChatMessagesEditPlans,
-  withAiChatThreadsEditPlans,
-} from "@/features/editor/lib/ai-chat-message-edit-plan";
-import { planAiChatServerTurn } from "@/features/editor/lib/ai-chat-server-turn-plan";
-import {
   createAiChatModel,
   getAiChatModelConfig,
   getConfiguredAiChatModels,
 } from "@/lib/server/ai-models";
 import { getDeterministicAiChatReply } from "@/lib/server/ai-deterministic-replies";
-import { getDeterministicWeatherTableEditPayload } from "@/lib/server/ai-deterministic-weather-table-edit";
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
 import { aiWebFetchTools } from "@/lib/server/ai-web-fetch";
-import {
-  getInvalidEditBlocksFallback,
-  guardPseudoToolCallText,
-} from "@/lib/server/ai-output-guard";
+import { guardPseudoToolCallText } from "@/lib/server/ai-output-guard";
 import {
   createAiChatStreamMessageMetadata,
   formatAiChatStreamError,
@@ -45,7 +35,6 @@ import {
   getNoMoreToolCallsInstruction,
   replaceMessageText,
   respondWithAssistantText,
-  respondWithDeterministicEditPayload,
   sanitizeFinishedMessages,
   withChatMetadata,
 } from "./route-helpers";
@@ -59,9 +48,6 @@ type RouteContext = {
 };
 
 type ChatBody = {
-  applicationStatusNotices?: string[];
-  chatOnly?: boolean;
-  documentAction?: AiChatDocumentAction | null;
   documentBlocks?: AiChatDocumentBlock[];
   documentText?: string;
   documentTitle?: string;
@@ -91,10 +77,9 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: result.error }, { status: 403 });
   }
 
-  const threads = withAiChatThreadsEditPlans(result.threads);
   const activeThread = threadId
-    ? threads.find((thread: AiChatThread) => thread.id === threadId) ?? null
-    : threads[0] ?? null;
+    ? result.threads.find((thread: AiChatThread) => thread.id === threadId) ?? null
+    : result.threads[0] ?? null;
 
   return NextResponse.json({
     models: getConfiguredAiChatModels().map(({ key, name }) => ({ key, name })),
@@ -104,7 +89,7 @@ export async function GET(request: Request, context: RouteContext) {
       messages: [],
       userId,
     },
-    threads,
+    threads: result.threads,
   });
 }
 
@@ -128,12 +113,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const state = await readStoredState();
-  const threadResult = getAiChatThreadForUser(
-    state,
-    body.userId,
-    documentId,
-    body.threadId,
-  );
+  const threadResult = getAiChatThreadForUser(state, body.userId, documentId, body.threadId);
 
   if (!threadResult.ok) {
     return NextResponse.json({ error: threadResult.error }, { status: 403 });
@@ -169,131 +149,32 @@ export async function POST(request: Request, context: RouteContext) {
   await writeStoredState(saveUserMessageResult.state);
   const activeThreadId = saveUserMessageResult.thread.id;
   const effectivePrompt = body.resolvedPrompt?.trim() || getMessageText(incomingMessage);
-  const chatOnly = body.chatOnly === true;
-  const serverTurnPlan = chatOnly
-    ? {
-        documentAction: null,
-        kind: "llm" as const,
-        responseMode: body.responseMode ?? inferAiChatResponseMode(effectivePrompt),
-      }
-    : planAiChatServerTurn({
-        documentBlocks: body.documentBlocks ?? [],
-        documentText: body.documentText ?? "",
-        messages,
-        prompt: effectivePrompt,
-        selection: body.selection ?? null,
-      });
-  if (serverTurnPlan.kind === "clarify") {
-    return respondWithAssistantText({
-      clarificationKind: serverTurnPlan.clarificationKind,
-      documentAction: null,
-      documentId,
-      messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
-      modelKey,
-      modelName: modelConfig.name,
-      responseMode: null,
-      selection: body.selection ?? null,
-      text: serverTurnPlan.text,
-      threadId: activeThreadId,
-      userId: body.userId,
-      userMessages: messages,
-    });
-  }
-
-  if (serverTurnPlan.kind === "unsupported") {
-    return respondWithAssistantText({
-      documentAction: null,
-      documentId,
-      messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
-      modelKey,
-      modelName: modelConfig.name,
-      responseMode: null,
-      selection: body.selection ?? null,
-      text: serverTurnPlan.text,
-      threadId: activeThreadId,
-      userId: body.userId,
-      userMessages: messages,
-    });
-  }
-  const documentAction = serverTurnPlan.documentAction;
-  const responseMode = serverTurnPlan.responseMode;
-  const invalidEditBlocksFallback = getInvalidEditBlocksFallback({
-    documentAction,
-    documentBlocks: body.documentBlocks ?? [],
-    prompt: effectivePrompt,
-  });
-
+  const responseMode = body.responseMode ?? inferAiChatResponseMode(effectivePrompt);
   const systemPrompt = buildDocumentChatSystemPrompt(
     body.documentTitle ?? "",
     body.documentText ?? "",
     body.documentBlocks ?? [],
     body.selection ?? null,
     modelConfig.name,
-    documentAction,
     responseMode,
-    body.applicationStatusNotices ?? [],
-    chatOnly,
   );
-
-  if (serverTurnPlan.kind === "deterministic_edit") {
-    return respondWithDeterministicEditPayload({
-      documentAction,
-      documentId,
-      messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
-      modelKey,
-      modelName: modelConfig.name,
-      payloadText: serverTurnPlan.payloadText,
-      responseMode,
-      selection: body.selection ?? null,
-      threadId: activeThreadId,
-      userId: body.userId,
-      userMessages: messages,
-    });
-  }
-
-  if (serverTurnPlan.kind === "llm_edit") {
-    const deterministicWeatherEdit = await getDeterministicWeatherTableEditPayload(
-      effectivePrompt,
-      body.documentBlocks ?? [],
-    );
-
-    if (deterministicWeatherEdit) {
-      return respondWithDeterministicEditPayload({
-        documentAction,
-        documentId,
-        messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
-        modelKey,
-        modelName: modelConfig.name,
-        payloadText: deterministicWeatherEdit,
-        responseMode,
-        selection: body.selection ?? null,
-        threadId: activeThreadId,
-        userId: body.userId,
-        userMessages: messages,
-      });
-    }
-  }
-
-  if (serverTurnPlan.kind === "llm" && !serverTurnPlan.documentAction) {
   const deterministicReply = await getDeterministicAiChatReply(effectivePrompt, {
     modelConfig,
   });
 
-    if (deterministicReply) {
-      return respondWithAssistantText({
-        documentAction: null,
-        documentId,
-        messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
-        modelKey,
-        modelName: modelConfig.name,
-        responseMode,
-        selection: body.selection ?? null,
-        text: deterministicReply,
-        threadId: activeThreadId,
-        userId: body.userId,
-        userMessages: messages,
-      });
-    }
+  if (deterministicReply) {
+    return respondWithAssistantText({
+      documentId,
+      messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
+      modelKey,
+      modelName: modelConfig.name,
+      responseMode,
+      selection: body.selection ?? null,
+      text: deterministicReply,
+      threadId: activeThreadId,
+      userId: body.userId,
+      userMessages: messages,
+    });
   }
 
   const result = streamText({
@@ -306,15 +187,11 @@ export async function POST(request: Request, context: RouteContext) {
 
       return {
         activeTools: [],
-        system: `${systemPrompt}\n\n${getNoMoreToolCallsInstruction(documentAction)}`,
+        system: `${systemPrompt}\n\n${getNoMoreToolCallsInstruction()}`,
         toolChoice: "none",
       };
     },
-    experimental_transform: guardPseudoToolCallText(
-      documentAction,
-      responseMode,
-      invalidEditBlocksFallback,
-    ),
+    experimental_transform: guardPseudoToolCallText(null, responseMode),
     stopWhen: stepCountIs(8),
     system: systemPrompt,
     temperature: 0.3,
@@ -325,14 +202,12 @@ export async function POST(request: Request, context: RouteContext) {
   const messageMetadata = createAiChatStreamMessageMetadata({
     baseMetadata: {
       createdAt: new Date().toISOString(),
-      documentAction,
       modelKey,
       modelName: modelConfig.name,
       responseMode,
       selection: body.selection ?? null,
       threadId: activeThreadId,
     },
-    documentAction,
   });
 
   return result.toUIMessageStreamResponse<AiChatMessage>({
@@ -341,11 +216,7 @@ export async function POST(request: Request, context: RouteContext) {
     onError: (error) => formatAiChatStreamError(error),
     onFinish: async ({ messages: finishedMessages }) => {
       const latestState = await readStoredState();
-      const sanitizedMessages = sanitizeFinishedMessages(
-        finishedMessages,
-        documentAction,
-        responseMode,
-      );
+      const sanitizedMessages = sanitizeFinishedMessages(finishedMessages);
       const saveResult = saveAiChatThreadMessages(
         latestState,
         body.userId ?? "",
@@ -385,15 +256,14 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   await writeStoredState(result.state);
-  const threads = withAiChatThreadsEditPlans(result.threads);
 
   return NextResponse.json({
-    thread: threads[0] ?? {
+    thread: result.threads[0] ?? {
       documentId,
       id: null,
-      messages: withAiChatMessagesEditPlans([]),
+      messages: [],
       userId,
     },
-    threads,
+    threads: result.threads,
   });
 }
