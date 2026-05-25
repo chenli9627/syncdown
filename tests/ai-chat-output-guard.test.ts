@@ -153,6 +153,22 @@ test("does not treat malformed edit payload json as insertable content fallback"
   );
 });
 
+test("strips trailing edit payload fragments from insertable fallback content", () => {
+  assert.equal(
+    sanitizeAiAssistantText(
+      '| 城市 | 天气 |\n| --- | --- |\n| 上海 | 小雨 |\n{"summary":"在文档末尾插入天气表。","operations":[{"type":"insertafterblock","blockId":"block_8","content":"## 今日全球城市天气对比\\n\\n',
+      "edit_blocks",
+      null,
+      {
+        blockId: "block_8",
+        kind: "insert_after_block",
+        summary: "在文档中插入了模型生成的内容。",
+      },
+    ),
+    '{"summary":"在文档中插入了模型生成的内容。","operations":[{"blockId":"block_8","content":"| 城市 | 天气 |\\n| --- | --- |\\n| 上海 | 小雨 |","type":"insert_after_block"}]}',
+  );
+});
+
 test("wraps invalid edit-block prose into a delete-table fallback", () => {
   assert.equal(
     sanitizeAiAssistantText(

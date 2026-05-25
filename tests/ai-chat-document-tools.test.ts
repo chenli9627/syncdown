@@ -145,6 +145,30 @@ test("normalizes model operation type aliases when parsing plans", () => {
   assert.deepEqual(plan?.previewLines, ["将插入到块后：## 百度热搜榜"]);
 });
 
+test("strips trailing payload fragments from operation content when parsing plans", () => {
+  const plan = parseAiDocumentEditPlan(
+    JSON.stringify({
+      operations: [
+        {
+          blockId: "block_8",
+          content:
+            '| 城市 | 天气 |\n| --- | --- |\n| 上海 | 小雨 |\n{"summary":"在文档末尾插入天气表。","operations":[{"type":"insertafterblock","blockId":"block_8","content":"## 今日全球城市天气对比\\n\\n',
+          type: "insertafterblock",
+        },
+      ],
+      summary: "已插入天气表。",
+    }),
+  );
+
+  assert.deepEqual(plan?.payload.operations, [
+    {
+      blockId: "block_8",
+      content: "| 城市 | 天气 |\n| --- | --- |\n| 上海 | 小雨 |",
+      type: "insert_after_block",
+    },
+  ]);
+});
+
 test("drops unsupported model operation types when parsing plans", () => {
   const plan = parseAiDocumentEditPlan(
     JSON.stringify({

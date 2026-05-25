@@ -3,6 +3,11 @@ import type {
   AiChatMessage,
   AiChatResponseMode,
 } from "@/features/app-state/types";
+import {
+  containsAiEditPayloadFragment,
+  looksLikeStandaloneAiEditPayloadJson,
+  stripTrailingAiEditPayloadFragment,
+} from "@/features/editor/lib/ai-chat-edit-payload-fragments";
 import { hasSupportedAiDocumentEditOperationTypes } from "@/features/editor/lib/ai-chat-document-edit-operation-normalization";
 
 export type InvalidEditBlocksFallback = {
@@ -40,8 +45,12 @@ export function sanitizeAiAssistantText(
   }
 
   if (documentAction === "edit_blocks" && !isValidEditBlocksPayload(text)) {
-    const insertableContent = stripLeadingAssistantPreamble(text, "insert_end", responseMode);
-    const replaceableContent = stripReplaceBlockPreamble(text, responseMode);
+    const insertableContent = sanitizeAiInsertedContent(
+      stripLeadingAssistantPreamble(text, "insert_end", responseMode),
+    );
+    const replaceableContent = stripTrailingAiEditPayloadFragment(
+      stripReplaceBlockPreamble(text, responseMode),
+    );
 
     if (invalidEditBlocksFallback?.kind === "delete_block" && invalidEditBlocksFallback.blockId) {
       return JSON.stringify({
@@ -109,7 +118,9 @@ export function sanitizeAiAssistantText(
 }
 
 export function sanitizeAiInsertedContent(text: string) {
-  return stripLeadingAssistantPreamble(text, "insert_end", null);
+  return stripTrailingAiEditPayloadFragment(
+    stripLeadingAssistantPreamble(text, "insert_end", null),
+  );
 }
 
 export function sanitizeAiChatMessage(
@@ -426,7 +437,10 @@ function looksLikeInsertableContent(text: string) {
     return false;
   }
 
-  if (looksLikeEditPayloadJson(trimmed)) {
+  if (
+    looksLikeStandaloneAiEditPayloadJson(trimmed) ||
+    containsAiEditPayloadFragment(trimmed)
+  ) {
     return false;
   }
 
@@ -455,19 +469,6 @@ function looksLikeReplaceableBlockContent(text: string) {
   }
 
   return true;
-}
-
-function looksLikeEditPayloadJson(text: string) {
-  if (!/^[{\[]/.test(text) || !/"(?:summary|operations)"\s*:/.test(text)) {
-    return false;
-  }
-
-  try {
-    const parsed = JSON.parse(text) as { operations?: unknown; summary?: unknown };
-    return typeof parsed === "object" && parsed !== null;
-  } catch {
-    return true;
-  }
 }
 
 function normalizeStructuredTransformContent(
