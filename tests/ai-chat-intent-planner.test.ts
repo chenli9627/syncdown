@@ -44,6 +44,17 @@ test("plans explicit document edits as edit", () => {
     },
   );
   assert.deepEqual(
+    planAiChatIntent("把文档中的标题都改为二级", {
+      documentBlocks,
+      documentText: "北京旅行计划\n景点\n北京是一座历史与现代交融的城市。",
+    }),
+    {
+      documentAction: "edit_blocks",
+      kind: "edit",
+      responseMode: null,
+    },
+  );
+  assert.deepEqual(
     planAiChatIntent("将北上广深的天气整理为一个表格插入文档尾部", {
       documentBlocks,
       documentText: "北京旅行计划\n景点\n北京是一座历史与现代交融的城市。",

@@ -43,6 +43,19 @@ test("plans deterministic edit turns when a local payload can be built", () => {
   assert.match(plan.payloadText, /set_heading_level/);
 });
 
+test("plans document-wide heading level edits as deterministic edits", () => {
+  const plan = planAiChatServerTurn({
+    documentBlocks,
+    documentText: "北京旅行计划\n景点\n北京是一座历史与现代交融的城市。",
+    prompt: "把文档中的标题都改为二级",
+  });
+
+  assert.equal(plan.kind, "deterministic_edit");
+  assert.equal(plan.documentAction, "edit_blocks");
+  assert.match(plan.payloadText, /set_heading_level/);
+  assert.match(plan.payloadText, /\"level\":2/);
+});
+
 test("plans llm turns for ordinary chat prompts", () => {
   const plan = planAiChatServerTurn({
     documentBlocks,

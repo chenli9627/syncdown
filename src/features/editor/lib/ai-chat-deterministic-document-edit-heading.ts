@@ -14,9 +14,51 @@ export function buildHeadingLevelPayload(
   documentBlocks: AiChatDocumentBlock[],
 ): AiDocumentEditPayload | null {
   return (
+    buildAllHeadingsToLevelPayload(prompt, documentBlocks) ??
     buildHeadingLevelShiftPayload(prompt, documentBlocks) ??
     buildTargetedHeadingLevelPayload(prompt, documentBlocks)
   );
+}
+
+function buildAllHeadingsToLevelPayload(
+  prompt: string,
+  documentBlocks: AiChatDocumentBlock[],
+): AiDocumentEditPayload | null {
+  const compactPrompt = prompt.toLowerCase().replace(/\s+/g, "");
+  const chineseMatch = compactPrompt.match(
+    /(?:把|将)?(?:文档中(?:的)?|全文(?:的)?|所有(?:的)?|全部(?:的)?)?(?:标题|heading)(?:都)?(?:改成|改为|设为|设置为|变成)(?:h)?([1-6一二三四五六])(?:级)?(?:标题)?/iu,
+  );
+  const englishMatch = prompt.match(
+    /(?:change|set|turn)\s+(?:all\s+)?(?:document\s+)?headings?\s+(?:to|into)\s+h?([1-6])/i,
+  );
+  const level = toHeadingLevel(chineseMatch?.[1] ?? englishMatch?.[1]);
+  const headingBlocks = documentBlocks.filter((block) => block.type === "heading");
+
+  if (!level || !headingBlocks.length) {
+    return null;
+  }
+
+  const operations = headingBlocks
+    .map((block) =>
+      block.level === level
+        ? null
+        : {
+            blockId: block.id,
+            level,
+            type: "set_heading_level" as const,
+          },
+    )
+    .filter((operation): operation is NonNullable<typeof operation> => Boolean(operation));
+
+  return operations.length
+    ? {
+        operations,
+        summary: `已将所有标题调整为 ${level} 级标题。`,
+      }
+    : {
+        operations: [],
+        summary: `未修改文档：所有标题已经是 ${level} 级标题。`,
+      };
 }
 
 function buildHeadingLevelShiftPayload(
@@ -55,8 +97,8 @@ function buildHeadingLevelShiftPayload(
       operations: [],
       summary:
         direction > 0
-          ? "没有可继续缩小的标题。"
-          : "没有可继续放大的标题。",
+          ? "未修改文档：没有可继续缩小的标题。"
+          : "未修改文档：没有可继续放大的标题。",
     };
   }
 

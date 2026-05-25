@@ -350,6 +350,16 @@ test("builds deterministic heading level operations for multiple headings", () =
   );
 });
 
+test("builds deterministic heading level operations for all headings to a fixed level", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("把文档中的标题都改为二级。", documentBlocks),
+    {
+      operations: [{ blockId: "block_1", level: 2, type: "set_heading_level" }],
+      summary: "已将所有标题调整为 2 级标题。",
+    },
+  );
+});
+
 test("builds deterministic structured heading insert operations", () => {
   assert.deepEqual(
     buildDeterministicAiDocumentEditPayload("在景点下面插入三级标题：美食。", documentBlocks),

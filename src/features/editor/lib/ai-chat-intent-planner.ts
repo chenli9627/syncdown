@@ -72,6 +72,7 @@ export function planAiChatIntent(
 
   if (
     isWholeDocumentRewritePrompt(compactPrompt, lowerPrompt) &&
+    !isWholeDocumentStructuredEditPrompt(compactPrompt, lowerPrompt) &&
     !isDocumentAppendPrompt(compactPrompt, lowerPrompt) &&
     !options.hasSelection
   ) {
@@ -190,6 +191,23 @@ function isDocumentAppendPrompt(compactPrompt: string, lowerPrompt: string) {
       lowerPrompt,
     ) ||
     /\b(?:append|insert|add|place)\b[\s\S]{0,120}\b(?:document|doc|page)\b[\s\S]{0,60}\b(?:end|bottom)\b/.test(
+      lowerPrompt,
+    )
+  );
+}
+
+function isWholeDocumentStructuredEditPrompt(compactPrompt: string, lowerPrompt: string) {
+  return (
+    /(?:文档|正文|全文|文章|页面|当前文档).{0,32}(?:标题|heading|h[1-6]|一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|列表|任务列表|表格|单元格|链接|粗体|斜体|删除线|代码块|格式|层级|级别|等级)/.test(
+      compactPrompt,
+    ) ||
+    /(?:标题|heading|h[1-6]|一级标题|二级标题|三级标题|四级标题|五级标题|六级标题|列表|任务列表|表格|单元格|链接|粗体|斜体|删除线|代码块|格式|层级|级别|等级).{0,32}(?:文档|正文|全文|文章|页面|当前文档)/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:document|doc|page|article)\b[\s\S]{0,120}\b(?:heading|headings|h[1-6]|title|titles|list|lists|task list|table|tables|cell|cells|link|links|bold|italic|strikethrough|code block|format|formats|structure|level)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:heading|headings|h[1-6]|title|titles|list|lists|task list|table|tables|cell|cells|link|links|bold|italic|strikethrough|code block|format|formats|structure|level)\b[\s\S]{0,120}\b(?:document|doc|page|article)\b/.test(
       lowerPrompt,
     )
   );
