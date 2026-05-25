@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AiChatMessage } from "../src/features/app-state/types";
 import {
+  applyEditPlanMetadata,
   createAiChatStreamMessageMetadata,
   sanitizeFinishedMessages,
 } from "../src/app/api/ai/chat/[documentId]/route-helpers";
@@ -64,4 +65,31 @@ test("createAiChatStreamMessageMetadata adds edit plan metadata on finish for st
 
   assert.equal(finishMetadata.editPlan?.summary, "已更新任务。");
   assert.equal(finishMetadata.editPlan?.requestedCount, 1);
+});
+
+test("applyEditPlanMetadata adds edit plans for deterministic edit payloads", () => {
+  const message = {
+    id: "msg_deterministic",
+    metadata: {
+      createdAt: "2026-05-25T00:00:00.000Z",
+      documentAction: "edit_blocks",
+      modelKey: "primary",
+      modelName: "deepseek-v4-flash",
+      responseMode: null,
+      selection: null,
+      threadId: "thread_1",
+    },
+    parts: [
+      {
+        text: '{"summary":"已调整标题层级。","operations":[{"blockId":"block_1","level":3,"type":"set_heading_level"}]}',
+        type: "text",
+      },
+    ],
+    role: "assistant",
+  } satisfies AiChatMessage;
+
+  const nextMessage = applyEditPlanMetadata(message, "edit_blocks");
+
+  assert.equal(nextMessage.metadata?.editPlan?.summary, "已调整标题层级。");
+  assert.equal(nextMessage.metadata?.editPlan?.requestedCount, 1);
 });

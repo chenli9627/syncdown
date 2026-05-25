@@ -255,12 +255,13 @@ export async function respondWithDeterministicEditPayload({
       threadId,
     },
   );
+  const finalizedAssistantMessage = applyEditPlanMetadata(assistantMessage, documentAction);
   const latestState = await readStoredState();
   const saveResult = saveAiChatThreadMessages(
     latestState,
     userId,
     documentId,
-    [...userMessages, assistantMessage],
+    [...userMessages, finalizedAssistantMessage],
     { threadId },
   );
 
@@ -277,7 +278,7 @@ export async function respondWithDeterministicEditPayload({
       execute: ({ writer }) => {
         writer.write({
           messageId,
-          messageMetadata: assistantMessage.metadata,
+          messageMetadata: finalizedAssistantMessage.metadata,
           type: "start",
         });
         writer.write({ type: "start-step" });
@@ -287,7 +288,7 @@ export async function respondWithDeterministicEditPayload({
         writer.write({ type: "finish-step" });
         writer.write({
           finishReason: "stop",
-          messageMetadata: assistantMessage.metadata,
+          messageMetadata: finalizedAssistantMessage.metadata,
           type: "finish",
         });
       },
@@ -305,7 +306,7 @@ function findLastAssistantMessageIndex(messages: AiChatMessage[]) {
   return -1;
 }
 
-function applyEditPlanMetadata(
+export function applyEditPlanMetadata(
   message: AiChatMessage,
   documentAction: AiChatDocumentAction | null,
 ) {

@@ -61,6 +61,21 @@ test("builds deterministic exact text replacement operations", () => {
     ],
     summary: "已将“烤鸭”改为“北京烤鸭”。",
   });
+
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("把“烤鸭”改成“北京烤鸭”。", documentBlocks),
+    {
+      operations: [
+        {
+          blockId: "block_3",
+          replacementText: "北京烤鸭",
+          targetText: "烤鸭",
+          type: "replace_text_in_block",
+        },
+      ],
+      summary: "已将“烤鸭”改为“北京烤鸭”。",
+    },
+  );
 });
 
 test("builds deterministic containing-block replacement operations", () => {

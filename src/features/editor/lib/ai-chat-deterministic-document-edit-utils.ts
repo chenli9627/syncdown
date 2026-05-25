@@ -36,8 +36,7 @@ export function cleanTarget(value: string | undefined) {
 export function cleanValue(value: string | undefined) {
   return (value ?? "")
     .trim()
-    .replace(/^[“"'`\s]+|[”"'`\s]+$/g, "")
-    .replace(/[。！？]+$/u, "")
+    .replace(/^[“"'`\s]+|[”"'`\s。！？]+$/g, "")
     .trim();
 }
 
