@@ -21,6 +21,7 @@ import {
 } from "@/features/editor/components/editor-collaborator-avatar-stack";
 import { useEditorBlockDrag } from "@/features/editor/hooks/use-editor-block-drag";
 import type { RemoteAwarenessEntry } from "@/features/editor/hooks/use-editor-collaboration";
+import { useEditorScrollClamp } from "@/features/editor/hooks/use-editor-scroll-clamp";
 import type { AiActionKind } from "@/features/editor/lib/ai";
 import {
   BLOCK_ELEMENT_SELECTOR,
@@ -223,6 +224,11 @@ export function EditorCanvas({
       setBlockMenu(value);
     },
     syncHoveredBlockFromPos,
+  });
+
+  useEditorScrollClamp({
+    editor,
+    editorContainerRef,
   });
 
   useEffect(() => {
