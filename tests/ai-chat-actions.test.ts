@@ -16,6 +16,7 @@ test("infers insert-end action from Chinese document placement requests", () => 
     "edit_blocks",
   );
   assert.equal(inferAiChatDocumentAction("将总结放入文档末尾并添加标题"), "edit_blocks");
+  assert.equal(inferAiChatDocumentAction("总结全文并将总结插入文末"), "edit_blocks");
   assert.equal(inferAiChatDocumentAction("把总结追加到最后"), "edit_blocks");
 });
 

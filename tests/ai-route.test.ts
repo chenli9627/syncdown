@@ -265,6 +265,6 @@ test("falls back to chat completions when responses endpoint does not return con
     ],
     ok: true,
     source: "remote",
-    viewOnly: true,
+    viewOnly: false,
   });
 });

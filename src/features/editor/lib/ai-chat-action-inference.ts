@@ -118,10 +118,10 @@ function isManualUndoPrompt(compactPrompt: string, lowerPrompt: string) {
 
 function isInsertEndPrompt(compactPrompt: string, lowerPrompt: string) {
   return (
-    /(?:放到|放入|放进|放在|写入|插入到|插入进|添加到|添加在|加入到|加到|追加到).{0,12}(?:文档)?(?:末尾|最后|结尾|底部)/.test(
+    /(?:放到|放入|放进|放在|写入|插入到|插入进|插入|添加到|添加在|添加|加入到|加入|加到|追加到|追加).{0,12}(?:文档)?(?:文末|末尾|最后|结尾|底部)/.test(
       compactPrompt,
     ) ||
-    /(?:文档)?(?:末尾|最后|结尾|底部).{0,12}(?:放|写入|插入|添加|加入|加|追加)/.test(
+    /(?:文档)?(?:文末|末尾|最后|结尾|底部).{0,12}(?:放|写入|插入|添加|加入|加|追加)/.test(
       compactPrompt,
     ) ||
     /\b(?:append|insert|add|place)\b[\s\S]{0,120}\b(?:end|bottom)\b[\s\S]{0,60}\b(?:document|doc|page)\b/.test(
