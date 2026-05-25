@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import {
-  createUIMessageStream,
-  createUIMessageStreamResponse,
   convertToModelMessages,
   createIdGenerator,
   stepCountIs,
@@ -22,13 +20,7 @@ import {
   getAiChatThreadsForUser,
   saveAiChatThreadMessages,
 } from "@/features/app-state/lib/mutations";
-import { sanitizeAiChatMessage } from "@/features/editor/lib/ai-chat-output-guard";
-import { buildDeterministicAiDocumentEditPayload } from "@/features/editor/lib/ai-chat-deterministic-document-edit";
-import {
-  getAiChatClarificationReply,
-  getAiChatUnsupportedReply,
-} from "@/features/editor/lib/ai-chat-intent-fallback";
-import { planAiChatIntent } from "@/features/editor/lib/ai-chat-intent-planner";
+import { planAiChatServerTurn } from "@/features/editor/lib/ai-chat-server-turn-plan";
 import {
   createAiChatModel,
   getAiChatModelConfig,
@@ -37,6 +29,16 @@ import {
 import { readStoredState, writeStoredState } from "@/lib/server/state-store";
 import { aiWebFetchTools } from "@/lib/server/ai-web-fetch";
 import { guardPseudoToolCallText } from "@/lib/server/ai-output-guard";
+import {
+  formatAiChatStreamError,
+  getMessageText,
+  getNoMoreToolCallsInstruction,
+  replaceMessageText,
+  respondWithAssistantText,
+  respondWithDeterministicEditPayload,
+  sanitizeFinishedMessages,
+  withChatMetadata,
+} from "./route-helpers";
 import { buildDocumentChatSystemPrompt } from "./prompt";
 
 export const maxDuration = 60;
@@ -154,23 +156,16 @@ export async function POST(request: Request, context: RouteContext) {
   await writeStoredState(saveUserMessageResult.state);
   const activeThreadId = saveUserMessageResult.thread.id;
   const effectivePrompt = body.resolvedPrompt?.trim() || getMessageText(incomingMessage);
-  const serverIntentPlan = planAiChatIntent(effectivePrompt, {
+  const serverTurnPlan = planAiChatServerTurn({
     documentBlocks: body.documentBlocks ?? [],
     documentText: body.documentText ?? "",
-    hasRecentAssistantAnswer: hasRecentSubstantiveAssistantAnswer(messages),
-    hasRecentDocumentAction: hasRecentDocumentAction(messages),
-    hasSelection: Boolean(body.selection?.text?.trim()),
+    messages,
+    prompt: effectivePrompt,
+    selection: body.selection ?? null,
   });
-  const documentAction =
-    serverIntentPlan.kind === "edit" ? serverIntentPlan.documentAction : null;
-  const responseMode =
-    serverIntentPlan.kind === "edit" || serverIntentPlan.kind === "chat"
-      ? serverIntentPlan.responseMode
-      : null;
-
-  if (serverIntentPlan.kind === "clarify") {
+  if (serverTurnPlan.kind === "clarify") {
     return respondWithAssistantText({
-      clarificationKind: serverIntentPlan.clarification.kind,
+      clarificationKind: serverTurnPlan.clarificationKind,
       documentAction: null,
       documentId,
       messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
@@ -178,14 +173,14 @@ export async function POST(request: Request, context: RouteContext) {
       modelName: modelConfig.name,
       responseMode: null,
       selection: body.selection ?? null,
-      text: getAiChatClarificationReply(serverIntentPlan.clarification.kind, effectivePrompt),
+      text: serverTurnPlan.text,
       threadId: activeThreadId,
       userId: body.userId,
       userMessages: messages,
     });
   }
 
-  if (serverIntentPlan.kind === "unsupported") {
+  if (serverTurnPlan.kind === "unsupported") {
     return respondWithAssistantText({
       documentAction: null,
       documentId,
@@ -194,12 +189,14 @@ export async function POST(request: Request, context: RouteContext) {
       modelName: modelConfig.name,
       responseMode: null,
       selection: body.selection ?? null,
-      text: getAiChatUnsupportedReply(serverIntentPlan.reason, effectivePrompt),
+      text: serverTurnPlan.text,
       threadId: activeThreadId,
       userId: body.userId,
       userMessages: messages,
     });
   }
+  const documentAction = serverTurnPlan.documentAction;
+  const responseMode = serverTurnPlan.responseMode;
 
   const systemPrompt = buildDocumentChatSystemPrompt(
     body.documentTitle ?? "",
@@ -211,22 +208,15 @@ export async function POST(request: Request, context: RouteContext) {
     responseMode,
     body.applicationStatusNotices ?? [],
   );
-  const deterministicPayload =
-    documentAction === "edit_blocks"
-      ? buildDeterministicAiDocumentEditPayload(
-          effectivePrompt,
-          body.documentBlocks ?? [],
-        )
-      : null;
 
-  if (deterministicPayload) {
+  if (serverTurnPlan.kind === "deterministic_edit") {
     return respondWithDeterministicEditPayload({
       documentAction,
       documentId,
       messageId: createIdGenerator({ prefix: "ai_msg", size: 16 })(),
       modelKey,
       modelName: modelConfig.name,
-      payloadText: JSON.stringify(deterministicPayload),
+      payloadText: serverTurnPlan.payloadText,
       responseMode,
       selection: body.selection ?? null,
       threadId: activeThreadId,
@@ -297,32 +287,6 @@ export async function POST(request: Request, context: RouteContext) {
   });
 }
 
-function sanitizeFinishedMessages(
-  messages: AiChatMessage[],
-  documentAction: AiChatDocumentAction | null,
-  responseMode: AiChatResponseMode | null,
-) {
-  const lastAssistantIndex = findLastAssistantMessageIndex(messages);
-
-  return messages.map((message, index) =>
-    sanitizeAiChatMessage(
-      message,
-      index === lastAssistantIndex ? documentAction : null,
-      index === lastAssistantIndex ? responseMode : null,
-    ),
-  );
-}
-
-function findLastAssistantMessageIndex(messages: AiChatMessage[]) {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === "assistant") {
-      return index;
-    }
-  }
-
-  return -1;
-}
-
 export async function DELETE(request: Request, context: RouteContext) {
   const { documentId } = await context.params;
   const url = new URL(request.url);
@@ -355,258 +319,4 @@ export async function DELETE(request: Request, context: RouteContext) {
     },
     threads: result.threads,
   });
-}
-
-function getNoMoreToolCallsInstruction(documentAction: AiChatDocumentAction | null) {
-  const baseInstruction =
-    "You have already attempted the available web fetches. Do not call any more tools in this step. Give the user a visible final answer based only on the available tool results.";
-
-  if (documentAction === "edit_blocks") {
-    return `${baseInstruction} If the requested current web data could not be fetched reliably, return exactly valid JSON with a short Chinese summary and an empty operations array, for example {"summary":"无法获取可靠的实时网页数据，未修改文档。","operations":[]}.`;
-  }
-
-  return `${baseInstruction} If the requested current web data could not be fetched reliably, say so briefly in Chinese and do not invent the data.`;
-}
-
-function withChatMetadata(
-  message: AiChatMessage,
-  metadata: Omit<NonNullable<AiChatMessage["metadata"]>, "createdAt">,
-): AiChatMessage {
-  return {
-    ...message,
-    metadata: {
-      ...message.metadata,
-      ...metadata,
-      createdAt: message.metadata?.createdAt ?? new Date().toISOString(),
-    },
-  };
-}
-
-function replaceMessageText(message: AiChatMessage, text: string): AiChatMessage {
-  return {
-    ...message,
-    parts: [
-      {
-        text,
-        type: "text",
-      },
-    ],
-  };
-}
-
-function getMessageText(message: AiChatMessage) {
-  return message.parts
-    .map((part) => (part.type === "text" ? part.text : ""))
-    .join("")
-    .trim();
-}
-
-function formatAiChatStreamError(error: unknown) {
-  const message =
-    error instanceof Error ? error.message.trim() : typeof error === "string" ? error.trim() : "";
-  const lowerMessage = message.toLowerCase();
-
-  if (
-    lowerMessage.includes("content exists risk") ||
-    lowerMessage.includes("content risk") ||
-    lowerMessage.includes("safety") ||
-    lowerMessage.includes("moderation")
-  ) {
-    return "请求被模型服务拦截。请换一种表达，或切换到另一个模型后再试。";
-  }
-
-  if (lowerMessage.includes("service is not configured")) {
-    return "AI 服务未配置。";
-  }
-
-  return message || "AI 请求失败。";
-}
-
-async function respondWithDeterministicEditPayload({
-  documentAction,
-  documentId,
-  messageId,
-  modelKey,
-  modelName,
-  payloadText,
-  responseMode,
-  selection,
-  threadId,
-  userId,
-  userMessages,
-}: {
-  documentAction: AiChatDocumentAction | null;
-  documentId: string;
-  messageId: string;
-  modelKey: AiChatModelKey;
-  modelName: string;
-  payloadText: string;
-  responseMode: AiChatResponseMode | null;
-  selection: AiChatSelection | null;
-  threadId: string;
-  userId: string;
-  userMessages: AiChatMessage[];
-}) {
-  const assistantMessage = withChatMetadata(
-    {
-      id: messageId,
-      parts: [{ text: payloadText, type: "text" }],
-      role: "assistant",
-    },
-    {
-      documentAction,
-      modelKey,
-      modelName,
-      responseMode,
-      selection,
-      threadId,
-    },
-  );
-  const latestState = await readStoredState();
-  const saveResult = saveAiChatThreadMessages(
-    latestState,
-    userId,
-    documentId,
-    [...userMessages, assistantMessage],
-    { threadId },
-  );
-
-  if (!saveResult.ok) {
-    return NextResponse.json({ error: saveResult.error }, { status: 403 });
-  }
-
-  await writeStoredState(saveResult.state);
-
-  return createUIMessageStreamResponse({
-    stream: createUIMessageStream<AiChatMessage>({
-      onError: (error) => formatAiChatStreamError(error),
-      originalMessages: userMessages,
-      execute: ({ writer }) => {
-        writer.write({
-          messageId,
-          messageMetadata: assistantMessage.metadata,
-          type: "start",
-        });
-        writer.write({ type: "start-step" });
-        writer.write({ id: "txt-0", type: "text-start" });
-        writer.write({ delta: payloadText, id: "txt-0", type: "text-delta" });
-        writer.write({ id: "txt-0", type: "text-end" });
-        writer.write({ type: "finish-step" });
-        writer.write({
-          finishReason: "stop",
-          messageMetadata: assistantMessage.metadata,
-          type: "finish",
-        });
-      },
-    }),
-  });
-}
-
-async function respondWithAssistantText({
-  clarificationKind,
-  documentAction,
-  documentId,
-  messageId,
-  modelKey,
-  modelName,
-  responseMode,
-  selection,
-  text,
-  threadId,
-  userId,
-  userMessages,
-}: {
-  clarificationKind?: string;
-  documentAction: AiChatDocumentAction | null;
-  documentId: string;
-  messageId: string;
-  modelKey: AiChatModelKey;
-  modelName: string;
-  responseMode: AiChatResponseMode | null;
-  selection: AiChatSelection | null;
-  text: string;
-  threadId: string;
-  userId: string;
-  userMessages: AiChatMessage[];
-}) {
-  const assistantMessage = withChatMetadata(
-    {
-      id: messageId,
-      parts: [{ text, type: "text" }],
-      role: "assistant",
-    },
-    {
-      clarificationKind,
-      documentAction,
-      modelKey,
-      modelName,
-      responseMode,
-      selection,
-      threadId,
-    },
-  );
-  const latestState = await readStoredState();
-  const saveResult = saveAiChatThreadMessages(
-    latestState,
-    userId,
-    documentId,
-    [...userMessages, assistantMessage],
-    { threadId },
-  );
-
-  if (!saveResult.ok) {
-    return NextResponse.json({ error: saveResult.error }, { status: 403 });
-  }
-
-  await writeStoredState(saveResult.state);
-
-  return createUIMessageStreamResponse({
-    stream: createUIMessageStream<AiChatMessage>({
-      onError: (error) => formatAiChatStreamError(error),
-      originalMessages: userMessages,
-      execute: ({ writer }) => {
-        writer.write({
-          messageId,
-          messageMetadata: assistantMessage.metadata,
-          type: "start",
-        });
-        writer.write({ type: "start-step" });
-        writer.write({ id: "txt-0", type: "text-start" });
-        writer.write({ delta: text, id: "txt-0", type: "text-delta" });
-        writer.write({ id: "txt-0", type: "text-end" });
-        writer.write({ type: "finish-step" });
-        writer.write({
-          finishReason: "stop",
-          messageMetadata: assistantMessage.metadata,
-          type: "finish",
-        });
-      },
-    }),
-  });
-}
-
-function hasRecentDocumentAction(messages: AiChatMessage[]) {
-  return messages
-    .slice(-8)
-    .some((message) => Boolean(message.metadata?.documentAction));
-}
-
-function hasRecentSubstantiveAssistantAnswer(messages: AiChatMessage[]) {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-
-    if (message?.role !== "assistant") {
-      continue;
-    }
-
-    if (message.metadata?.documentAction || message.metadata?.clarificationKind) {
-      continue;
-    }
-
-    if (getMessageText(message).trim().length > 0) {
-      return true;
-    }
-  }
-
-  return false;
 }
