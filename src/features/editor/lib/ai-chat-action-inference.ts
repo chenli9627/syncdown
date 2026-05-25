@@ -301,6 +301,15 @@ function isHeadingLevelEditPrompt(compactPrompt: string, lowerPrompt: string) {
     ) ||
     /\b(?:heading|h[1-6])\b[\s\S]{0,80}\b(?:level|h[1-6]|heading\s+[1-6])\b[\s\S]{0,120}\b(?:change|update|set|make|turn)\b/.test(
       lowerPrompt,
+    ) ||
+    /(?:把|将)?(?:所有|全部)?标题(?:都)?(?:缩小|降级|降低|下调|放大|升级|升高|提高|上调)(?:一个)?等级/.test(
+      compactPrompt,
+    ) ||
+    /\b(?:demote|decrease|lower|promote|increase|raise)\b[\s\S]{0,80}\b(?:all\s+)?headings?\b[\s\S]{0,40}\b(?:one\s+level|by\s+one)\b/.test(
+      lowerPrompt,
+    ) ||
+    /\b(?:all\s+)?headings?\b[\s\S]{0,80}\b(?:demote|decrease|lower|promote|increase|raise)\b[\s\S]{0,40}\b(?:one\s+level|by\s+one)\b/.test(
+      lowerPrompt,
     )
   );
 }

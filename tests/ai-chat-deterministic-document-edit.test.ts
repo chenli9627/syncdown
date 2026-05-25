@@ -173,6 +173,19 @@ test("builds deterministic heading level operations for multiple headings", () =
   );
 });
 
+test("builds deterministic heading level shift operations for all headings", () => {
+  assert.deepEqual(
+    buildDeterministicAiDocumentEditPayload("把标题都缩小一个等级。", documentBlocks),
+    {
+      operations: [
+        { blockId: "block_1", level: 2, type: "set_heading_level" },
+        { blockId: "block_7", level: 3, type: "set_heading_level" },
+      ],
+      summary: "已将所有标题缩小一个等级。",
+    },
+  );
+});
+
 test("builds deterministic text mark operations", () => {
   assert.deepEqual(
     buildDeterministicAiDocumentEditPayload("把所有北京都加粗。", documentBlocks),
