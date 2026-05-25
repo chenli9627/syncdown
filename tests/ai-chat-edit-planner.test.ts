@@ -21,17 +21,28 @@ test("plans deterministic edits when a local payload exists", () => {
   assert.match(plan.payloadText, /set_heading_level/);
 });
 
-test("plans llm edits when the edit is supported but not deterministic", () => {
-  assert.deepEqual(
-    planAiChatEdit({
-      documentBlocks,
-      prompt: "把刚才的列表插入到文档末尾",
-      responseMode: null,
-    }),
-    {
-      documentAction: "edit_blocks",
-      kind: "llm_edit",
-      responseMode: null,
-    },
-  );
+test("plans deterministic edits from previous assistant content when available", () => {
+  const plan = planAiChatEdit({
+    documentBlocks,
+    messages: [
+      {
+        id: "msg_user",
+        metadata: { createdAt: new Date().toISOString() },
+        parts: [{ text: "介绍一下杭州", type: "text" }],
+        role: "user",
+      },
+      {
+        id: "msg_assistant",
+        metadata: { createdAt: new Date().toISOString() },
+        parts: [{ text: "- 西湖\n- 灵隐寺", type: "text" }],
+        role: "assistant",
+      },
+    ],
+    prompt: "把刚才的列表插入到文档末尾",
+    responseMode: null,
+  });
+
+  assert.equal(plan.kind, "deterministic_edit");
+  assert.match(plan.payloadText, /insert_after_block/);
+  assert.match(plan.payloadText, /西湖/);
 });

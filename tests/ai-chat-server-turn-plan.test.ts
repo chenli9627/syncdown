@@ -57,7 +57,7 @@ test("plans llm turns for ordinary chat prompts", () => {
   });
 });
 
-test("plans llm edit turns when the edit is supported but not deterministic", () => {
+test("plans deterministic edit turns when previous assistant content can be inserted", () => {
   const messages: AiChatMessage[] = [
     {
       id: "msg_user",
@@ -79,9 +79,8 @@ test("plans llm edit turns when the edit is supported but not deterministic", ()
     prompt: "把刚才的列表插入到文档末尾",
   });
 
-  assert.deepEqual(plan, {
-    documentAction: "edit_blocks",
-    kind: "llm_edit",
-    responseMode: null,
-  });
+  assert.equal(plan.kind, "deterministic_edit");
+  assert.equal(plan.documentAction, "edit_blocks");
+  assert.match(plan.payloadText, /insert_after_block/);
+  assert.match(plan.payloadText, /灵隐寺/);
 });

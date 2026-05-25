@@ -73,6 +73,7 @@ export function planAiChatServerTurn({
   if (intentPlan.kind === "edit") {
     return planAiChatEdit({
       documentBlocks,
+      messages,
       prompt,
       responseMode: intentPlan.responseMode,
     });
