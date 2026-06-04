@@ -5,7 +5,7 @@
       "email": "one@syntext.dev",
       "username": "one",
       "name": "One",
-      "password": "onepass123",
+      "password": "scrypt$f5e27f7cccfb9e48526a20ac5d7b8c7f$ef0651074b11f60c20f629c4f7541360bfc19d8cdf35b2fa63911343a6349adce154d88bc083ce969d828559f2ef8c8502fc7dd759b62d89f02ccffc2604d623",
       "avatarUrl": null,
       "createdAt": "2026-04-08T06:12:12.415Z"
     },
@@ -14,7 +14,7 @@
       "email": "two@syntext.dev",
       "username": "two",
       "name": "Two",
-      "password": "twopass123",
+      "password": "scrypt$1fe96a0c97b950fa5bbdea20ce5d1462$a9464af38dfca0aa93cc7f0d95af1e5b4e50c8f134b04a0830149f300cda16e14a35d1069bc9fcc3eb2d519ba64690f142a822c52039d9c11e341632855b398d",
       "avatarUrl": null,
       "createdAt": "2026-04-08T06:12:12.415Z"
     }
